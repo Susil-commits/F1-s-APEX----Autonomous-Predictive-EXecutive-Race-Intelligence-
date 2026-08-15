@@ -56,11 +56,12 @@ class RuleEngine:
         # ---------------------------------------------------------
         # Rule 2: Opportunistic Safety Car / VSC Pit Stop
         # ---------------------------------------------------------
-        if state.safety_car in (SafetyCarStatus.SAFETY_CAR, SafetyCarStatus.VSC):
+        sc_val = state.safety_car.value if hasattr(state.safety_car, "value") else str(state.safety_car)
+        if sc_val in ("SAFETY_CAR", "VSC"):
             # If tyres have significant wear and we haven't pitted in last 10 laps
             if car.tyre_wear_pct > 38.0 and car.laps_since_last_pit > 8 and laps_remaining > 5:
-                advantage = state.track.sc_pit_advantage_s if state.safety_car == SafetyCarStatus.SAFETY_CAR else state.track.vsc_pit_advantage_s
-                factors.append(f"Opportunistic pit under {state.safety_car.value}: saves ~{advantage:.1f}s pit loss delta.")
+                advantage = state.track.sc_pit_advantage_s if sc_val == "SAFETY_CAR" else state.track.vsc_pit_advantage_s
+                factors.append(f"Opportunistic pit under {sc_val}: saves ~{advantage:.1f}s pit loss delta.")
                 
                 # Pick optimal compound for remaining race distance
                 rec_compound = cls._select_dry_compound(laps_remaining)

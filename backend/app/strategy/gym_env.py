@@ -16,6 +16,8 @@ ACTION_MAP = {
     3: StrategyAction.PIT_SOFT,
     4: StrategyAction.PIT_MEDIUM,
     5: StrategyAction.PIT_HARD,
+    6: StrategyAction.PIT_INTER,
+    7: StrategyAction.PIT_WET,
 }
 
 
@@ -30,8 +32,8 @@ class ApexRaceGymEnv(gym.Env):
         self.default_seed = seed
         self.sim: Optional[RaceSimulator] = None
 
-        # 6 discrete actions
-        self.action_space = spaces.Discrete(6)
+        # 8 discrete strategic actions
+        self.action_space = spaces.Discrete(8)
 
         # 28 continuous normalized features
         self.observation_space = spaces.Box(
@@ -64,58 +66,100 @@ class ApexRaceGymEnv(gym.Env):
         player_before = self.sim.get_player_car()
         prev_pos = player_before.position
         prev_gap_to_leader = player_before.gap_to_leader_s
+        prev_wear = player_before.tyre_wear_pct
 
         # Advance simulator
         state = self.sim.step(player_action=strat_action)
         player = self.sim.get_player_car()
 
         # -------------------------------------------------------------
-        # Reward Shaping
+        # Reward Shaping Formulation
         # -------------------------------------------------------------
         reward = 0.0
 
-        # 1. Position change reward (overtaking is rewarded, losing positions penalized)
+        # 1. Track Position Delta (Overtakes rewarded, position drops penalized)
         pos_change = prev_pos - player.position
-        reward += pos_change * 2.5
+        reward += pos_change * 3.0
 
-        # 2. Pace / Gap change
+        # 2. Gap to Leader Delta
         if player.position > 1:
             gap_delta = prev_gap_to_leader - player.gap_to_leader_s
-            reward += np.clip(gap_delta * 0.15, -1.0, 1.0)
+            reward += np.clip(gap_delta * 0.2, -1.5, 1.5)
         else:
-            reward += 0.5  # Leading the race bonus
+            reward += 0.75  # Clean air race lead bonus
 
-        # 3. Penalties for critical strategic errors
-        # Severe penalty for driving on blown tyres
-        if player.tyre_cliff_reached and player.tyre_wear_pct > 88.0:
-            reward -= 2.0
+        # 3. Driving Mode & Tyre Preservation
+        is_pit_action = strat_action in (
+            StrategyAction.PIT_SOFT,
+            StrategyAction.PIT_MEDIUM,
+            StrategyAction.PIT_HARD,
+            StrategyAction.PIT_INTER,
+            StrategyAction.PIT_WET,
+        )
 
-        # Severe penalty for wrong tyres in wet weather
-        if state.weather.condition == TrackCondition.WET and player.tyre_compound in (TyreCompound.SOFT, TyreCompound.MEDIUM, TyreCompound.HARD):
-            reward -= 5.0
+        # Severe penalty for driving on blown tyres (tyre cliff reached or wear > 75%)
+        if player.tyre_cliff_reached or player.tyre_wear_pct > 75.0:
+            cliff_severity = ((player.tyre_wear_pct - 75.0) / 10.0) ** 2
+            reward -= (3.0 + cliff_severity)
+            if player.tyre_wear_pct > 85.0:
+                reward -= 10.0  # Catastrophic wear penalty
 
-        # Penalty for excessive/pointless consecutive pit stops
-        if strat_action in (StrategyAction.PIT_SOFT, StrategyAction.PIT_MEDIUM, StrategyAction.PIT_HARD):
-            if player.tyre_wear_pct < 25.0 and state.weather.condition == TrackCondition.DRY and state.safety_car == "NONE":
-                reward -= 4.0  # Wasted pit stop penalty
+        # Rewarding timely pit stops when tyre life is depleted
+        if is_pit_action:
+            if prev_wear >= 65.0 or player_before.tyre_cliff_reached:
+                reward += 6.0  # Timely pit stop incentive
+                if state.safety_car in ("VSC", "SAFETY_CAR"):
+                    reward += 5.0  # Opportunistic pit under safety car
+            elif prev_wear < 35.0 and state.weather.condition == TrackCondition.DRY and state.safety_car == "NONE":
+                reward -= 8.0  # Wasteful pit stop penalty on fresh tyres
 
-        # 4. Terminal Rewards
+        # Pushing on heavily degraded tyres is heavily penalized
+        if strat_action == StrategyAction.PUSH and player.tyre_wear_pct > 65.0:
+            reward -= 2.5
+
+        # 4. Weather Compound Appropriateness
+        is_wet = state.weather.condition == TrackCondition.WET or "WET" in str(state.weather.condition).upper()
+        is_damp = state.weather.condition == TrackCondition.DAMP or "DAMP" in str(state.weather.condition).upper()
+        is_dry = state.weather.condition == TrackCondition.DRY or "DRY" in str(state.weather.condition).upper()
+        
+        is_slick = player.tyre_compound in (TyreCompound.SOFT, TyreCompound.MEDIUM, TyreCompound.HARD) or any(c in str(player.tyre_compound).upper() for c in ("SOFT", "MEDIUM", "HARD"))
+        is_rain_tyre = player.tyre_compound in (TyreCompound.INTERMEDIATE, TyreCompound.WET) or any(c in str(player.tyre_compound).upper() for c in ("INTER", "WET"))
+
+        if is_wet:
+            if is_slick:
+                reward -= 12.0  # Driving on slicks in wet
+            elif is_pit_action and strat_action == StrategyAction.PIT_WET:
+                reward += 8.0  # Tactical switch to wet compound
+        elif is_damp:
+            if is_rain_tyre:
+                reward += 1.5  # Appropriate tyre for damp conditions
+            elif is_pit_action and strat_action == StrategyAction.PIT_INTER:
+                reward += 6.0
+        elif is_dry:
+            if is_rain_tyre:
+                reward -= 6.0  # Driving wet tyres on bone dry track
+
+        # 5. Terminal Horizon Rewards
         terminated = state.is_finished
         truncated = False
 
         if terminated:
             if player.position == 1:
-                reward += 60.0
+                reward += 100.0
             elif player.position == 2:
-                reward += 40.0
+                reward += 60.0
             elif player.position == 3:
-                reward += 25.0
+                reward += 40.0
             elif player.position <= 5:
-                reward += 15.0
+                reward += 25.0
             elif player.position <= 10:
-                reward += 5.0
+                reward += 10.0
             else:
-                reward -= 10.0
+                reward -= 20.0
+
+            # Bonus for completing race without blown tyre laps
+            if not player.tyre_cliff_reached:
+                reward += 15.0
 
         obs = FeatureBuilder.extract_features(state)
         info = {
