@@ -435,6 +435,3 @@ uv run python backend/training/train_dqn.py --steps 15000
 ```
 
 ---
-
-## 📄 License
-MIT License. Created by Susil.
