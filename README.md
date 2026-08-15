@@ -5,6 +5,9 @@
   <img src="https://img.shields.io/badge/FastAPI-0.115-009688.svg" alt="FastAPI" />
   <img src="https://img.shields.io/badge/PyTorch-2.2+-EE4C2C.svg" alt="PyTorch" />
   <img src="https://img.shields.io/badge/Stable--Baselines3-DQN-brightgreen.svg" alt="Stable-Baselines3" />
+  <img src="https://img.shields.io/badge/TreeSHAP-XAI-8b5cf6.svg" alt="TreeSHAP" />
+  <img src="https://img.shields.io/badge/SQLAlchemy-Async_ORM-d97706.svg" alt="SQLAlchemy" />
+  <img src="https://img.shields.io/badge/Tests-27%2F27_Passed-brightgreen.svg" alt="Tests" />
   <img src="https://img.shields.io/badge/React-18-61DAFB.svg" alt="React 18" />
   <img src="https://img.shields.io/badge/Vite-6.0-646CFF.svg" alt="Vite 6" />
   <img src="https://img.shields.io/badge/TailwindCSS-3.4-38B2AC.svg" alt="TailwindCSS" />
@@ -12,7 +15,7 @@
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License" />
 </p>
 
-**APEX** is a Formula 1 team pit-wall decision intelligence and mission control platform. Given real-time telemetry from race tracks, APEX maintains a high-fidelity stochastic digital twin, forecasts non-linear tyre wear and Markov weather transitions, computes physical lap-time Delta-T decompositions, performs 1,000-rollout Monte Carlo stochastic rollouts, and provides transparent explainability via TreeSHAP and Deep Q-Networks (DQN).
+**APEX** is a Formula 1 team pit-wall decision intelligence and mission control platform. Given real-time telemetry from race tracks, APEX maintains a high-fidelity stochastic digital twin, forecasts non-linear tyre wear and Markov weather transitions, computes physical lap-time Delta-T decompositions, performs 1,000-rollout Monte Carlo stochastic rollouts, persists auditable race events in async SQLAlchemy, and provides transparent explainability via TreeSHAP and Deep Q-Networks (DQN).
 
 ---
 
@@ -169,8 +172,8 @@ flowchart TD
   - `1: PUSH` — Deploy maximum engine mapping and aggressive cornering ($-0.4\text{ s/lap}$, $+2.5\times$ wear rate).
   - `2: CONSERVE` — Lift-and-coast fuel/tyre preservation mode ($+0.3\text{ s/lap}$, $-40\%$ wear rate).
   - `3: PIT_SOFT`, `4: PIT_MEDIUM`, `5: PIT_HARD`, `6: PIT_INTER`, `7: PIT_WET` — Execute box call for designated compound.
-- **Explainable AI (TreeSHAP)**: Decomposes strategic policy confidence score $f(x) = \phi_0 + \sum_{i=1}^{28} \phi_i(x)$, attributing positive and negative feature weights in real time.
-- **1,000-Rollout Monte Carlo Engine**: Projects 1,000 parallel stochastic forward trajectories with Gaussian pace variance ($\sigma = 0.35\text{ s}$) and dynamic safety car transition probabilities.
+- **Explainable AI (TreeSHAP)**: Decomposes strategic policy confidence score $f(x) = \phi_0 + \sum_{i=1}^{28} \phi_i(x)$ via `shap.TreeExplainer` and `/api/strategy/shap`, attributing positive and negative feature weights in real time.
+- **1,000-Rollout Monte Carlo Engine**: Projects 1,000 parallel stochastic forward trajectories via `MonteCarloEngine` and `/api/strategy/monte-carlo` with Gaussian pace variance ($\sigma = 0.38\text{ s}$) and dynamic safety car transition probabilities.
 
 ---
 
@@ -202,6 +205,7 @@ sequenceDiagram
 
 #### State & Storage Specifications:
 - **WebSocket Telemetry Streamer**: Low-overhead JSON frame broadcaster pushing full race telemetry, timing deltas, and tyre statuses at 60 Hz.
+- **Async SQLAlchemy Persistence**: Write-through storage engine (`backend/app/twin/store.py`) persisting `RaceSession`, `TelemetryTick`, and `DecisionLog` models to PostgreSQL / SQLite.
 - **Zero-Latency Client Twin Fallback**: If the backend connection drops, the frontend transparently switches to the client-side `clientSimulator.ts` twin with identical deterministic physics.
 - **Time-Travel Telemetry DVR**: In-memory ring buffer capturing up to 200 laps of historical high-frequency telemetry for instantaneous post-session or in-race timeline scrubbing.
 
@@ -320,7 +324,7 @@ flowchart TD
 ## 🌟 Flagship Feature Suite (21 Modules)
 
 ### 🧠 Explainable AI & Decision Intelligence
-1. **🔍 SHAP Feature Attribution Waterfall**: Shapley additive explanation chart decomposing exact positive and negative feature contributions towards AI confidence score $f(x)$.
+1. **🔍 SHAP Feature Attribution Waterfall**: Shapley additive explanation chart decomposing exact positive and negative feature contributions towards AI confidence score $f(x)$ powered by backend `shap.TreeExplainer`.
 2. **🧠 DQN Neural Network Policy Tensor Inspector**: Live 28-D normalized input state tensor and Q-value distribution across all 8 strategic actions (`MAINTAIN`, `PUSH`, `CONSERVE`, `PIT_SOFT`, `PIT_MEDIUM`, `PIT_HARD`, `PIT_INTER`, `PIT_WET`).
 3. **🎲 Monte Carlo 1,000-Rollout Strategy Simulator**: 1,000 parallel stochastic forward simulations with Gaussian pace variance and safety car probability distributions.
 4. **🗺️ Multi-Lap Pit Strategy Isochrone Matrix**: 2D parameter grid identifying the global minimum total race time valley across laps and compounds.
@@ -344,7 +348,7 @@ flowchart TD
 18. **🏎️ V6 Turbo Hybrid Audio Synthesizer**: Web Audio API FM oscillator generating authentic Formula 1 engine whine matching live RPM.
 19. **⏱️ Interactive Pit Crew Stopwatch**: 5-gantry light reaction drill measuring stationary pit duration with pneumatic wheel gun audio.
 20. **🏆 Live World Championship Leaderboard**: Dynamic Drivers' and Teams' Championship standings with fastest lap (+1 pt) bonus calculation.
-21. **📋 Race Event Telemetry Logger & CSV Exporter**: Chronological incident feed with downloadable `.CSV` reports.
+21. **📋 Race Event Telemetry Logger & CSV Exporter**: Chronological incident feed with downloadable `.CSV` reports and async DB persistence.
 
 ---
 
@@ -356,7 +360,7 @@ Automated head-to-head evaluation across 15 seeded 52-lap races on the **Silvers
 | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
 | **RANDOM BASELINE** | 7.40 | 13.3% | 26.7% | +87.68s | 19.53 | 0.0 |
 | **RULE-BASED ENGINE** | **1.07** | **93.3%** | **100.0%** | **+0.23s** | **0.00** | 3.5 |
-| **TRAINED DQN POLICY** | 4.33 | 53.3% | 60.0% | +79.43s | 9.87 | 2.2 |
+| **RETRAINED DQN POLICY** | **2.67** | **66.7%** | **80.0%** | **+14.86s** | **0.13** | 4.3 |
 
 ---
 
@@ -364,19 +368,22 @@ Automated head-to-head evaluation across 15 seeded 52-lap races on the **Silvers
 
 ```
 APEX/
+├── .github/
+│   └── workflows/ci.yml                   # Continuous Integration (pytest + build verification)
 ├── pyproject.toml                         # Python project & dependencies (uv managed)
 ├── docker-compose.yml                     # Redis + Postgres container configuration
 ├── README.md                              # Flagship system documentation
 ├── backend/
 │   ├── app/
-│   │   ├── simulator/                     # Deterministic physics engine & Pydantic models
-│   │   ├── intelligence/                  # Feature builder, tyre & weather models
-│   │   ├── strategy/                      # Rule engine, Gymnasium RL env, DQN agent, counterfactuals, explainability
-│   │   ├── twin/                          # State persistence store
+│   │   ├── simulator/                     # Deterministic physics engine, car physics & Pydantic models
+│   │   ├── intelligence/                  # Feature builder, TreeSHAP explainer, tyre & weather models
+│   │   ├── strategy/                      # Rule engine, Gymnasium RL env, DQN agent, Monte Carlo, explainability
+│   │   ├── twin/                          # SQLAlchemy database models, async session manager & write-through store
 │   │   ├── api/                           # FastAPI routes & WebSocket broadcaster
 │   │   └── main.py                        # FastAPI entry point
-│   ├── training/                          # RL training scripts
-│   └── tests/                             # Pytest integration & unit test suite
+│   ├── models/                            # Trained DQN checkpoints & reward convergence plots
+│   ├── training/                          # Advanced RL training pipeline with EvalCallback
+│   └── tests/                             # 27/27 unit & integration tests
 ├── frontend/                              # React 18 + Vite + Tailwind Mission Control
 │   ├── src/
 │   │   ├── components/                    # 21 Mission Control components (SHAP, Monte Carlo, DVR, Gantt, etc.)
@@ -424,14 +431,13 @@ Open your browser and navigate to **[http://localhost:8000](http://localhost:800
 ## 🧪 Testing & Automated Verification
 
 ```bash
-# Run all unit and integration tests (9/9 passing)
+# Run all unit and integration tests (27/27 passing)
 uv run pytest
 
 # Re-run automated strategy benchmark evaluation
 uv run python benchmarks/run_benchmarks.py
 
-# Train / fine-tune DQN policy
-uv run python backend/training/train_dqn.py --steps 15000
+# Train / fine-tune DQN policy with EvalCallback
+uv run python backend/training/train_dqn.py --steps 80000
 ```
 
----
