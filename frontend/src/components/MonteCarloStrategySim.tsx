@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useRaceStore } from '../store/raceStore';
 import {
   ResponsiveContainer,
@@ -17,9 +17,35 @@ export const MonteCarloStrategySim: React.FC = () => {
   const [numRollouts, setNumRollouts] = useState<number>(1000);
   const [selectedStrategy, setSelectedStrategy] = useState<'plan_a' | 'plan_b' | 'plan_c'>('plan_a');
   const [simSeed, setSimSeed] = useState<number>(1);
+  const [backendData, setBackendData] = useState<any>(null);
 
   const playerCar = raceState?.cars.find((c) => c.is_player) || raceState?.cars[0];
   const track = raceState?.track;
+  const currentLap = raceState?.current_lap || 1;
+
+  useEffect(() => {
+    let isMounted = true;
+    if (!playerCar) return;
+
+    fetch('/api/strategy/monte-carlo', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rollouts: numRollouts, target_car_id: playerCar.car_id }),
+    })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (isMounted && data && data.strategies) {
+          setBackendData(data);
+        }
+      })
+      .catch(() => {
+        // Fallback to client simulation if offline
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentLap, simSeed, numRollouts, playerCar?.car_id]);
 
   // Run 1,000-rollout stochastic Monte Carlo simulation
   const simulationResults = useMemo(() => {
@@ -77,8 +103,10 @@ export const MonteCarloStrategySim: React.FC = () => {
       winProb,
       podiumProb,
       expectedPoints,
+      backendConfidence: backendData?.confidence_pct,
+      recommendedPlan: backendData?.recommended_strategy,
     };
-  }, [raceState, playerCar, track, numRollouts, selectedStrategy, simSeed]);
+  }, [raceState, playerCar, track, numRollouts, selectedStrategy, simSeed, backendData]);
 
   const handleRerun = () => {
     setSimSeed((prev) => prev + 1);

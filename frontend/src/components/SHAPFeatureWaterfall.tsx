@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRaceStore } from '../store/raceStore';
 import {
   ResponsiveContainer,
@@ -12,56 +12,105 @@ import {
 } from 'recharts';
 import { Brain, Layers, CheckCircle2, TrendingUp, TrendingDown, Sparkles } from 'lucide-react';
 
+interface BackendSHAPFeature {
+  feature: string;
+  feature_value: number;
+  shap_value: number;
+  impact: string;
+}
+
 export const SHAPFeatureWaterfall: React.FC = () => {
   const { raceState } = useRaceStore();
+  const [backendSHAP, setBackendSHAP] = useState<{
+    base_value: number;
+    prediction: number;
+    top_features: BackendSHAPFeature[];
+  } | null>(null);
 
-  if (!raceState || !raceState.active_decision) return null;
+  const playerCar = raceState?.cars.find((c) => c.is_player) || raceState?.cars[0];
+  const decision = raceState?.active_decision;
+  const currentLap = raceState?.current_lap || 1;
 
-  const playerCar = raceState.cars.find((c) => c.is_player) || raceState.cars[0];
-  const decision = raceState.active_decision;
+  useEffect(() => {
+    let isMounted = true;
+    if (!playerCar) return;
+
+    fetch(`/api/strategy/shap?car_id=${playerCar.car_id}`)
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (isMounted && data && data.top_features) {
+          setBackendSHAP(data);
+        }
+      })
+      .catch(() => {
+        // Fallback to client synthesis if offline
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [currentLap, playerCar?.car_id, decision?.recommendation]);
+
+  if (!raceState || !decision || !playerCar) return null;
+
   const wear = playerCar.tyre_wear_pct;
   const isWet = raceState.weather.condition === 'WET';
   const isSC = raceState.safety_car !== 'NONE';
 
-  // Compute dynamic SHAP attribution values
-  const shapFeatures = [
-    {
-      feature: 'Base Intercept E[f(x)]',
-      value: 50.0,
-      isBase: true,
-      impact: 'Baseline decision probability',
-    },
-    {
-      feature: 'Tyre Degradation Delta',
-      value: parseFloat((wear > 75 ? 32.5 : wear > 50 ? 18.2 : -8.5).toFixed(1)),
-      isBase: false,
-      impact: `${wear.toFixed(1)}% wear level`,
-    },
-    {
-      feature: 'Rain / Wet Track Risk',
-      value: parseFloat((isWet ? 28.4 : raceState.weather.rain_probability_next_5_laps > 0.3 ? 14.5 : -5.0).toFixed(1)),
-      isBase: false,
-      impact: `${(raceState.weather.rain_probability_next_5_laps * 100).toFixed(0)}% Markov risk`,
-    },
-    {
-      feature: 'Safety Car Advantage',
-      value: parseFloat((isSC ? 38.0 : -4.0).toFixed(1)),
-      isBase: false,
-      impact: isSC ? `SC saves ~${raceState.track.sc_pit_advantage_s}s` : 'Green flag pacing',
-    },
-    {
-      feature: 'Rejoin Traffic Penalty',
-      value: parseFloat((playerCar.position <= 3 ? -12.4 : -4.8).toFixed(1)),
-      isBase: false,
-      impact: 'Dirty air risk on pit exit',
-    },
-    {
-      feature: 'Fuel Burn-Off Weight',
-      value: parseFloat((playerCar.fuel_kg < 40 ? 6.2 : -2.5).toFixed(1)),
-      isBase: false,
-      impact: `${playerCar.fuel_kg.toFixed(1)}kg fuel mass`,
-    },
-  ];
+  // Compute dynamic SHAP attribution values (backed by TreeSHAP or client fallback)
+  const shapFeatures = backendSHAP
+    ? [
+        {
+          feature: 'Base E[f(x)]',
+          value: parseFloat((backendSHAP.base_value * 10).toFixed(1)),
+          isBase: true,
+          impact: 'Global expected strategic baseline',
+        },
+        ...backendSHAP.top_features.slice(0, 6).map((f) => ({
+          feature: f.feature.replace(/_/g, ' '),
+          value: parseFloat((f.shap_value * 10).toFixed(1)),
+          isBase: false,
+          impact: `Value: ${f.feature_value}`,
+        })),
+      ]
+    : [
+        {
+          feature: 'Base Intercept E[f(x)]',
+          value: 50.0,
+          isBase: true,
+          impact: 'Baseline decision probability',
+        },
+        {
+          feature: 'Tyre Degradation Delta',
+          value: parseFloat((wear > 75 ? 32.5 : wear > 50 ? 18.2 : -8.5).toFixed(1)),
+          isBase: false,
+          impact: `${wear.toFixed(1)}% wear level`,
+        },
+        {
+          feature: 'Rain / Wet Track Risk',
+          value: parseFloat((isWet ? 28.4 : raceState.weather.rain_probability_next_5_laps > 0.3 ? 14.5 : -5.0).toFixed(1)),
+          isBase: false,
+          impact: `${(raceState.weather.rain_probability_next_5_laps * 100).toFixed(0)}% Markov risk`,
+        },
+        {
+          feature: 'Safety Car Advantage',
+          value: parseFloat((isSC ? 38.0 : -4.0).toFixed(1)),
+          isBase: false,
+          impact: isSC ? `SC saves ~${raceState.track.sc_pit_advantage_s}s` : 'Green flag pacing',
+        },
+        {
+          feature: 'Rejoin Traffic Penalty',
+          value: parseFloat((playerCar.position <= 3 ? -12.4 : -4.8).toFixed(1)),
+          isBase: false,
+          impact: 'Dirty air risk on pit exit',
+        },
+        {
+          feature: 'Fuel Burn-Off Weight',
+          value: parseFloat((playerCar.fuel_kg < 40 ? 6.2 : -2.5).toFixed(1)),
+          isBase: false,
+          impact: `${playerCar.fuel_kg.toFixed(1)}kg fuel mass`,
+        },
+      ];
 
   return (
     <div className="glass-panel rounded-xl p-5 flex flex-col border border-apex-border shadow-2xl font-mono text-xs">
