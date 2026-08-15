@@ -30,3 +30,9 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# SQLite DB & evaluation artifacts
+*.db
+*.sqlite
+*.sqlite3
+evaluations.npz

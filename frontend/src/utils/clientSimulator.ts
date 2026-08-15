@@ -3,6 +3,9 @@
  * High-fidelity fallback simulator running deterministic multi-car physics,
  * non-linear tyre wear curves, dynamic weather, Safety Car states,
  * rule + RL decision heuristics, and forward counterfactual rollouts.
+ * 
+ * NOTE: Physics constants and degradation curves are strictly harmonized with
+ * backend/app/simulator/engine.py and backend/app/simulator/car.py.
  */
 
 import {
