@@ -14,19 +14,74 @@
 
 ---
 
-## 🏎️ Core Architecture Loop
+## 🏎️ High-Level System Architecture
 
 ```mermaid
-graph LR
-    Observe["1. Observe State (Digital Twin)"] --> Predict["2. Predict Future (Tyre & Weather)"]
-    Predict --> Simulate["3. Simulate Options (Counterfactuals)"]
-    Simulate --> Decide["4. Decide (Rule Engine + DQN)"]
-    Decide --> Explain["5. Explain (Reasoning Trail)"]
-    Explain --> Act["6. Act & Broadcast (WebSocket + UI)"]
+flowchart TD
+    subgraph GroundTruth ["🏁 1. Race Simulator Engine (Ground Truth)"]
+        Physics["Deterministic Physics Model<br/>(Lap time, tyre wear, fuel burn, dirty air)"]
+        Track["Track Geometry & Dynamics<br/>(Silverstone, Monza, Spa, Monaco, Interlagos)"]
+        Incidents["Dynamic Incident Generator<br/>(Safety Car, VSC, Weather Transitions)"]
+        Physics --- Track --- Incidents
+    end
+
+    subgraph TwinLayer ["📡 2. Digital Twin Layer"]
+        RaceState["Pydantic RaceState Contract<br/>(Cars, tyres, gaps, weather, flags)"]
+        Store["State Persistence<br/>(In-Memory Hot State / Redis / PostgreSQL)"]
+        RaceState --- Store
+    end
+
+    subgraph Intelligence ["🧠 3. Predictive Intelligence & Feature Pipeline"]
+        Feat["Feature Builder<br/>(28-D Normalized Vector)"]
+        Tyre["Tyre Degradation Model<br/>(RUL & Cliff Threshold Estimator)"]
+        Weather["Weather Predictor<br/>(Markov Rain Transition & Crossover)"]
+    end
+
+    subgraph Strategy ["🎯 4. Decision Intelligence Engine"]
+        Rule["Rule-Based Strategic Baseline<br/>(Cliff thresholds, SC opportunities, undercut)"]
+        DQN["DQN Reinforcement Learning Agent<br/>(Gymnasium Env + Stable-Baselines3 Policy)"]
+        CF["Counterfactual Rollout Comparator<br/>(4-Lap Forward Sim of 5 Candidate Options)"]
+    end
+
+    subgraph Explainability ["🔍 5. Structured Explainability Layer"]
+        Decision["DecisionExplanation Schema<br/>• Dominant Strategic Factors<br/>• Rule vs DQN Consensus<br/>• Tyre Cliff Risk & Window Status<br/>• Expected Time Delta"]
+    end
+
+    subgraph Delivery ["⚡ 6. Real-Time Delivery & UI Layer"]
+        FastAPI["FastAPI Async REST API"]
+        WS["WebSocket Live Stream Broadcaster<br/>(1x, 2x, 5x, 10x Simulation Speed)"]
+        ReactUI["React 18 + Vite Mission Control Dashboard<br/>• 2D Circuit Tracker Map<br/>• Live Timing Tower & Wear Meters<br/>• Recharts Telemetry Curves<br/>• Strategy Card & Tactical Overrides<br/>• What-If Counterfactual Comparison"]
+    end
+
+    %% Data flow connections
+    GroundTruth -->|"Telemetry Ticks"| RaceState
+    RaceState --> Feat
+    RaceState --> Tyre
+    RaceState --> Weather
+    
+    Feat --> DQN
+    RaceState --> Rule
+    Tyre --> Rule
+    Weather --> Rule
+    
+    GroundTruth -.->|"State Clone"| CF
+    
+    Rule --> Decision
+    DQN --> Decision
+    CF --> Decision
+    
+    Decision --> WS
+    RaceState --> WS
+    FastAPI --- WS
+    WS <==>|"Bi-directional Live Feed & Overrides"| ReactUI
 ```
 
+---
+
+## 🔄 Decision Intelligence Loop
+
 ```
-Observe State ➔ Predict Future ➔ Simulate Options ➔ Decide ➔ Explain ➔ Act & Learn
+Observe State (Twin) ➔ Predict Future (ML) ➔ Simulate Rollouts (CF) ➔ Decide (Rules + DQN) ➔ Explain (Reasoning) ➔ Act (WebSockets + Dashboard)
 ```
 
 ---
