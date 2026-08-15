@@ -2,7 +2,8 @@ import React from 'react';
 import { useRaceStore } from '../store/raceStore';
 import { useRaceSocket } from '../hooks/useRaceSocket';
 import { StrategyAction } from '../types/race';
-import { Zap, AlertTriangle, CheckCircle, ShieldAlert, Disc, ArrowUpRight } from 'lucide-react';
+import { Zap, AlertTriangle, CheckCircle, ShieldAlert, ArrowUpRight, Flame } from 'lucide-react';
+import { audioEngine } from '../utils/audioEngine';
 
 const ACTION_TITLES: Record<StrategyAction, string> = {
   MAINTAIN: 'MAINTAIN CURRENT STINT',
@@ -34,30 +35,39 @@ export const StrategyCard: React.FC = () => {
 
   const isPitCall = decision.recommendation.startsWith('PIT_');
 
+  const handleExecute = (action: StrategyAction) => {
+    audioEngine.playRadioBleep();
+    applyAction(action);
+  };
+
   return (
-    <div className={`rounded-xl p-4 flex flex-col border shadow-2xl transition-all ${
-      isPitCall
-        ? 'bg-gradient-to-br from-rose-950/40 via-slate-900/90 to-slate-900/90 border-rose-500/40 shadow-rose-500/10'
-        : 'glass-panel border-apex-cyan/40 shadow-cyan-500/10'
-    }`}>
+    <div
+      className={`rounded-xl p-4 flex flex-col border shadow-2xl transition-all ${
+        isPitCall
+          ? 'bg-gradient-to-br from-rose-950/40 via-slate-900/90 to-slate-900/90 border-rose-500/50 shadow-rose-500/10'
+          : 'glass-panel border-apex-cyan/40 shadow-cyan-500/10'
+      }`}
+    >
       {/* Top Banner */}
       <div className="flex items-center justify-between mb-3 border-b border-slate-800/80 pb-2">
         <div className="flex items-center gap-2">
           <div className="w-2 h-2 rounded-full bg-apex-cyan animate-ping" />
-          <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-200">
-            APEX Strategy Recommendation
+          <span className="text-[11px] font-black uppercase tracking-widest text-slate-200">
+            APEX Decision Intelligence Call
           </span>
         </div>
-        <div className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded border text-[10px] font-bold uppercase ${urgencyStyle.bg} ${urgencyStyle.text} ${urgencyStyle.border}`}>
+        <div
+          className={`flex items-center gap-1.5 px-2.5 py-0.5 rounded border text-[10px] font-bold uppercase ${urgencyStyle.bg} ${urgencyStyle.text} ${urgencyStyle.border}`}
+        >
           {urgencyStyle.icon}
           <span>{decision.urgency} URGENCY</span>
         </div>
       </div>
 
-      {/* Main Big Call */}
+      {/* Main Executive Call */}
       <div className="my-2">
-        <span className="text-[10px] uppercase font-mono font-semibold text-slate-400 block mb-1">
-          Executive Call
+        <span className="text-[10px] uppercase font-mono font-bold text-slate-400 block mb-1">
+          Executive Tactical Directive
         </span>
         <div className="flex items-center justify-between">
           <h2 className="text-base font-black tracking-wide text-white drop-shadow">
@@ -71,8 +81,8 @@ export const StrategyCard: React.FC = () => {
 
       {/* Quick Action Button */}
       <button
-        onClick={() => applyAction(decision.recommendation)}
-        className="w-full mt-3 py-2.5 px-4 rounded-lg font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black shadow-lg shadow-cyan-500/25 transition-all active:scale-[0.98]"
+        onClick={() => handleExecute(decision.recommendation)}
+        className="w-full mt-3 py-2.5 px-4 rounded-lg font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 bg-gradient-to-r from-cyan-500 via-teal-400 to-blue-600 hover:from-cyan-400 hover:to-blue-500 text-black shadow-lg shadow-cyan-500/25 transition-all active:scale-[0.98]"
       >
         <span>Confirm & Execute Strategy</span>
         <ArrowUpRight className="w-4 h-4" />
@@ -80,55 +90,55 @@ export const StrategyCard: React.FC = () => {
 
       {/* Manual Strategy Overrides Grid */}
       <div className="mt-4 pt-3 border-t border-slate-800">
-        <span className="text-[10px] uppercase font-mono text-slate-500 block mb-2 font-semibold">
+        <span className="text-[10px] uppercase font-mono text-slate-500 block mb-2 font-bold">
           Pit Wall Tactical Overrides
         </span>
         <div className="grid grid-cols-4 gap-1.5 font-mono text-[10px]">
           <button
-            onClick={() => applyAction('PUSH')}
-            className="p-1.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 text-center font-bold"
+            onClick={() => handleExecute('PUSH')}
+            className="p-1.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 text-center font-bold active:scale-95"
           >
             PUSH
           </button>
           <button
-            onClick={() => applyAction('CONSERVE')}
-            className="p-1.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 text-center font-bold"
+            onClick={() => handleExecute('CONSERVE')}
+            className="p-1.5 rounded bg-slate-800/80 hover:bg-slate-700 text-slate-200 border border-slate-700 text-center font-bold active:scale-95"
           >
             CONSERVE
           </button>
           <button
-            onClick={() => applyAction('PIT_SOFT')}
-            className="p-1.5 rounded bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/60 text-center font-bold"
+            onClick={() => handleExecute('PIT_SOFT')}
+            className="p-1.5 rounded bg-rose-950/60 hover:bg-rose-900 text-rose-300 border border-rose-800/60 text-center font-bold active:scale-95"
           >
             BOX SOFT
           </button>
           <button
-            onClick={() => applyAction('PIT_MEDIUM')}
-            className="p-1.5 rounded bg-yellow-950/60 hover:bg-yellow-900 text-yellow-300 border border-yellow-800/60 text-center font-bold"
+            onClick={() => handleExecute('PIT_MEDIUM')}
+            className="p-1.5 rounded bg-yellow-950/60 hover:bg-yellow-900 text-yellow-300 border border-yellow-800/60 text-center font-bold active:scale-95"
           >
             BOX MED
           </button>
           <button
-            onClick={() => applyAction('PIT_HARD')}
-            className="p-1.5 rounded bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-600 text-center font-bold"
+            onClick={() => handleExecute('PIT_HARD')}
+            className="p-1.5 rounded bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-600 text-center font-bold active:scale-95"
           >
             BOX HARD
           </button>
           <button
-            onClick={() => applyAction('PIT_INTER')}
-            className="p-1.5 rounded bg-emerald-950/60 hover:bg-emerald-900 text-emerald-300 border border-emerald-800/60 text-center font-bold"
+            onClick={() => handleExecute('PIT_INTER')}
+            className="p-1.5 rounded bg-emerald-950/60 hover:bg-emerald-900 text-emerald-300 border border-emerald-800/60 text-center font-bold active:scale-95"
           >
             BOX INTER
           </button>
           <button
-            onClick={() => applyAction('PIT_WET')}
-            className="p-1.5 rounded bg-blue-950/60 hover:bg-blue-900 text-blue-300 border border-blue-800/60 text-center font-bold"
+            onClick={() => handleExecute('PIT_WET')}
+            className="p-1.5 rounded bg-blue-950/60 hover:bg-blue-900 text-blue-300 border border-blue-800/60 text-center font-bold active:scale-95"
           >
             BOX WET
           </button>
           <button
-            onClick={() => applyAction('MAINTAIN')}
-            className="p-1.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 border border-slate-800 text-center"
+            onClick={() => handleExecute('MAINTAIN')}
+            className="p-1.5 rounded bg-slate-900 hover:bg-slate-800 text-slate-400 border border-slate-800 text-center active:scale-95"
           >
             STAY OUT
           </button>
