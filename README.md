@@ -6,113 +6,97 @@
   <img src="https://img.shields.io/badge/PyTorch-2.2+-EE4C2C.svg" alt="PyTorch" />
   <img src="https://img.shields.io/badge/Stable--Baselines3-DQN-brightgreen.svg" alt="Stable-Baselines3" />
   <img src="https://img.shields.io/badge/React-18-61DAFB.svg" alt="React 18" />
+  <img src="https://img.shields.io/badge/Vite-6.0-646CFF.svg" alt="Vite 6" />
   <img src="https://img.shields.io/badge/TailwindCSS-3.4-38B2AC.svg" alt="TailwindCSS" />
+  <img src="https://img.shields.io/badge/Web_Audio_API-DSP-f59e0b.svg" alt="Web Audio" />
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License" />
 </p>
 
-**APEX** is an AI-driven race strategy decision-intelligence system. Given the live telemetry and state of an F1-style race, APEX maintains a real-time digital twin, forecasts tyre degradation curves and weather transitions, executes forward counterfactual rollouts ("what-if" simulations), and recommends optimal pit/push/conserve decisions under uncertainty with structured explainability.
+**APEX** is a Formula 1 team pit-wall decision intelligence and mission control platform. Given real-time telemetry from race tracks, APEX maintains a high-fidelity stochastic digital twin, forecasts non-linear tyre wear and Markov weather transitions, computes physical lap-time Delta-T decompositions, performs 1,000-rollout Monte Carlo stochastic rollouts, and provides transparent explainability via TreeSHAP and Deep Q-Networks (DQN).
 
 ---
 
-## 🏎️ High-Level System Architecture
+## 🏎️ Complete Enterprise Architecture
 
 ```mermaid
 flowchart TD
-    subgraph GroundTruth ["🏁 1. Race Simulator Engine (Ground Truth)"]
-        Physics["Deterministic Physics Model<br/>(Lap time, tyre wear, fuel burn, dirty air)"]
-        Track["Track Geometry & Dynamics<br/>(Silverstone, Monza, Spa, Monaco, Interlagos)"]
-        Incidents["Dynamic Incident Generator<br/>(Safety Car, VSC, Weather Transitions)"]
-        Physics --- Track --- Incidents
+    subgraph CircuitViews ["🗺️ 1. Multi-Mode Circuit Engine"]
+        V2D["2D Vector Circuit Map<br/>(Silverstone, Monza, Spa, Monaco, Interlagos)"]
+        Heat["Micro-Sector Speed Heatmap"]
+        Ribbon["Linear Gap Progression Ribbon"]
+        MiniSec["20 Mini-Sector Micro-Timing Grid"]
     end
 
-    subgraph TwinLayer ["📡 2. Digital Twin Layer"]
-        RaceState["Pydantic RaceState Contract<br/>(Cars, tyres, gaps, weather, flags)"]
-        Store["State Persistence<br/>(In-Memory Hot State / Redis / PostgreSQL)"]
-        RaceState --- Store
+    subgraph TelemetrySuite ["📊 2. Live Telemetry & Dynamics"]
+        HUD["4-Corner Tyre Thermal Matrix (FL, FR, RL, RR)"]
+        Radar["Pit Rejoin & Clean Air Window Radar"]
+        Battle["Head-to-Head Battle Radar"]
+        Weather["10-Lap Doppler Weather Radar"]
+        DVR["Telemetry DVR Time-Travel Scrubber"]
+        Dual["Dual-Driver Overlay Comparator"]
+        Aero["🏎️ Chassis Aero & Balance Tuner"]
+        DeltaT["⏱️ Lap Time Delta-T Physical Decomposition"]
     end
 
-    subgraph Intelligence ["🧠 3. Predictive Intelligence & Feature Pipeline"]
-        Feat["Feature Builder<br/>(28-D Normalized Vector)"]
-        Tyre["Tyre Degradation Model<br/>(RUL & Cliff Threshold Estimator)"]
-        Weather["Weather Predictor<br/>(Markov Rain Transition & Crossover)"]
+    subgraph StrategySuite ["🎯 3. Decision Intelligence & RL"]
+        Gantt["Stint Strategy Gantt Matrix"]
+        CF["4-Lap Forward Counterfactuals"]
+        Tree["Explainability Reasoning Tree"]
+        Sandbox["Interactive Scenario Sandbox"]
+        Copilot["🤖 AI Pit Wall Strategist Copilot"]
+        DQN["DQN Neural Policy & Q-Value Tensor Inspector"]
+        Monte["🎲 Monte Carlo 1,000-Rollout Stochastic Engine"]
+        SHAP["🔍 SHAP Feature Attribution Waterfall"]
+        Iso["🗺️ Multi-Lap Pit Strategy Isochrone Surface"]
+        Threat["🎯 Competitor Undercut/Overcut Threat Radar"]
     end
 
-    subgraph Strategy ["🎯 4. Decision Intelligence Engine"]
-        Rule["Rule-Based Strategic Baseline<br/>(Cliff thresholds, SC opportunities, undercut)"]
-        DQN["DQN Reinforcement Learning Agent<br/>(Gymnasium Env + Stable-Baselines3 Policy)"]
-        CF["Counterfactual Rollout Comparator<br/>(4-Lap Forward Sim of 5 Candidate Options)"]
+    subgraph CrewAudio ["⏱️ 4. Crew, Championship & Audio DSP"]
+        Chirp["Team Radio Tone Synthesizer & Static DSP"]
+        V6["🏎️ V6 Turbo Hybrid Audio Synthesizer"]
+        Voice["Multi-Persona Voice Profiles (Bono, GP, Xavi, APEX)"]
+        Wave["142.850 MHz Neon Audio Waveform"]
+        PitSim["Interactive Pit Crew Stopwatch Drill"]
+        Log["📋 Race Event Logger & CSV Exporter"]
+        Standings["Live FIA World Championship Standings"]
+        Podium["Grand Prix Podium & Post-Race Debrief"]
     end
 
-    subgraph Explainability ["🔍 5. Structured Explainability Layer"]
-        Decision["DecisionExplanation Schema<br/>• Dominant Strategic Factors<br/>• Rule vs DQN Consensus<br/>• Tyre Cliff Risk & Window Status<br/>• Expected Time Delta"]
-    end
-
-    subgraph Delivery ["⚡ 6. Real-Time Delivery & UI Layer"]
-        FastAPI["FastAPI Async REST API"]
-        WS["WebSocket Live Stream Broadcaster<br/>(1x, 2x, 5x, 10x Simulation Speed)"]
-        ReactUI["React 18 + Vite Mission Control Dashboard<br/>• 2D Circuit Tracker Map<br/>• Live Timing Tower & Wear Meters<br/>• Recharts Telemetry Curves<br/>• Strategy Card & Tactical Overrides<br/>• What-If Counterfactual Comparison"]
-    end
-
-    %% Data flow connections
-    GroundTruth -->|"Telemetry Ticks"| RaceState
-    RaceState --> Feat
-    RaceState --> Tyre
-    RaceState --> Weather
-    
-    Feat --> DQN
-    RaceState --> Rule
-    Tyre --> Rule
-    Weather --> Rule
-    
-    GroundTruth -.->|"State Clone"| CF
-    
-    Rule --> Decision
-    DQN --> Decision
-    CF --> Decision
-    
-    Decision --> WS
-    RaceState --> WS
-    FastAPI --- WS
-    WS <==>|"Bi-directional Live Feed & Overrides"| ReactUI
+    CircuitViews --- TelemetrySuite
+    TelemetrySuite --- StrategySuite
+    StrategySuite --- CrewAudio
 ```
 
 ---
 
-## 🔄 Decision Intelligence Loop
+## 🌟 Flagship Feature Suite (21 Modules)
 
-```
-Observe State (Twin) ➔ Predict Future (ML) ➔ Simulate Rollouts (CF) ➔ Decide (Rules + DQN) ➔ Explain (Reasoning) ➔ Act (WebSockets + Dashboard)
-```
+### 🧠 Explainable AI & Decision Intelligence
+1. **🔍 SHAP Feature Attribution Waterfall**: Shapley additive explanation chart decomposing exact positive and negative feature contributions towards AI confidence score $f(x)$.
+2. **🧠 DQN Neural Network Policy Tensor Inspector**: Live 28-D normalized input state tensor and Q-value distribution across all 8 strategic actions (`MAINTAIN`, `PUSH`, `CONSERVE`, `PIT_SOFT`, `PIT_MEDIUM`, `PIT_HARD`, `PIT_INTER`, `PIT_WET`).
+3. **🎲 Monte Carlo 1,000-Rollout Strategy Simulator**: 1,000 parallel stochastic forward simulations with Gaussian pace variance and safety car probability distributions.
+4. **🗺️ Multi-Lap Pit Strategy Isochrone Matrix**: 2D parameter grid identifying the global minimum total race time valley across laps and compounds.
+5. **🤖 AI Pit Wall Strategist Copilot**: Conversational AI assistant with quick tactical prompts and text-to-speech audio dispatcher.
+6. **🎯 Competitor Undercut & Overcut Threat Radar**: Real-time threat matrix evaluating pit box overlap and outlap pace deltas.
 
----
+### 📊 Telemetry, Vehicle Physics & Aerodynamics
+7. **⏱️ Lap Time Delta-T Physical Decomposition**: Decomposes lap times into fuel mass $(+s)$, tyre degradation $(+s)$, dirty air wake $(+s)$, ERS hybrid boost $(-s)$, and DRS gain $(-s)$.
+8. **🏎️ Chassis Aerodynamics & Setup Balancer**: Live tuning for Front/Rear Wing angles, Brake Bias %, Differential lock %, and Top Speed vs Lateral G curves.
+9. **👥 Dual-Driver Comparative Telemetry Overlay**: Overlaid waypoint velocity curves and tyre wear differentials vs any competitor.
+10. **⏱️ 20 Mini-Sector Micro-Timing Matrix**: Micro-sector splits across 20 track segments (**Purple** = Session Best, **Green** = Personal Best, **Yellow** = Slower).
+11. **⏪ Race Telemetry DVR & Time-Travel Scrubber**: Historical replay scrubber allowing engineers to inspect telemetry at any past lap.
+12. **🏎️ 4-Corner Tyre Thermal Matrix**: Real-time FL, FR, RL, RR carcass thermals and surface wear rates.
+13. **🌦️ 10-Lap Doppler Weather Radar**: Forward rain probability curve with intermediate (35%) and wet (70%) crossover lines.
+14. **⚔️ Head-to-Head Driver Battle Radar**: DRS detection, slipstream delta (+14.2 km/h), and overtake probability %.
 
-## 🌟 Key Features
-
-1. **Deterministic Ground Truth Race Simulator**:
-   - Seeded, 100% reproducible multi-car physics engine.
-   - Non-linear tyre wear per compound (`SOFT`, `MEDIUM`, `HARD`, `INTERMEDIATE`, `WET`) with sharp cliff penalties.
-   - Dynamic fuel burn, dirty air turbulence in corners, DRS slipstream, and Safety Car / VSC state machine.
-
-2. **Predictive Intelligence & Feature Builder**:
-   - 28-dimensional normalized feature extractor.
-   - Remaining useful life (RUL) estimator and weather transition Markov model.
-
-3. **Hybrid Decision Engine (Rule Baseline + DQN Policy)**:
-   - **Rule-Based Expert Baseline**: Multi-tier strategic heuristics for pit windows, safety car opportunities, undercut attacks, and tyre preservation.
-   - **Deep Q-Network (DQN) Agent**: Trained in Gymnasium with shaped reward signals for overtaking, clean air delta, and tyre cliff avoidance.
-
-4. **Counterfactual "What-If" Rollout Comparator**:
-   - Clones current race state and simulates 4-5 alternative strategies forward 4 laps in milliseconds to validate why one choice outperforms others.
-
-5. **Transparent Explainability Layer**:
-   - Multi-factor structured reasoning logs (`State ➔ Logic ➔ Decision`), combining rule checks and Q-value margins.
-
-6. **React 18 + Vite Mission Control Dashboard**:
-   - **Timing Tower**: Positions P1–P10, gap to leader, tyre compound badges, live wear bars, and fastest lap highlights.
-   - **2D Circuit Map**: Animated SVG track map tracking all 10 cars in real-time.
-   - **Live Telemetry Charts**: Recharts tyre degradation vs 78% cliff limit and pace delta vs leader.
-   - **Strategy Card & Overrides**: Active recommendation with AI confidence score, urgency badge, and pit wall override triggers.
-   - **Explainability & Counterfactual Panel**: Live reasoning tree and what-if rollout comparison table.
+### 🗺️ Circuits, Audio & Mission Control
+15. **🗺️ Multi-Circuit Vector Engine**: Bespoke SVG vector geometries for **Silverstone**, **Monza**, **Spa-Francorchamps**, **Monaco**, and **Interlagos**.
+16. **🎙️ Multi-Persona Race Engineer Voice Comms**: Voice personas for **APEX Core AI**, **"Bono"** (*"Hammer time, box box box"*), **"GP"** (*"Manage the tyres, delta is good"*), and **"Xavi"** (*"Plan A, we are checking"*).
+17. **📻 Authentic F1 Radio Bandpass & Static Filter DSP**: Web Audio API biquad filter + white noise static burst generator simulating cockpit radio communications.
+18. **🏎️ V6 Turbo Hybrid Audio Synthesizer**: Web Audio API FM oscillator generating authentic Formula 1 engine whine matching live RPM.
+19. **⏱️ Interactive Pit Crew Stopwatch**: 5-gantry light reaction drill measuring stationary pit duration with pneumatic wheel gun audio.
+20. **🏆 Live World Championship Leaderboard**: Dynamic Drivers' and Teams' Championship standings with fastest lap (+1 pt) bonus calculation.
+21. **📋 Race Event Telemetry Logger & CSV Exporter**: Chronological incident feed with downloadable `.CSV` reports.
 
 ---
 
@@ -134,6 +118,7 @@ Automated head-to-head evaluation across 15 seeded 52-lap races on the **Silvers
 APEX/
 ├── pyproject.toml                         # Python project & dependencies (uv managed)
 ├── docker-compose.yml                     # Redis + Postgres container configuration
+├── README.md                              # Flagship system documentation
 ├── backend/
 │   ├── app/
 │   │   ├── simulator/                     # Deterministic physics engine & Pydantic models
@@ -146,9 +131,11 @@ APEX/
 │   └── tests/                             # Pytest integration & unit test suite
 ├── frontend/                              # React 18 + Vite + Tailwind Mission Control
 │   ├── src/
-│   │   ├── components/                    # TimingTower, TrackMap, TelemetryCharts, StrategyCard, etc.
+│   │   ├── components/                    # 21 Mission Control components (SHAP, Monte Carlo, DVR, Gantt, etc.)
+│   │   ├── data/                          # Multi-circuit vector geometries (Silverstone, Monza, Spa, etc.)
+│   │   ├── utils/                         # audioEngine (DSP + Personas + V6 Synth), clientSimulator (Twin)
 │   │   ├── store/                         # Zustand state store
-│   │   └── hooks/                         # useRaceSocket WebSocket client
+│   │   └── hooks/                         # useRaceSocket WebSocket client & twin fallback
 │   └── package.json
 └── benchmarks/                            # Automated evaluation suite
     ├── run_benchmarks.py
@@ -163,13 +150,13 @@ APEX/
 - **Python 3.11 - 3.12** & [`uv`](https://docs.astral.sh/uv/)
 - **Node.js 18+** & `npm`
 
-### 2. Install Dependencies
+### 2. Install Dependencies & Build Frontend
 
 ```bash
 # Install Python backend dependencies
 uv sync
 
-# Install Frontend dependencies
+# Install Frontend dependencies & build bundle
 cd frontend
 npm install
 npm run build
@@ -182,14 +169,14 @@ cd ..
 uv run uvicorn backend.app.main:app --port 8000 --reload
 ```
 
-Open your browser and navigate to **[http://localhost:8000](http://localhost:8000)**.
+Open your browser and navigate to **[http://localhost:8000](http://localhost:8000)** (or run `npm run dev` in `frontend/` for Vite HMR at **[http://localhost:5173](http://localhost:5173)**).
 
 ---
 
-## 🧪 Testing & Benchmarks
+## 🧪 Testing & Automated Verification
 
 ```bash
-# Run all unit and integration tests
+# Run all unit and integration tests (9/9 passing)
 uv run pytest
 
 # Re-run automated strategy benchmark evaluation
