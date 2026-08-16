@@ -4,7 +4,7 @@ from backend.app.simulator.engine import RaceSimulator
 from backend.app.intelligence.feature_builder import FeatureBuilder, FEATURE_DIM
 from backend.app.intelligence.tyre_model import TyreModel
 from backend.app.intelligence.weather_model import WeatherPredictor
-from backend.app.simulator.models import TyreCompound, DrivingMode
+from backend.app.simulator.models import TyreCompound, DrivingMode, TrackCondition
 
 
 def test_feature_vector_dimension_and_bounds():
@@ -45,7 +45,7 @@ def test_tyre_model_cliff_estimation():
 def test_weather_crossover():
     """Verify weather crossover logic recommends intermediate/wet when raining."""
     sim = RaceSimulator(seed=55)
-    sim.weather.condition = "WET"
+    sim.weather.condition = TrackCondition.WET
     sim.weather.rain_intensity = 0.75
 
     rec = WeatherPredictor.recommend_compound_for_weather(sim.weather)

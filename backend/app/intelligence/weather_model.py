@@ -1,5 +1,5 @@
 """Weather prediction and rain onset transition model."""
-from typing import Dict
+from typing import Dict, Any
 from backend.app.simulator.models import WeatherState, TrackCondition, TyreCompound
 
 
@@ -21,7 +21,7 @@ class WeatherPredictor:
             return TyreCompound.HARD
 
     @classmethod
-    def evaluate_weather_risk(cls, weather: WeatherState, current_compound: TyreCompound) -> Dict[str, any]:
+    def evaluate_weather_risk(cls, weather: WeatherState, current_compound: TyreCompound) -> Dict[str, Any]:
         """Evaluates whether current tyres are mismatched with weather."""
         is_slick = current_compound in (TyreCompound.SOFT, TyreCompound.MEDIUM, TyreCompound.HARD)
         is_inter = current_compound == TyreCompound.INTERMEDIATE

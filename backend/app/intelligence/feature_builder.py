@@ -1,5 +1,5 @@
 """Feature engineering pipeline that transforms RaceState into a fixed-size normalized vector."""
-from typing import List
+from typing import List, Optional
 import numpy as np
 
 from backend.app.simulator.models import (
@@ -50,14 +50,14 @@ class FeatureBuilder:
     """Encodes full RaceState into an array consumable by rule engine and RL policies."""
 
     @staticmethod
-    def extract_features(state: RaceState, target_car_id: str = None) -> np.ndarray:
+    def extract_features(state: RaceState, target_car_id: Optional[str] = None) -> np.ndarray:
         """Extracts fixed 28-dimensional normalized feature vector."""
         total_cars = max(1, len(state.cars))
         total_laps = max(1, state.total_laps)
         current_lap = state.current_lap
 
         # Target car
-        car: CarState = None
+        car: Optional[CarState] = None
         if target_car_id:
             car = next((c for c in state.cars if c.car_id == target_car_id), None)
         if car is None:

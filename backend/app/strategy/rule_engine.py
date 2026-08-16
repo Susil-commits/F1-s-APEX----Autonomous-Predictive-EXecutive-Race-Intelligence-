@@ -1,5 +1,5 @@
 """Rule-based expert strategy baseline for race strategy decision intelligence."""
-from typing import Tuple, List
+from typing import Tuple, List, Optional
 from backend.app.simulator.models import (
     RaceState,
     CarState,
@@ -17,7 +17,7 @@ class RuleEngine:
     """Deterministic, explainable rule-based strategy baseline."""
 
     @classmethod
-    def evaluate(cls, state: RaceState, target_car_id: str = None) -> Tuple[StrategyAction, List[str], str]:
+    def evaluate(cls, state: RaceState, target_car_id: Optional[str] = None) -> Tuple[StrategyAction, List[str], str]:
         """
         Evaluates race state and returns:
         (recommended_action, primary_reasoning_factors, urgency_level)

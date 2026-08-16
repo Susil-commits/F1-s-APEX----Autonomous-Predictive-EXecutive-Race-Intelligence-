@@ -1,5 +1,6 @@
 """REST API endpoints for APEX race intelligence."""
 import os
+import sys
 import json
 import asyncio
 from typing import Optional, Dict, Any, List
@@ -155,6 +156,7 @@ async def inject_live_scenario(req: ScenarioInjectionRequest):
     """
     if not manager.sim:
         await manager.init_race()
+    assert manager.sim is not None
 
     scen = req.scenario_type.upper()
     sim = manager.sim
@@ -198,6 +200,7 @@ async def inject_live_scenario(req: ScenarioInjectionRequest):
 async def get_current_state():
     if not manager.sim:
         await manager.init_race()
+    assert manager.sim is not None
     return manager.sim.get_state()
 
 
@@ -209,16 +212,19 @@ async def get_shap_attribution(car_id: Optional[str] = None):
 
     if not manager.sim:
         await manager.init_race()
+    assert manager.sim is not None
 
     state = manager.sim.get_state()
     features = FeatureBuilder.extract_features(state, target_car_id=car_id)
     explainer = TreeSHAPExplainer.get_instance()
     explanation = explainer.explain(features)
     
+    player_car = manager.sim.get_player_car()
+    fallback_id = player_car.car_id if player_car else "CAR_01"
     return {
         "race_id": state.race_id,
         "lap": state.current_lap,
-        "target_car_id": car_id or manager.sim.get_player_car().car_id,
+        "target_car_id": car_id or fallback_id,
         **explanation,
     }
 
@@ -238,6 +244,7 @@ async def get_shap_pairwise_comparison(
 
     if not manager.sim:
         await manager.init_race()
+    assert manager.sim is not None
 
     state = manager.sim.get_state()
     features = FeatureBuilder.extract_features(state, target_car_id=car_id)
@@ -249,10 +256,12 @@ async def get_shap_pairwise_comparison(
     )
     all_action_ratings = explainer.explain_all_actions(features=features)
 
+    player_car = manager.sim.get_player_car()
+    fallback_id = player_car.car_id if player_car else "CAR_01"
     return {
         "race_id": state.race_id,
         "lap": state.current_lap,
-        "target_car_id": car_id or manager.sim.get_player_car().car_id,
+        "target_car_id": car_id or fallback_id,
         **diff_explanation,
         **all_action_ratings,
     }
@@ -287,6 +296,7 @@ async def fork_counterfactual_timeline(req: ForkCounterfactualRequest):
     if target_state is None:
         if not manager.sim:
             await manager.init_race()
+        assert manager.sim is not None
         target_state = manager.sim.get_state()
 
     result = CounterfactualChecker.fork_timeline(
@@ -304,6 +314,7 @@ async def run_monte_carlo(req: MonteCarloRequest):
 
     if not manager.sim:
         await manager.init_race()
+    assert manager.sim is not None
 
     state = manager.sim.get_state()
     results = MonteCarloEngine.run_simulation(

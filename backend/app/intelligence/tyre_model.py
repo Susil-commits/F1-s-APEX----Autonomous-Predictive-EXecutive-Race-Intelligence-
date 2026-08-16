@@ -1,5 +1,5 @@
 """Tyre degradation predictor and pit window estimation intelligence."""
-from typing import Dict, Tuple, Optional
+from typing import Dict, Tuple, Optional, Any
 import numpy as np
 
 from backend.app.simulator.models import TyreCompound, DrivingMode, CarState, TrackConfig, WeatherState
@@ -47,7 +47,7 @@ class TyreModel:
         car: CarState,
         track: TrackConfig,
         weather: WeatherState,
-    ) -> Dict[str, any]:
+    ) -> Dict[str, Any]:
         """Calculates optimal pit window range and urgency."""
         spec = COMPOUND_SPECS[car.tyre_compound]
         remaining_laps_to_cliff = TyreModel.estimate_remaining_laps(

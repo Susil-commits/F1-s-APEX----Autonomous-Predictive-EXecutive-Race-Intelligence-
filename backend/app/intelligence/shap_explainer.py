@@ -69,8 +69,8 @@ class TreeSHAPExplainer:
         self.multi_action_path = multi_action_path or DEFAULT_MULTI_ACTION_SURROGATE_JOBLIB
         self.meta_path = meta_path or DEFAULT_SURROGATE_META
         self.dqn_path = dqn_path or DEFAULT_DQN_PATH
-        self.model: Optional[Any] = None
-        self.explainer: Optional[shap.TreeExplainer] = None
+        self.model: Any = None
+        self.explainer: Any = None
         self.base_value: float = 0.0
         self.is_distilled: bool = False
 
@@ -82,7 +82,7 @@ class TreeSHAPExplainer:
 
         # Multi-action surrogate models and explainers
         self.action_models: Dict[int, Any] = {}
-        self.action_explainers: Dict[int, shap.TreeExplainer] = {}
+        self.action_explainers: Dict[int, Any] = {}
         self.action_base_values: Dict[int, float] = {}
 
         self._fit_surrogate_model()
@@ -123,16 +123,18 @@ class TreeSHAPExplainer:
             return None
 
     def _verify_surrogate_alignment(self):
-        """Checks if the distilled surrogate matches the active DQN model checkpoint."""
-        if not self.is_distilled:
-            return
-
+        """
+        Calculates active DQN SHA-256 hash, compares against surrogate metadata,
+        and logs a warning if a policy drift mismatch is detected.
+        """
         self.active_dqn_hash = self._compute_file_sha256(self.dqn_path)
         if os.path.exists(self.meta_path):
             try:
                 with open(self.meta_path, "r") as f:
-                    self.surrogate_meta = json.load(f)
-                    self.distilled_dqn_hash = self.surrogate_meta.get("dqn_model_hash")
+                    meta = json.load(f)
+                    if isinstance(meta, dict):
+                        self.surrogate_meta = meta
+                        self.distilled_dqn_hash = meta.get("dqn_model_hash")
             except Exception as e:
                 logger.warning(f"Failed to load surrogate metadata from {self.meta_path}: {e}")
 
@@ -170,6 +172,22 @@ class TreeSHAPExplainer:
                 return path
         return None
 
+    @staticmethod
+    def _extract_scalar_base_value(val: Any) -> float:
+        """Safely extracts a scalar float from TreeExplainer expected_value."""
+        if val is None:
+            return 0.0
+        if hasattr(val, "__iter__") and not isinstance(val, (str, bytes)):
+            try:
+                arr = np.asarray(val, dtype=np.float64)
+                return float(np.mean(arr))
+            except Exception:
+                return 0.0
+        try:
+            return float(val)
+        except Exception:
+            return 0.0
+
     def _fit_surrogate_model(self):
         """
         Loads the pre-trained surrogate distilled from the DQN policy.
@@ -181,8 +199,7 @@ class TreeSHAPExplainer:
             try:
                 self.model = joblib.load(resolved_path)
                 self.explainer = shap.TreeExplainer(self.model)
-                expected = self.explainer.expected_value
-                self.base_value = float(np.mean(expected)) if hasattr(expected, "__iter__") else float(expected)
+                self.base_value = self._extract_scalar_base_value(self.explainer.expected_value)
                 self.is_distilled = True
                 print(f"[TreeSHAPExplainer] Successfully loaded distilled DQN tree surrogate from {resolved_path}")
                 return
@@ -220,8 +237,7 @@ class TreeSHAPExplainer:
 
         # Initialize TreeExplainer
         self.explainer = shap.TreeExplainer(self.model)
-        expected = self.explainer.expected_value
-        self.base_value = float(np.mean(expected)) if hasattr(expected, "__iter__") else float(expected)
+        self.base_value = self._extract_scalar_base_value(self.explainer.expected_value)
         self.is_distilled = False
 
     def _load_or_fit_multi_action_models(self):
@@ -234,8 +250,7 @@ class TreeSHAPExplainer:
                     for act_idx, act_mod in self.action_models.items():
                         exp = shap.TreeExplainer(act_mod)
                         self.action_explainers[act_idx] = exp
-                        ev = exp.expected_value
-                        self.action_base_values[act_idx] = float(np.mean(ev)) if hasattr(ev, "__iter__") else float(ev)
+                        self.action_base_values[act_idx] = self._extract_scalar_base_value(exp.expected_value)
                     print(f"[TreeSHAPExplainer] Loaded {len(self.action_models)} per-action models from {self.multi_action_path}")
                     return
             except Exception as e:
@@ -254,8 +269,7 @@ class TreeSHAPExplainer:
             exp = shap.TreeExplainer(m)
             self.action_models[act_idx] = m
             self.action_explainers[act_idx] = exp
-            ev = exp.expected_value
-            self.action_base_values[act_idx] = float(np.mean(ev)) if hasattr(ev, "__iter__") else float(ev)
+            self.action_base_values[act_idx] = self._extract_scalar_base_value(exp.expected_value)
 
     def _resolve_action_index(self, action: Union[int, str, StrategyAction]) -> int:
         """Helper to convert action representation to integer index [0..7]."""

@@ -276,7 +276,7 @@ def run_distillation(
     if include_db:
         try:
             db_X, db_y, db_q = asyncio.run(load_persisted_telemetry_samples(dqn_model))
-            if db_X is not None and len(db_X) > 0 and db_q is not None:
+            if db_X is not None and db_y is not None and db_q is not None and len(db_X) > 0:
                 X_combined = np.vstack([X_rollout, db_X])
                 y_combined = np.concatenate([y_rollout, db_y])
                 q_dist_combined = np.vstack([q_dist_rollout, db_q])

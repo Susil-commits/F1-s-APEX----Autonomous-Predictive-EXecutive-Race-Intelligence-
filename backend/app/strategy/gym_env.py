@@ -62,8 +62,13 @@ class ApexRaceGymEnv(gym.Env):
         return obs, {"race_id": state.race_id, "seed": race_seed}
 
     def step(self, action: int) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
+        if self.sim is None:
+            self.reset()
+        assert self.sim is not None
+
         strat_action = ACTION_MAP.get(action, StrategyAction.MAINTAIN)
         player_before = self.sim.get_player_car()
+        assert player_before is not None
         prev_pos = player_before.position
         prev_gap_to_leader = player_before.gap_to_leader_s
         prev_wear = player_before.tyre_wear_pct
@@ -71,6 +76,7 @@ class ApexRaceGymEnv(gym.Env):
         # Advance simulator
         state = self.sim.step(player_action=strat_action)
         player = self.sim.get_player_car()
+        assert player is not None
 
         # -------------------------------------------------------------
         # Reward Shaping Formulation
