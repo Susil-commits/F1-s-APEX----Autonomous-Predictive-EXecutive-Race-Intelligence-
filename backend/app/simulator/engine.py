@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import copy
 import uuid
-from typing import List, Dict, Optional, Tuple
+from typing import List, Dict, Optional, Tuple, TypedDict
 import numpy as np
 
 from backend.app.simulator.models import (
@@ -22,7 +22,16 @@ from backend.app.simulator.car import CarPhysics
 from backend.app.simulator.track import get_track
 
 
-DEFAULT_DRIVERS = [
+class DriverProfile(TypedDict):
+    car_id: str
+    name: str
+    team: str
+    number: int
+    is_player: bool
+    pace_bias: float
+
+
+DEFAULT_DRIVERS: List[DriverProfile] = [
     {"car_id": "car_01", "name": "M. Verstappen", "team": "Red Bull Racing", "number": 1, "is_player": False, "pace_bias": -0.25},
     {"car_id": "car_02", "name": "L. Norris", "team": "McLaren", "number": 4, "is_player": False, "pace_bias": -0.15},
     {"car_id": "car_03", "name": "C. Leclerc", "team": "Ferrari", "number": 16, "is_player": False, "pace_bias": -0.10},
@@ -65,8 +74,8 @@ class RaceSimulator:
         self.weather = WeatherState(
             condition=TrackCondition.DRY,
             rain_intensity=0.0,
-            track_temp_c=32.0 + float(self.rng.normal(0, 2.0)),
-            air_temp_c=23.0 + float(self.rng.normal(0, 1.5)),
+            track_temp_c=32.0 + self.rng.normal(0, 2.0),
+            air_temp_c=23.0 + self.rng.normal(0, 1.5),
             rain_probability_next_5_laps=self.track.rain_probability_base,
             drying_rate_per_lap=0.08,
         )
@@ -251,7 +260,7 @@ class RaceSimulator:
         if not self.enable_dynamic_weather:
             return
 
-        rand_val = float(self.rng.random())
+        rand_val = self.rng.random()
 
         if self.weather.condition == TrackCondition.DRY:
             # Low probability of rain onset (~2.5% per lap)
@@ -280,7 +289,7 @@ class RaceSimulator:
 
         # Update rain forecast for next 5 laps
         if self.weather.condition == TrackCondition.DRY:
-            self.weather.rain_probability_next_5_laps = min(0.35, self.track.rain_probability_base + float(self.rng.normal(0, 0.03)))
+            self.weather.rain_probability_next_5_laps = min(0.35, self.track.rain_probability_base + self.rng.normal(0, 0.03))
         elif self.weather.condition == TrackCondition.DAMP:
             self.weather.rain_probability_next_5_laps = 0.60
         else:
@@ -296,14 +305,14 @@ class RaceSimulator:
                 self._log_event(self.current_lap, "TRACK_CLEAR", f"{old_sc} in this lap. Track is GREEN! Racing resumes.")
         else:
             # Low random probability of incident triggering SC/VSC (~3% per lap)
-            rand_incident = float(self.rng.random())
+            rand_incident = self.rng.random()
             if rand_incident < 0.015 and self.current_lap < self.track.total_laps - 4:
                 self.safety_car = SafetyCarStatus.SAFETY_CAR
-                self.safety_car_laps_remaining = int(self.rng.integers(3, 6))
+                self.safety_car_laps_remaining = self.rng.integers(3, 6)
                 self._log_event(self.current_lap, "SAFETY_CAR", f"YELLOW FLAG: Physical Safety Car deployed! Incident on track.")
             elif rand_incident < 0.035 and self.current_lap < self.track.total_laps - 3:
                 self.safety_car = SafetyCarStatus.VSC
-                self.safety_car_laps_remaining = int(self.rng.integers(2, 4))
+                self.safety_car_laps_remaining = self.rng.integers(2, 4)
                 self._log_event(self.current_lap, "VSC", "VSC DEPLOYED: Reduce delta time.")
 
     def _process_ai_competitor_strategies(self):
@@ -395,7 +404,7 @@ class RaceSimulator:
         track_key = "silverstone"
         if hasattr(state, "track") and state.track:
             for k in ("silverstone", "monza", "spa", "monaco", "interlagos"):
-                if k in str(state.track.name).lower():
+                if k in state.track.name.lower():
                     track_key = k
                     break
 
@@ -420,7 +429,7 @@ class RaceSimulator:
     def inject_weather(self, condition: TrackCondition, rain_intensity: float = 0.75):
         """Forces immediate weather transition for pit-wall scenario injection."""
         self.weather.condition = condition
-        self.weather.rain_intensity = float(rain_intensity)
+        self.weather.rain_intensity = rain_intensity
         if condition == TrackCondition.WET:
             self.weather.rain_probability_next_5_laps = 0.90
             self._log_event(self.current_lap, "SCENARIO_INJECT", f"⚡ INJECTED: Sudden heavy torrential rain ({int(rain_intensity * 100)}% intensity)!")

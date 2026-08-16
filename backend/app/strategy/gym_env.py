@@ -50,7 +50,7 @@ class ApexRaceGymEnv(gym.Env):
         options: Optional[Dict[str, Any]] = None,
     ) -> Tuple[np.ndarray, Dict[str, Any]]:
         super().reset(seed=seed)
-        race_seed = seed if seed is not None else int(np.random.randint(1, 100000))
+        race_seed = seed if seed is not None else np.random.randint(1, 100000)
         self.sim = RaceSimulator(
             track_name=self.track_name,
             seed=race_seed,

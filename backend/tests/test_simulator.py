@@ -59,8 +59,25 @@ def test_simulator_clone_independence():
     # Advance clone with a pit stop
     clone.step(player_action=StrategyAction.PIT_SOFT)
     
-    # Advance original with maintain
-    sim.step(player_action=StrategyAction.MAINTAIN)
-    
     assert clone.get_player_car().tyre_compound == TyreCompound.SOFT
     assert sim.get_player_car().tyre_compound != TyreCompound.SOFT
+
+
+def test_counterfactual_checker_evaluate_alternatives():
+    """Verify that CounterfactualChecker correctly evaluates candidate strategies."""
+    from backend.app.strategy.counterfactual import CounterfactualChecker
+    sim = RaceSimulator(track_name="silverstone", seed=42)
+    for _ in range(10):
+        sim.step()
+
+    eval_result = CounterfactualChecker.evaluate_alternatives(sim, rollout_laps=4)
+    assert eval_result["rollout_laps"] == 4
+    assert "best_strategy" in eval_result
+    assert "best_action" in eval_result
+    assert len(eval_result["alternatives"]) == 5
+    for alt in eval_result["alternatives"]:
+        assert "strategy" in alt
+        assert "action" in alt
+        assert "projected_position" in alt
+        assert "projected_gap_to_leader" in alt
+

@@ -180,7 +180,7 @@ def train_surrogate_model(
     r2_train = r2_score(y_train, y_pred_train)
     r2_test = r2_score(y_test, y_pred_test)
     rmse_test = float(np.sqrt(mean_squared_error(y_test, y_pred_test)))
-    mae_test = float(mean_absolute_error(y_test, y_pred_test))
+    mae_test = mean_absolute_error(y_test, y_pred_test)
 
     print(f"[Distillation] Global Surrogate Evaluation:")
     print(f"  • Train R² Score: {r2_train:.4f}")
@@ -211,7 +211,7 @@ def train_surrogate_model(
         act_model.fit(X_tr, y_tr)
         act_r2 = r2_score(y_te, act_model.predict(X_te))
         action_models[action_idx] = act_model
-        action_metrics[action_name] = {"action_idx": action_idx, "r2_test": round(float(act_r2), 4)}
+        action_metrics[action_name] = {"action_idx": action_idx, "r2_test": round(act_r2, 4)}
 
     joblib.dump(action_models, multi_action_save_path)
     print(f"[Distillation] Saved 8 multi-action surrogate models to {multi_action_save_path}")
@@ -227,12 +227,12 @@ def train_surrogate_model(
         "dqn_model_hash": dqn_model_hash,
         "dqn_model_path": dqn_model_path,
         "distilled_at": datetime.now(timezone.utc).isoformat(),
-        "n_samples": int(len(X)),
-        "train_samples": int(len(X_train)),
-        "test_samples": int(len(X_test)),
-        "r2_test": round(float(r2_test), 4),
-        "rmse_test": round(float(rmse_test), 4),
-        "mae_test": round(float(mae_test), 4),
+        "n_samples": len(X),
+        "train_samples": len(X_train),
+        "test_samples": len(X_test),
+        "r2_test": round(r2_test, 4),
+        "rmse_test": round(rmse_test, 4),
+        "mae_test": round(mae_test, 4),
         "feature_dim": FEATURE_DIM,
         "feature_importances": feature_importances,
         "action_models": action_metrics,

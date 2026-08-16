@@ -1,7 +1,12 @@
 """Lightweight counterfactual forward-rollout comparator and timeline forking engine."""
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, List, Any, Optional, Union, TypedDict
 from backend.app.simulator.engine import RaceSimulator
 from backend.app.simulator.models import RaceState, StrategyAction, TyreCompound
+
+
+class CandidateOption(TypedDict):
+    name: str
+    action: StrategyAction
 
 
 class CounterfactualChecker:
@@ -17,7 +22,7 @@ class CounterfactualChecker:
         Executes fast forward rollouts of candidate actions and compares projected positions and times.
         """
         player = sim.get_player_car()
-        candidates = [
+        candidates: List[CandidateOption] = [
             {"name": "Maintain Current Stint", "action": StrategyAction.MAINTAIN},
             {"name": "Box Now (Hard Tyres)", "action": StrategyAction.PIT_HARD},
             {"name": "Box Now (Medium Tyres)", "action": StrategyAction.PIT_MEDIUM},
