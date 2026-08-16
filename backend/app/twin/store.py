@@ -5,6 +5,7 @@ import json
 import logging
 import asyncio
 from datetime import datetime, timezone
+import redis
 import redis.asyncio as aioredis
 from sqlalchemy import select
 
@@ -21,14 +22,15 @@ logger = logging.getLogger(__name__)
 
 REDIS_URL = os.getenv("REDIS_URL", "redis://localhost:6379/0")
 REDIS_HOT_KEY_PREFIX = "apex:race"
-REDIS_HOT_TTL_SECONDS = 3600
+REDIS_HOT_TTL_SECONDS = int(os.getenv("REDIS_HOT_TTL_SECONDS", "300"))
 
 
 class RaceStore:
     """
-    Hybrid Write-Through Store:
-    - High-frequency hot cache in memory and Redis (sub-ms reads for active tick state)
-    - Persistent historical archive in SQLAlchemy (PostgreSQL / SQLite)
+    Hybrid Write-Through / Read-Through Store:
+    - Tier 1 (L1 In-Memory): Fast zero-copy dictionary within worker process.
+    - Tier 2 (L2 Redis Hot Cache): Multi-worker-safe sub-ms hot-tick cache with short TTL.
+    - Tier 3 (L3 Database Archive): Async persistent historical archive in SQLAlchemy (PostgreSQL / SQLite).
     """
 
     def __init__(self, redis_url: Optional[str] = None):
@@ -38,28 +40,49 @@ class RaceStore:
         self.benchmark_runs: List[Dict[str, Any]] = []
         self._db_initialized: bool = False
         self.redis_url = redis_url or REDIS_URL
-        self._redis_client: Optional[aioredis.Redis] = None
+        self._sync_redis: Optional[redis.Redis] = None
+        self._async_redis: Optional[aioredis.Redis] = None
         self._redis_available: bool = True
 
-    async def get_redis_client(self) -> Optional[aioredis.Redis]:
+    def get_sync_redis(self) -> Optional[redis.Redis]:
+        """Lazy initialization of synchronous Redis client for sync read-through/write-through."""
+        if not self._redis_available:
+            return None
+        if self._sync_redis is None:
+            try:
+                self._sync_redis = redis.Redis.from_url(
+                    self.redis_url,
+                    decode_responses=True,
+                    socket_connect_timeout=0.1,
+                    socket_timeout=0.1,
+                )
+                self._sync_redis.ping()
+                logger.info(f"[RaceStore] Connected synchronous Redis hot cache at {self.redis_url}")
+            except Exception as e:
+                logger.debug(f"[RaceStore] Sync Redis connection offline ({e}). Using in-memory tier.")
+                self._redis_available = False
+                self._sync_redis = None
+        return self._sync_redis
+
+    async def get_async_redis(self) -> Optional[aioredis.Redis]:
         """Lazy initialization of async Redis client connection."""
         if not self._redis_available:
             return None
-        if self._redis_client is None:
+        if self._async_redis is None:
             try:
-                self._redis_client = aioredis.from_url(
+                self._async_redis = aioredis.from_url(
                     self.redis_url,
                     decode_responses=True,
-                    socket_connect_timeout=1.0,
-                    socket_timeout=1.0,
+                    socket_connect_timeout=0.2,
+                    socket_timeout=0.2,
                 )
-                await self._redis_client.ping()
-                logger.info(f"[RaceStore] Connected to Redis hot cache at {self.redis_url}")
+                await self._async_redis.ping()
+                logger.info(f"[RaceStore] Connected async Redis hot cache at {self.redis_url}")
             except Exception as e:
-                logger.debug(f"[RaceStore] Redis unavailable at {self.redis_url} ({e}). Using in-memory hot store.")
+                logger.debug(f"[RaceStore] Async Redis unavailable at {self.redis_url} ({e}).")
                 self._redis_available = False
-                self._redis_client = None
-        return self._redis_client
+                self._async_redis = None
+        return self._async_redis
 
     async def ensure_db_ready(self):
         """Initializes database tables if not already done."""
@@ -71,49 +94,85 @@ class RaceStore:
                 logger.warning(f"[RaceStore] DB initialization deferred: {e}")
 
     def save_state(self, state: RaceState):
-        """Saves the current tick state to in-memory hot store, Redis cache, and tick history."""
+        """
+        Saves current tick state via hybrid write-through:
+        1. L1 In-Memory Dict
+        2. L2 Redis Hot Cache (short TTL for multi-worker synchronization)
+        3. L3 PostgreSQL / SQLite Database (asynchronously)
+        """
+        # 1. Tier 1: Process Memory
         self.active_races[state.race_id] = state
         if state.race_id not in self.tick_history:
             self.tick_history[state.race_id] = []
         dump = state.model_dump()
         self.tick_history[state.race_id].append(dump)
 
-        # Trigger async persistence & Redis caching in background task if loop is running
+        # 2. Tier 2: Redis Hot-Tick Write-Through (Sub-ms)
+        try:
+            client = self.get_sync_redis()
+            if client:
+                key = f"{REDIS_HOT_KEY_PREFIX}:{state.race_id}:hot_state"
+                client.set(key, state.model_dump_json(), ex=REDIS_HOT_TTL_SECONDS)
+                client.set(f"{REDIS_HOT_KEY_PREFIX}:latest_active_id", state.race_id, ex=REDIS_HOT_TTL_SECONDS)
+        except Exception as e:
+            logger.debug(f"[RaceStore] Sync Redis write-through skipped: {e}")
+
+        # 3. Tier 3: Async Persistence
         try:
             loop = asyncio.get_event_loop()
             if loop.is_running():
                 asyncio.create_task(self.persist_tick_async(state))
-                asyncio.create_task(self.cache_hot_state_redis(state))
         except RuntimeError:
             pass
 
-    async def cache_hot_state_redis(self, state: RaceState):
-        """Caches the latest tick snapshot in Redis for high-throughput sub-ms access."""
+    def get_state(self, race_id: str) -> Optional[RaceState]:
+        """
+        Retrieves active state for a given race ID using read-through caching:
+        1. Checks L1 in-memory dict
+        2. If missing in worker memory, reads through L2 Redis hot cache and populates L1
+        3. Returns None if not found
+        """
+        # Check L1 memory
+        state = self.active_races.get(race_id)
+        if state is not None:
+            return state
+
+        # Read-through from L2 Redis hot cache (cross-worker sync)
         try:
-            client = await self.get_redis_client()
+            client = self.get_sync_redis()
             if client:
-                key = f"{REDIS_HOT_KEY_PREFIX}:{state.race_id}:hot_state"
-                payload = state.model_dump_json()
-                await client.set(key, payload, ex=REDIS_HOT_TTL_SECONDS)
-                await client.set("apex:active_race_id", state.race_id, ex=REDIS_HOT_TTL_SECONDS)
+                key = f"{REDIS_HOT_KEY_PREFIX}:{race_id}:hot_state"
+                raw = client.get(key)
+                if raw:
+                    state = RaceState.model_validate_json(raw)
+                    self.active_races[race_id] = state  # Populate local L1
+                    return state
         except Exception as e:
-            logger.debug(f"[RaceStore] Redis cache write skipped: {e}")
+            logger.debug(f"[RaceStore] Redis read-through skipped: {e}")
+
+        return None
 
     async def get_hot_state(self, race_id: str) -> Optional[RaceState]:
         """
-        Retrieves the active state for a given race ID, querying Redis first
-        with automatic fallback to in-memory store.
+        Asynchronously retrieves active state with Redis read-through and L1 fallback.
         """
+        # Check L1 memory first
+        if race_id in self.active_races:
+            return self.active_races[race_id]
+
         try:
-            client = await self.get_redis_client()
+            client = await self.get_async_redis()
             if client:
                 key = f"{REDIS_HOT_KEY_PREFIX}:{race_id}:hot_state"
                 raw = await client.get(key)
                 if raw:
-                    return RaceState.model_validate_json(raw)
-        except Exception:
-            pass
-        return self.active_races.get(race_id)
+                    state = RaceState.model_validate_json(raw)
+                    self.active_races[race_id] = state
+                    return state
+        except Exception as e:
+            logger.debug(f"[RaceStore] Async Redis read-through skipped: {e}")
+
+        return self.get_state(race_id)
 
     async def persist_tick_async(self, state: RaceState):
         """Persists race session and tick snapshot asynchronously to database."""
@@ -155,12 +214,8 @@ class RaceStore:
             # Silent fallback to memory store if database is offline
             pass
 
-    def get_state(self, race_id: str) -> Optional[RaceState]:
-        """Retrieves the active state for a given race ID from memory."""
-        return self.active_races.get(race_id)
-
     def log_decision(self, race_id: str, lap: int, decision: DecisionExplanation):
-        """Logs a strategic decision explanation to hot memory and persists to database."""
+        """Logs a strategic decision explanation to hot memory, Redis, and persists to database."""
         if race_id not in self.decision_history:
             self.decision_history[race_id] = []
         entry = {
@@ -169,6 +224,15 @@ class RaceStore:
             "decision": decision.model_dump(),
         }
         self.decision_history[race_id].append(entry)
+
+        # Write latest decision to Redis for quick cross-worker query
+        try:
+            client = self.get_sync_redis()
+            if client:
+                dec_key = f"{REDIS_HOT_KEY_PREFIX}:{race_id}:latest_decision"
+                client.set(dec_key, json.dumps(entry), ex=REDIS_HOT_TTL_SECONDS)
+        except Exception as e:
+            logger.debug(f"[RaceStore] Redis decision write skipped: {e}")
 
         try:
             loop = asyncio.get_event_loop()

@@ -59,3 +59,42 @@ async def test_race_store_redis_hot_cache_fallback():
     assert retrieved_state.race_id == state.race_id
     assert retrieved_state.current_lap == state.current_lap
 
+
+def test_race_store_multi_worker_redis_read_through(monkeypatch):
+    """Tests multi-worker safe read-through: Worker B has empty memory but reads tick state from Redis."""
+    from backend.app.twin.store import RaceStore
+    sim = RaceSimulator(track_name="silverstone", seed=555)
+    state = sim.step()
+
+    # Simulated in-memory Redis dict store
+    redis_mock_db = {}
+
+    class MockRedis:
+        def ping(self):
+            return True
+
+        def set(self, key, value, ex=None):
+            redis_mock_db[key] = value
+
+        def get(self, key):
+            return redis_mock_db.get(key)
+
+    # Worker A: saves state
+    worker_a_store = RaceStore()
+    monkeypatch.setattr(worker_a_store, "get_sync_redis", lambda: MockRedis())
+    worker_a_store.save_state(state)
+    assert f"apex:race:{state.race_id}:hot_state" in redis_mock_db
+
+    # Worker B: fresh instance with empty active_races
+    worker_b_store = RaceStore()
+    assert state.race_id not in worker_b_store.active_races
+    monkeypatch.setattr(worker_b_store, "get_sync_redis", lambda: MockRedis())
+
+    # Worker B calls get_state -> reads through Redis and populates its local active_races
+    fetched = worker_b_store.get_state(state.race_id)
+    assert fetched is not None
+    assert fetched.race_id == state.race_id
+    assert fetched.current_lap == state.current_lap
+    assert state.race_id in worker_b_store.active_races
+
+
