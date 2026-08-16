@@ -15,18 +15,20 @@ def reset_explainer_singleton():
 
 
 def test_shap_explainer_distilled_initialization():
-    """Tests loading the distilled XGBoost surrogate if present on disk."""
+    """Tests loading the distilled GradientBoosting surrogate if present on disk."""
     explainer = TreeSHAPExplainer.get_instance()
     assert explainer.model is not None
     assert explainer.explainer is not None
     assert isinstance(explainer.base_value, float)
     if os.path.exists(DEFAULT_SURROGATE_PATH):
         assert explainer.is_distilled is True
+        # Verify drift check on live models
+        assert explainer.surrogate_drift_detected is False
 
 
 def test_shap_explainer_fallback_mode():
     """Tests graceful fallback to heuristic surrogate when given non-existent model path."""
-    fake_path = "backend/models/non_existent_surrogate.json"
+    fake_path = "backend/models/non_existent_surrogate.joblib"
     explainer = TreeSHAPExplainer(model_path=fake_path)
     assert explainer.is_distilled is False
     assert explainer.model is not None
@@ -36,6 +38,24 @@ def test_shap_explainer_fallback_mode():
     res = explainer.explain(dummy_features)
     assert res["is_distilled"] is False
     assert res["surrogate_type"] == "heuristic_fallback"
+
+
+def test_shap_explainer_drift_detection_on_hash_mismatch(tmp_path):
+    """Tests that a mismatch between DQN checkpoint and surrogate metadata triggers drift warning and flag."""
+    import json
+    # Create temp metadata file with mismatched hash
+    meta_file = tmp_path / "shap_surrogate_meta.json"
+    meta_payload = {
+        "dqn_model_hash": "mismatched_deadbeef_hash_12345",
+        "distilled_at": "2026-08-16T12:00:00+00:00"
+    }
+    meta_file.write_text(json.dumps(meta_payload))
+
+    explainer = TreeSHAPExplainer(meta_path=str(meta_file))
+    if explainer.is_distilled and explainer.active_dqn_hash:
+        assert explainer.surrogate_drift_detected is True
+        res = explainer.explain(np.random.uniform(0.0, 1.0, size=(FEATURE_DIM,)))
+        assert res["surrogate_drift_detected"] is True
 
 
 def test_shap_explainer_output_structure():

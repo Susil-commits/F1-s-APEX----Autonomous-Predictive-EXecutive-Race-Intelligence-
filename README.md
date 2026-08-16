@@ -380,12 +380,12 @@ APEX/
 │   │   ├── simulator/                     # Deterministic physics engine, car physics & Pydantic models
 │   │   ├── intelligence/                  # Feature builder, TreeSHAP explainer, tyre & weather models
 │   │   ├── strategy/                      # Rule engine, Gymnasium RL env, DQN agent, Monte Carlo, explainability
-│   │   ├── twin/                          # SQLAlchemy database models, async session manager & write-through store
+│   │   ├── twin/                          # SQLAlchemy database models, Redis hot cache & write-through store
 │   │   ├── api/                           # FastAPI routes & WebSocket broadcaster
 │   │   └── main.py                        # FastAPI entry point
 │   ├── models/                            # Trained DQN checkpoints & multi-action distilled TreeSHAP artifacts
 │   ├── training/                          # RL training (train_dqn.py) & surrogate distillation (distill_dqn_surrogate.py)
-│   └── tests/                             # 34/34 unit & integration tests
+│   └── tests/                             # Automated unit & integration tests
 ├── frontend/                              # React 18 + Vite + Tailwind Mission Control
 │   ├── src/
 │   │   ├── components/                    # 34 Mission Control components (SHAP Comparator, Scenario Injector, DVR, etc.)
@@ -398,6 +398,9 @@ APEX/
     ├── run_benchmarks.py
     └── benchmark_report.md
 ```
+
+> [!NOTE]
+> **Reproducibility & Model Artifacts**: Binary model artifacts (`apex_dqn.zip`, `best_model.zip`, `shap_surrogate.joblib`, `shap_multi_action_surrogate.joblib`, `training_rewards.png`) are committed directly to the repository to guarantee deterministic out-of-the-box runnability without requiring multi-hour RL retraining loops in CI. Policy-surrogate alignment is validated at runtime via SHA-256 checkpoint hashing.
 
 ---
 

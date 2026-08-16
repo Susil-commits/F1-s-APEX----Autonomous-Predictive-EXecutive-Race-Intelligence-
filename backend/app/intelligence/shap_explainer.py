@@ -5,6 +5,8 @@ Provides single-policy attributions and pairwise multi-action differential expla
 """
 from typing import Dict, List, Any, Optional, Union
 import os
+import json
+import hashlib
 import logging
 import joblib
 import numpy as np
@@ -26,8 +28,11 @@ DEFAULT_MULTI_ACTION_SURROGATE_JOBLIB = os.path.join(
 DEFAULT_SURROGATE_PKL = os.path.join(
     os.path.dirname(__file__), "..", "..", "models", "shap_surrogate.pkl"
 )
-DEFAULT_SURROGATE_JSON = os.path.join(
-    os.path.dirname(__file__), "..", "..", "models", "shap_surrogate.json"
+DEFAULT_SURROGATE_META = os.path.join(
+    os.path.dirname(__file__), "..", "..", "models", "shap_surrogate_meta.json"
+)
+DEFAULT_DQN_PATH = os.path.join(
+    os.path.dirname(__file__), "..", "..", "models", "apex_dqn.zip"
 )
 DEFAULT_SURROGATE_PATH = DEFAULT_SURROGATE_JOBLIB
 
@@ -47,7 +52,8 @@ class TreeSHAPExplainer:
     """Computes exact Shapley feature attributions (TreeSHAP) for strategic decision states.
     
     Explains the DQN policy's decision surface via tree ensemble surrogates distilled
-    directly from real DQN rollouts and telemetry. Supports differential attribution between actions.
+    directly from real DQN rollouts and telemetry. Supports differential attribution between actions
+    and monitors policy-surrogate drift via SHA-256 checkpoint verification.
     """
 
     _instance: Optional["TreeSHAPExplainer"] = None
@@ -56,13 +62,23 @@ class TreeSHAPExplainer:
         self,
         model_path: Optional[str] = None,
         multi_action_path: Optional[str] = None,
+        meta_path: Optional[str] = None,
+        dqn_path: Optional[str] = None,
     ):
         self.model_path = model_path
         self.multi_action_path = multi_action_path or DEFAULT_MULTI_ACTION_SURROGATE_JOBLIB
+        self.meta_path = meta_path or DEFAULT_SURROGATE_META
+        self.dqn_path = dqn_path or DEFAULT_DQN_PATH
         self.model: Optional[Any] = None
         self.explainer: Optional[shap.TreeExplainer] = None
         self.base_value: float = 0.0
         self.is_distilled: bool = False
+
+        # Policy drift detection state
+        self.surrogate_drift_detected: bool = False
+        self.distilled_dqn_hash: Optional[str] = None
+        self.active_dqn_hash: Optional[str] = None
+        self.surrogate_meta: Optional[Dict[str, Any]] = None
 
         # Multi-action surrogate models and explainers
         self.action_models: Dict[int, Any] = {}
@@ -71,17 +87,22 @@ class TreeSHAPExplainer:
 
         self._fit_surrogate_model()
         self._load_or_fit_multi_action_models()
+        self._verify_surrogate_alignment()
 
     @classmethod
     def get_instance(
         cls,
         model_path: Optional[str] = None,
         multi_action_path: Optional[str] = None,
+        meta_path: Optional[str] = None,
+        dqn_path: Optional[str] = None,
     ) -> "TreeSHAPExplainer":
         if cls._instance is None:
             cls._instance = TreeSHAPExplainer(
                 model_path=model_path,
                 multi_action_path=multi_action_path,
+                meta_path=meta_path,
+                dqn_path=dqn_path,
             )
         return cls._instance
 
@@ -90,12 +111,61 @@ class TreeSHAPExplainer:
         """Resets the singleton instance for testing or model reloading."""
         cls._instance = None
 
+    def _compute_file_sha256(self, path: str) -> Optional[str]:
+        """Computes SHA-256 hex digest of a file checkpoint."""
+        if not os.path.exists(path):
+            return None
+        try:
+            with open(path, "rb") as f:
+                return hashlib.sha256(f.read()).hexdigest()
+        except Exception as e:
+            logger.warning(f"Failed to compute SHA256 for {path}: {e}")
+            return None
+
+    def _verify_surrogate_alignment(self):
+        """Checks if the distilled surrogate matches the active DQN model checkpoint."""
+        if not self.is_distilled:
+            return
+
+        self.active_dqn_hash = self._compute_file_sha256(self.dqn_path)
+        if os.path.exists(self.meta_path):
+            try:
+                with open(self.meta_path, "r") as f:
+                    self.surrogate_meta = json.load(f)
+                    self.distilled_dqn_hash = self.surrogate_meta.get("dqn_model_hash")
+            except Exception as e:
+                logger.warning(f"Failed to load surrogate metadata from {self.meta_path}: {e}")
+
+        if self.active_dqn_hash and self.distilled_dqn_hash:
+            if self.active_dqn_hash != self.distilled_dqn_hash:
+                self.surrogate_drift_detected = True
+                warning_msg = (
+                    f"[TreeSHAPExplainer] WARNING: Surrogate model drift detected! "
+                    f"Surrogate was distilled from DQN hash {self.distilled_dqn_hash[:8]}..., "
+                    f"but active DQN checkpoint has hash {self.active_dqn_hash[:8]}... "
+                    "Surrogate explanations may not accurately reflect the active policy. "
+                    "Run 'python -m backend.training.distill_dqn_surrogate' to re-sync."
+                )
+                logger.warning(warning_msg)
+                print(warning_msg)
+            else:
+                self.surrogate_drift_detected = False
+                logger.info(
+                    f"[TreeSHAPExplainer] Distilled surrogate in sync with active DQN (hash: {self.active_dqn_hash[:8]}...)"
+                )
+        elif self.active_dqn_hash and not self.distilled_dqn_hash:
+            self.surrogate_drift_detected = True
+            logger.warning(
+                "[TreeSHAPExplainer] WARNING: Surrogate metadata is missing dqn_model_hash. "
+                "Run distillation pipeline to guarantee policy alignment."
+            )
+
     def _resolve_model_path(self) -> Optional[str]:
         """Resolves available surrogate model artifact path."""
         if self.model_path:
             return self.model_path if os.path.exists(self.model_path) else None
 
-        for path in (DEFAULT_SURROGATE_JOBLIB, DEFAULT_SURROGATE_PKL, DEFAULT_SURROGATE_JSON):
+        for path in (DEFAULT_SURROGATE_JOBLIB, DEFAULT_SURROGATE_PKL):
             if os.path.exists(path):
                 return path
         return None
@@ -109,14 +179,7 @@ class TreeSHAPExplainer:
 
         if resolved_path and os.path.exists(resolved_path):
             try:
-                if resolved_path.endswith(".joblib") or resolved_path.endswith(".pkl"):
-                    self.model = joblib.load(resolved_path)
-                elif resolved_path.endswith(".json"):
-                    import xgboost as xgb
-                    surrogate = xgb.XGBRegressor()
-                    surrogate.load_model(resolved_path)
-                    self.model = surrogate
-
+                self.model = joblib.load(resolved_path)
                 self.explainer = shap.TreeExplainer(self.model)
                 expected = self.explainer.expected_value
                 self.base_value = float(np.mean(expected)) if hasattr(expected, "__iter__") else float(expected)
@@ -251,6 +314,9 @@ class TreeSHAPExplainer:
             "all_features": contributions,
             "formula": "f(x) = E[f(x)] + SUM(phi_i)",
             "is_distilled": self.is_distilled,
+            "surrogate_drift_detected": self.surrogate_drift_detected,
+            "dqn_model_hash": self.active_dqn_hash,
+            "distilled_dqn_hash": self.distilled_dqn_hash,
             "surrogate_type": "distilled_dqn_surrogate" if self.is_distilled else "heuristic_fallback",
         }
 

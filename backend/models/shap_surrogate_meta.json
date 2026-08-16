@@ -1,4 +1,7 @@
 {
+  "dqn_model_hash": "7f7c372fce1603414297c13bee706f5b6ec641326f61c439732fab8e4266c3a7",
+  "dqn_model_path": "backend/models/apex_dqn.zip",
+  "distilled_at": "2026-08-16T13:40:00+00:00",
   "n_samples": 2366,
   "train_samples": 1892,
   "test_samples": 474,

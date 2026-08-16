@@ -34,6 +34,7 @@ def train(
     total_timesteps: int = 150000,
     save_dir: str = "backend/models",
     plot_path: str = "backend/models/training_rewards.png",
+    distill: bool = False,
 ):
     """Trains a high-performance DQN policy with evaluation callbacks and artifact logging."""
     os.makedirs(save_dir, exist_ok=True)
@@ -136,10 +137,18 @@ def train(
 
     print(f"[APEX DQN] Training completed successfully!")
 
+    if distill:
+        print("[APEX DQN] Triggering automatic surrogate distillation pipeline...")
+        from backend.training.distill_dqn_surrogate import run_distillation
+        run_distillation(dqn_model_path=model_save_path)
+    else:
+        print("[APEX DQN] Note: To update TreeSHAP surrogate explainers, run: python -m backend.training.distill_dqn_surrogate (or pass --distill)")
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train APEX DQN Agent")
     parser.add_argument("--steps", type=int, default=80000, help="Total training timesteps")
+    parser.add_argument("--distill", action="store_true", help="Automatically run surrogate distillation pipeline after training")
     args = parser.parse_args()
-    train(total_timesteps=args.steps)
+    train(total_timesteps=args.steps, distill=args.distill)
 

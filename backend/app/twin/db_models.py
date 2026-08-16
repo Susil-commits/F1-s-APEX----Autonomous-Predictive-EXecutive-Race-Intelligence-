@@ -1,5 +1,5 @@
 """SQLAlchemy ORM models for APEX Digital Twin & Telemetry Persistence."""
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 from sqlalchemy import (
     Column,
@@ -17,6 +17,10 @@ from sqlalchemy.orm import declarative_base, relationship
 Base = declarative_base()
 
 
+def utcnow():
+    return datetime.now(timezone.utc)
+
+
 class RaceSessionModel(Base):
     """Stores full race session metadata."""
     __tablename__ = "race_sessions"
@@ -29,8 +33,8 @@ class RaceSessionModel(Base):
     winner_car_id = Column(String(32), nullable=True)
     total_race_time_s = Column(Float, nullable=True)
     seed = Column(Integer, nullable=True)
-    created_at = Column(DateTime, default=datetime.utcnow)
-    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at = Column(DateTime, default=utcnow)
+    updated_at = Column(DateTime, default=utcnow, onupdate=utcnow)
 
     ticks = relationship("TelemetryTickModel", back_populates="session", cascade="all, delete-orphan")
     decisions = relationship("DecisionLogModel", back_populates="session", cascade="all, delete-orphan")
@@ -47,7 +51,7 @@ class TelemetryTickModel(Base):
     track_condition = Column(String(32), default="DRY")
     safety_car = Column(String(32), default="NONE")
     state_payload = Column(JSON, nullable=False)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=utcnow)
 
     session = relationship("RaceSessionModel", back_populates="ticks")
 
@@ -67,7 +71,7 @@ class DecisionLogModel(Base):
     q_value_margin = Column(Float, nullable=True)
     tyre_cliff_risk = Column(Float, nullable=True)
     explanation_payload = Column(JSON, nullable=True)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=utcnow)
 
     session = relationship("RaceSessionModel", back_populates="decisions")
 
@@ -77,7 +81,7 @@ class BenchmarkRunModel(Base):
     __tablename__ = "benchmark_runs"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    run_date = Column(DateTime, default=datetime.utcnow)
+    run_date = Column(DateTime, default=utcnow)
     track_name = Column(String(64), nullable=False)
     num_races = Column(Integer, nullable=False)
     policy_name = Column(String(64), nullable=False)

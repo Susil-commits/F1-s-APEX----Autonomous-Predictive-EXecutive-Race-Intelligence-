@@ -8,6 +8,8 @@ import os
 import sys
 import argparse
 import asyncio
+import hashlib
+from datetime import datetime, timezone
 import json
 import joblib
 import numpy as np
@@ -17,7 +19,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
 from stable_baselines3 import DQN
 
-from backend.app.simulator.models import TrackCondition, StrategyAction
+from backend.app.simulator.models import StrategyAction
 from backend.app.simulator.track import list_available_tracks
 from backend.app.strategy.gym_env import ApexRaceGymEnv, ACTION_MAP
 from backend.app.intelligence.feature_builder import FeatureBuilder, FEATURE_NAMES, FEATURE_DIM
@@ -149,6 +151,8 @@ def train_surrogate_model(
     save_path: str = "backend/models/shap_surrogate.joblib",
     multi_action_save_path: str = "backend/models/shap_multi_action_surrogate.joblib",
     meta_path: str = "backend/models/shap_surrogate_meta.json",
+    dqn_model_hash: Optional[str] = None,
+    dqn_model_path: Optional[str] = None,
 ) -> Tuple[GradientBoostingRegressor, Dict[int, GradientBoostingRegressor]]:
     """
     Trains global chosen-Q surrogate and per-action surrogate tree models.
@@ -212,7 +216,7 @@ def train_surrogate_model(
     joblib.dump(action_models, multi_action_save_path)
     print(f"[Distillation] Saved 8 multi-action surrogate models to {multi_action_save_path}")
 
-    # Save metadata
+    # Save metadata with DQN model hash to eliminate drift risk
     feature_importances = {
         name: round(float(imp), 5)
         for name, imp in zip(FEATURE_NAMES, surrogate.feature_importances_)
@@ -220,6 +224,9 @@ def train_surrogate_model(
     feature_importances = dict(sorted(feature_importances.items(), key=lambda item: item[1], reverse=True))
 
     meta_payload = {
+        "dqn_model_hash": dqn_model_hash,
+        "dqn_model_path": dqn_model_path,
+        "distilled_at": datetime.now(timezone.utc).isoformat(),
         "n_samples": int(len(X)),
         "train_samples": int(len(X_train)),
         "test_samples": int(len(X_test)),
@@ -232,7 +239,7 @@ def train_surrogate_model(
     }
     with open(meta_path, "w") as f:
         json.dump(meta_payload, f, indent=2)
-    print(f"[Distillation] Saved surrogate metadata to {meta_path}")
+    print(f"[Distillation] Saved surrogate metadata to {meta_path} (DQN hash: {dqn_model_hash})")
 
     return surrogate, action_models
 
@@ -248,7 +255,11 @@ def run_distillation(
     if not os.path.exists(dqn_model_path):
         raise FileNotFoundError(f"DQN policy model not found at {dqn_model_path}")
 
-    print(f"[Distillation] Loading trained DQN policy from {dqn_model_path}...")
+    # Compute SHA-256 hash of the target DQN checkpoint for drift detection
+    with open(dqn_model_path, "rb") as f:
+        dqn_hash = hashlib.sha256(f.read()).hexdigest()
+
+    print(f"[Distillation] Loading trained DQN policy from {dqn_model_path} (SHA-256: {dqn_hash[:12]}...)...")
     dqn_model = DQN.load(dqn_model_path)
 
     # 1. Collect rollout data
@@ -280,6 +291,8 @@ def run_distillation(
         q_distributions=q_dist_combined,
         save_path=save_path,
         multi_action_save_path=multi_action_save_path,
+        dqn_model_hash=dqn_hash,
+        dqn_model_path=dqn_model_path,
     )
     print("[Distillation] Distillation pipeline completed successfully!")
 

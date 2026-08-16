@@ -4,7 +4,7 @@ import sys
 import json
 import argparse
 import asyncio
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Dict, List, Any, Optional
 import numpy as np
 
@@ -172,7 +172,7 @@ def run_multi_circuit_benchmark(
         }
 
     output_payload = {
-        "timestamp": datetime.utcnow().isoformat(),
+        "timestamp": datetime.now(timezone.utc).isoformat(),
         "total_tracks": len(tracks),
         "races_per_track": races_per_track,
         "total_races_evaluated": len(tracks) * races_per_track * len(policy_names),
