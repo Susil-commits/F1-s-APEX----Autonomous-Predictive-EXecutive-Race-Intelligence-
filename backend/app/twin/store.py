@@ -97,11 +97,9 @@ class RaceStore:
 
         # 3. Tier 3: Async Persistence
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.create_task(self.persist_tick_async(state))
-        except RuntimeError:
-            pass
+            await self.persist_tick_async(state)
+        except Exception as e:
+            logger.debug(f"[RaceStore] Save state DB persist error: {e}")
 
     def get_state(self, race_id: str) -> Optional[RaceState]:
         """Retrieves active state from L1 in-memory store."""
@@ -201,11 +199,9 @@ class RaceStore:
             logger.debug(f"[RaceStore] Async Redis decision write skipped: {e}")
 
         try:
-            loop = asyncio.get_event_loop()
-            if loop.is_running():
-                asyncio.create_task(self.persist_decision_async(race_id, lap, decision))
-        except RuntimeError:
-            pass
+            await self.persist_decision_async(race_id, lap, decision)
+        except Exception as e:
+            logger.debug(f"[RaceStore] Direct persist decision error: {e}")
 
     async def persist_decision_async(self, race_id: str, lap: int, decision: DecisionExplanation):
         """Persists decision log to database."""
@@ -239,6 +235,7 @@ class RaceStore:
 
     async def get_persisted_decisions(self, race_id: Optional[str] = None) -> List[Dict[str, Any]]:
         """Queries persisted decision logs from database for RAG intelligence and auditing."""
+        mem_items = self.decision_history.get(race_id, []) if race_id else [l for logs in self.decision_history.values() for l in logs]
         try:
             await self.ensure_db_ready()
             async with get_db_session() as session:
@@ -248,7 +245,7 @@ class RaceStore:
                 stmt = stmt.order_by(DecisionLogModel.lap.asc())
                 result = await session.execute(stmt)
                 rows = result.scalars().all()
-                if rows:
+                if rows and len(rows) >= len(mem_items):
                     return [
                         {
                             "id": r.id,
@@ -270,7 +267,7 @@ class RaceStore:
             logger.debug(f"[RaceStore] Persisted decisions query fallback: {e}")
 
         # Fallback to in-memory decision history with normalized schema
-        raw_items = self.decision_history.get(race_id, []) if race_id else [l for logs in self.decision_history.values() for l in logs]
+        raw_items = mem_items
         normalized = []
         for item in raw_items:
             dec = item.get("decision") or {}

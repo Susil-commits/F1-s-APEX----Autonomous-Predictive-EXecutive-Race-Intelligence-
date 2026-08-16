@@ -19,7 +19,8 @@ from backend.app.intelligence.race_qa import (
 @pytest.fixture(autouse=True)
 async def seed_decision_history():
     """Seeds test decision logs into store."""
-    test_race_id = "test_rag_race_42"
+    import uuid
+    test_race_id = f"test_rag_{uuid.uuid4().hex[:8]}"
     store.decision_history[test_race_id] = []
 
     # Lap 10: Maintain
