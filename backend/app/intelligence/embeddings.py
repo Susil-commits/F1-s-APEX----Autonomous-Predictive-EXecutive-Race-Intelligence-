@@ -107,6 +107,16 @@ class DecisionEmbedder:
         text = self.format_log_as_text(entry)
         return self.embed_text(text)
 
+    @property
+    def embedding_source(self) -> str:
+        """Returns 'sentence_transformer' if active, else 'hash_fallback'."""
+        if self._is_transformer_active and self.model is not None:
+            return "sentence_transformer"
+        return "hash_fallback"
+
+    def get_embedding_source(self) -> str:
+        return self.embedding_source
+
     @staticmethod
     def _deterministic_fallback_vector(text: str, dim: int = 384) -> np.ndarray:
         """Deterministic, term-overlap pseudo-embedding when transformer weights are loading."""
@@ -139,3 +149,8 @@ def embed_decision_log(entry: Dict[str, Any]) -> np.ndarray:
 
 def format_decision_log(entry: Dict[str, Any]) -> str:
     return DecisionEmbedder.format_log_as_text(entry)
+
+
+def get_embedding_source() -> str:
+    return embedder.get_embedding_source()
+

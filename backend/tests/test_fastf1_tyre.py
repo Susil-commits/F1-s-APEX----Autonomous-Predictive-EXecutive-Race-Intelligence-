@@ -6,15 +6,16 @@ import numpy as np
 
 from backend.training.fetch_fastf1_data import (
     clean_session_laps,
-    generate_synthetic_real_world_baseline,
+    generate_synthetic_fallback_data,
+    fetch_all_real_races,
 )
-from backend.training.validate_tyre_model import fit_compound_curve
+from backend.training.validate_tyre_model import fit_compound_curve, evaluate_and_calibrate
 from backend.app.intelligence.tyre_model import TyreModel
 from backend.app.simulator.models import TyreCompound, DrivingMode, CarState, TrackConfig, WeatherState
 
 
 def test_clean_session_laps_filtering():
-    """Verifies that pit in/out laps and safety car laps are strictly filtered out."""
+    """Verifies that pit in/out laps and safety car laps are strictly filtered out and tagged with data_source."""
     raw_df = pd.DataFrame([
         {
             "Driver": "VER",
@@ -33,7 +34,7 @@ def test_clean_session_laps_filtering():
             "TyreLife": 6,
             "LapTime": pd.Timedelta(seconds=115.0),
             "Stint": 1,
-            "PitInTime": pd.Timedelta(seconds=110.0), # Pit in-lap -> should be dropped
+            "PitInTime": pd.Timedelta(seconds=110.0),  # Pit in-lap -> should be dropped
             "PitOutTime": pd.NaT,
             "IsAccurate": True,
             "TrackStatus": "1",
@@ -45,7 +46,7 @@ def test_clean_session_laps_filtering():
             "LapTime": pd.Timedelta(seconds=125.0),
             "Stint": 2,
             "PitInTime": pd.NaT,
-            "PitOutTime": pd.Timedelta(seconds=0.0), # Pit out-lap -> should be dropped
+            "PitOutTime": pd.Timedelta(seconds=0.0),  # Pit out-lap -> should be dropped
             "IsAccurate": True,
             "TrackStatus": "1",
         },
@@ -58,7 +59,7 @@ def test_clean_session_laps_filtering():
             "PitInTime": pd.NaT,
             "PitOutTime": pd.NaT,
             "IsAccurate": True,
-            "TrackStatus": "4", # Safety Car lap -> should be dropped
+            "TrackStatus": "4",  # Safety Car lap -> should be dropped
         },
         {
             "Driver": "VER",
@@ -77,15 +78,40 @@ def test_clean_session_laps_filtering():
     assert len(clean_df) == 2, f"Expected 2 clean laps, got {len(clean_df)}"
     assert (clean_df["tyre_age"].values == [5, 9]).all()
     assert (clean_df["lap_time_delta"] >= 0.0).all()
+    assert "data_source" in clean_df.columns
+    assert (clean_df["data_source"] == "fastf1_real").all()
 
 
-def test_synthetic_baseline_generation():
-    """Ensures fallback real-world baseline generates structured degradation curves."""
-    df = generate_synthetic_real_world_baseline()
+def test_synthetic_fallback_generation():
+    """Ensures fallback synthetic data generator creates structured curves with data_source tag."""
+    df = generate_synthetic_fallback_data()
     assert not df.empty
     assert set(df["compound"].unique()) == {"SOFT", "MEDIUM", "HARD"}
     assert "lap_time_delta" in df.columns
+    assert "data_source" in df.columns
+    assert (df["data_source"] == "synthetic_fallback").all()
     assert len(df) > 500
+
+
+def test_fetch_all_real_races_fallback_switch(tmp_path):
+    """Verifies that allow_synthetic_fallback=False raises RuntimeError when no sessions fetched."""
+    # Pass non-existent session
+    fake_races = [(1950, "NonExistentGrandPrix", "R")]
+    with pytest.raises(RuntimeError, match="No real sessions were fetched"):
+        fetch_all_real_races(
+            races=fake_races,
+            output_path=str(tmp_path / "real_test.csv"),
+            allow_synthetic_fallback=False,
+        )
+
+    # When fallback is explicitly allowed
+    df = fetch_all_real_races(
+        races=fake_races,
+        output_path=str(tmp_path / "fallback_test.csv"),
+        allow_synthetic_fallback=True,
+    )
+    assert not df.empty
+    assert (df["data_source"] == "synthetic_fallback").all()
 
 
 def test_tyre_model_predict_loss_calibrated():
@@ -146,3 +172,4 @@ def test_circuit_degradation_factors():
     assert bahrain_factor > 1.2, "Bahrain must be categorized as high wear"
     assert monza_factor < 1.0, "Monza must be low wear"
     assert monaco_factor < monza_factor, "Monaco wear must be lower than Monza"
+

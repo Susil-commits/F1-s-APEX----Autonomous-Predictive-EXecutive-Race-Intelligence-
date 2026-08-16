@@ -118,6 +118,7 @@ def clean_session_laps(session_laps: pd.DataFrame, circuit_name: str, year: int)
     df["season"] = year
     df["tyre_age"] = df["TyreLife"].astype(int)
     df["stint"] = df["Stint"].astype(int)
+    df["data_source"] = "fastf1_real"
 
     result_cols = [
         "season",
@@ -131,12 +132,13 @@ def clean_session_laps(session_laps: pd.DataFrame, circuit_name: str, year: int)
         "driver_fastest_lap_s",
         "fuel_corrected_delta",
         "lap_time_delta",
+        "data_source",
     ]
     return df[[c for c in result_cols if c in df.columns]]
 
 
-def generate_synthetic_real_world_baseline() -> pd.DataFrame:
-    """Generates realistic F1 telemetry sample distribution when FastF1 API is offline."""
+def generate_synthetic_fallback_data() -> pd.DataFrame:
+    """Generates realistic synthetic F1 telemetry fallback distribution when FastF1 API is offline."""
     np.random.seed(42)
     records = []
     drivers = ["VER", "HAM", "NOR", "LEC", "PIA", "RUS", "SAI", "ALO"]
@@ -173,6 +175,7 @@ def generate_synthetic_real_world_baseline() -> pd.DataFrame:
                             "lap_time_s": round(base_lap + driver_pace_offset + delta, 3),
                             "driver_fastest_lap_s": round(base_lap + driver_pace_offset, 3),
                             "lap_time_delta": round(delta, 3),
+                            "data_source": "synthetic_fallback",
                         })
 
     return pd.DataFrame(records)
@@ -182,10 +185,12 @@ def fetch_all_real_races(
     races: Optional[List[Tuple[int, str, str]]] = None,
     output_path: str = OUTPUT_CSV,
     force_download: bool = False,
+    allow_synthetic_fallback: bool = False,
 ) -> pd.DataFrame:
     """
     Downloads, processes, and persists clean F1 tyre degradation telemetry across specified races.
-    Falls back gracefully to realistic calibrated baseline dataset if API/network is unavailable.
+    If no real sessions were fetched and allow_synthetic_fallback is False, raises RuntimeError.
+    If allow_synthetic_fallback is True, generates synthetic fallback dataset.
     """
     races_to_fetch = races or DEFAULT_RACES
     setup_fastf1_cache()
@@ -208,13 +213,18 @@ def fetch_all_real_races(
                 print(f"[FastF1] Warning fetching {year} {event}: {e}")
 
     except ImportError:
-        print("[FastF1] fastf1 package not found. Using structured offline baseline.")
+        print("[FastF1] fastf1 package not found.")
 
     if collected_dfs:
         full_df = pd.concat(collected_dfs, ignore_index=True)
     else:
-        print("[FastF1] No remote sessions fetched. Generating calibrated baseline dataset.")
-        full_df = generate_synthetic_real_world_baseline()
+        if not allow_synthetic_fallback:
+            raise RuntimeError(
+                "[FastF1] No real sessions were fetched from FastF1 API and allow_synthetic_fallback is False. "
+                "Check network connection/FastF1 endpoints or pass allow_synthetic_fallback=True if offline."
+            )
+        print("[FastF1] No remote sessions fetched. Generating synthetic fallback dataset.")
+        full_df = generate_synthetic_fallback_data()
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     full_df.to_csv(output_path, index=False)
@@ -224,3 +234,4 @@ def fetch_all_real_races(
 
 if __name__ == "__main__":
     fetch_all_real_races()
+

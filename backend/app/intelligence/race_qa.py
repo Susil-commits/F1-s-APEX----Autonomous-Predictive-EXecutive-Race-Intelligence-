@@ -14,6 +14,7 @@ from backend.app.intelligence.embeddings import (
     embed_text,
     embed_texts,
     format_decision_log,
+    get_embedding_source,
 )
 from backend.app.intelligence.commentary_generator import DEFAULT_OLLAMA_MODEL, DEFAULT_OLLAMA_HOST
 
@@ -50,14 +51,13 @@ class RaceQAEngine:
         query_embedding = embed_text(query)  # [dim]
 
         # Compute cosine similarity
-        norm_logs = np.linalg.norm(log_embeddings, axis=1, keepdims=True)
-        norm_query = np.linalg.norm(query_embedding)
+        norm_logs = np.linalg.norm(log_embeddings, axis=1)  # [N]
+        norm_query = float(np.linalg.norm(query_embedding))
 
         # Avoid division by zero
-        norm_logs = np.where(norm_logs == 0, 1e-9, norm_logs)
-        norm_query = max(1e-9, norm_query)
-
-        similarities = np.dot(log_embeddings, query_embedding) / (norm_logs.squeeze() * norm_query)
+        denom = np.maximum(norm_logs * norm_query, 1e-9)
+        raw_similarities = np.dot(log_embeddings, query_embedding) / denom
+        similarities = np.atleast_1d(raw_similarities).copy()
 
         # Boost score if exact lap requested matches
         if target_lap is not None:
@@ -83,6 +83,7 @@ class RaceQAEngine:
         3. Prompts local LLM (or deterministic fallback) with strict zero-hallucination constraint.
         4. Returns answer along with source citation logs for auditability.
         """
+        embedding_source = get_embedding_source()
         scored_results = await self.retrieve_relevant_decisions(query=query, race_id=race_id, top_k=top_k)
 
         if not scored_results:
@@ -91,6 +92,7 @@ class RaceQAEngine:
                 "sources": [],
                 "retrieved_count": 0,
                 "model_used": "system",
+                "embedding_source": embedding_source,
             }
 
         top_sources = [p[0] for p in scored_results]
@@ -107,6 +109,7 @@ class RaceQAEngine:
                     "sources": top_sources,
                     "retrieved_count": len(top_sources),
                     "model_used": "deterministic_grounding",
+                    "embedding_source": embedding_source,
                 }
 
         # Build grounded context block
@@ -158,6 +161,7 @@ class RaceQAEngine:
             "sources": sources_payload,
             "retrieved_count": len(sources_payload),
             "model_used": model_used,
+            "embedding_source": embedding_source,
         }
 
     def _call_llm_or_fallback(

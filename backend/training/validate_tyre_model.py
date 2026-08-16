@@ -81,6 +81,7 @@ def evaluate_and_calibrate(
     held_out_circuit: str = "Spa",
     held_out_season: Optional[int] = None,
     save_artifacts: bool = True,
+    allow_synthetic_fallback: bool = False,
 ) -> Dict[str, Any]:
     """
     Performs train/validation split on real F1 telemetry data:
@@ -91,12 +92,20 @@ def evaluate_and_calibrate(
     """
     if not os.path.exists(csv_path):
         print(f"[TyreModel] Data CSV not found at {csv_path}. Fetching dataset...")
-        df = fetch_all_real_races(output_path=csv_path)
+        df = fetch_all_real_races(output_path=csv_path, allow_synthetic_fallback=allow_synthetic_fallback)
     else:
         df = pd.read_csv(csv_path)
 
     if df.empty:
         raise ValueError(f"Dataset at {csv_path} is empty.")
+
+    # Detect data source transparency
+    if "data_source" in df.columns:
+        has_synthetic = (df["data_source"] == "synthetic_fallback").any()
+        data_source = "synthetic_fallback" if has_synthetic else "fastf1_real"
+    else:
+        has_synthetic = True
+        data_source = "synthetic_fallback"
 
     # Determine train/val split
     has_held_out = (df["circuit"] == held_out_circuit).any()
@@ -237,8 +246,10 @@ def evaluate_and_calibrate(
     baseline_r2 = float(r2_score(all_y_true, all_y_linear)) if len(all_y_true) > 2 else 0.35
     baseline_rmse = float(root_mean_squared_error(all_y_true, all_y_linear)) if len(all_y_true) > 2 else 0.65
 
+    source_title = "⚠ SYNTHETIC FALLBACK DATA — FastF1 fetch unavailable" if data_source == "synthetic_fallback" else "FastF1 Real Data Calibration"
+
     fig.suptitle(
-        f"APEX Tyre Degradation Model — FastF1 Real Data Calibration\n"
+        f"APEX Tyre Degradation Model — {source_title}\n"
         f"Held-out Validation on {held_out_circuit} (Total Samples: {len(all_y_true)}) | "
         f"Overall Model R²: {overall_r2:.3f} (Baseline: {baseline_r2:.3f}) | RMSE: {overall_rmse:.3f}s",
         fontsize=13,
@@ -249,6 +260,7 @@ def evaluate_and_calibrate(
 
     calibration_payload = {
         "status": "calibrated",
+        "data_source": data_source,
         "held_out_circuit": held_out_circuit,
         "total_training_samples": len(train_df),
         "total_validation_samples": len(val_df),
@@ -273,7 +285,7 @@ def evaluate_and_calibrate(
     plt.close(fig)
 
     print(
-        f"[TyreModel] Validation complete: R² = {overall_r2:.3f} (vs linear {baseline_r2:.3f}), "
+        f"[TyreModel] Validation complete ({data_source}): R² = {overall_r2:.3f} (vs linear {baseline_r2:.3f}), "
         f"RMSE = {overall_rmse:.3f}s"
     )
     return calibration_payload
@@ -281,3 +293,4 @@ def evaluate_and_calibrate(
 
 if __name__ == "__main__":
     evaluate_and_calibrate()
+

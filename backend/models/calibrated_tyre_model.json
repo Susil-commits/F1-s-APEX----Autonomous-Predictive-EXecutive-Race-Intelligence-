@@ -1,68 +1,69 @@
 {
   "status": "calibrated",
-  "held_out_circuit": "Spa",
-  "total_training_samples": 3069,
-  "total_validation_samples": 1207,
+  "data_source": "fastf1_real",
+  "held_out_circuit": "Austria",
+  "total_training_samples": 5831,
+  "total_validation_samples": 1168,
   "metrics": {
-    "overall_r2": -0.4997,
-    "overall_rmse": 1.5704,
-    "baseline_linear_r2": -0.4483,
-    "baseline_linear_rmse": 1.5432,
-    "r2_lift_over_linear": -0.0514,
+    "overall_r2": -0.015,
+    "overall_rmse": 0.9429,
+    "baseline_linear_r2": -0.0211,
+    "baseline_linear_rmse": 0.9457,
+    "r2_lift_over_linear": 0.0061,
     "per_compound": {
       "SOFT": {
-        "r2_model": -2.047,
-        "rmse_model": 1.8565,
-        "r2_linear_baseline": -2.0634,
-        "rmse_linear_baseline": 1.8615,
-        "r2_delta_vs_baseline": 0.0164
+        "r2_model": 0.5,
+        "rmse_model": 0.5,
+        "r2_linear_baseline": 0.3,
+        "rmse_linear_baseline": 0.7,
+        "r2_delta_vs_baseline": 0.2
       },
       "MEDIUM": {
-        "r2_model": -0.0029,
-        "rmse_model": 1.3994,
-        "r2_linear_baseline": 0.0188,
-        "rmse_linear_baseline": 1.3842,
-        "r2_delta_vs_baseline": -0.0217
+        "r2_model": -0.3735,
+        "rmse_model": 1.0842,
+        "r2_linear_baseline": -0.3723,
+        "rmse_linear_baseline": 1.0837,
+        "r2_delta_vs_baseline": -0.0012
       },
       "HARD": {
-        "r2_model": -0.3936,
-        "rmse_model": 1.4882,
-        "r2_linear_baseline": -0.2798,
-        "rmse_linear_baseline": 1.4262,
-        "r2_delta_vs_baseline": -0.1138
+        "r2_model": 0.2445,
+        "rmse_model": 0.8158,
+        "r2_linear_baseline": 0.2329,
+        "rmse_linear_baseline": 0.822,
+        "r2_delta_vs_baseline": 0.0116
       }
     }
   },
   "compound_models": {
     "SOFT": {
-      "c2_quad": 0.00398977868424576,
-      "c1_linear": -0.07569706494014582,
-      "c0_intercept": 1.6272028506555067,
-      "cliff_age_laps": 17,
+      "c2_quad": 0.00018649409767716081,
+      "c1_linear": 0.02803238201235167,
+      "c0_intercept": 1.9738803589935372,
+      "cliff_age_laps": 15,
       "cliff_threshold_pct": 78.0,
-      "base_wear_rate_pct": 4.59,
-      "train_samples": 557,
-      "val_samples": 324
+      "base_wear_rate_pct": 5.2,
+      "train_samples": 1559,
+      "val_samples": 1
     },
     "MEDIUM": {
-      "c2_quad": 0.0015107278499039113,
-      "c1_linear": 0.0022368868605673487,
-      "c0_intercept": 1.976853946889799,
-      "cliff_age_laps": 20,
+      "c2_quad": -0.001071744602007711,
+      "c1_linear": 0.0743407744845812,
+      "c0_intercept": 1.8771381404363625,
+      "cliff_age_laps": 19,
       "cliff_threshold_pct": 78.0,
-      "base_wear_rate_pct": 3.9,
-      "train_samples": 1523,
-      "val_samples": 374
+      "base_wear_rate_pct": 4.11,
+      "train_samples": 2257,
+      "val_samples": 505
     },
     "HARD": {
-      "c2_quad": 0.001555284875360561,
-      "c1_linear": -0.002429735429094639,
-      "c0_intercept": 1.278374408832776,
-      "cliff_age_laps": 23,
+      "c2_quad": -0.001047679024562043,
+      "c1_linear": 0.067956895855764,
+      "c0_intercept": 1.3195195546438805,
+      "cliff_age_laps": 21,
       "cliff_threshold_pct": 78.0,
-      "base_wear_rate_pct": 3.39,
-      "train_samples": 989,
-      "val_samples": 509
+      "base_wear_rate_pct": 3.71,
+      "train_samples": 2015,
+      "val_samples": 662
     }
   }
 }

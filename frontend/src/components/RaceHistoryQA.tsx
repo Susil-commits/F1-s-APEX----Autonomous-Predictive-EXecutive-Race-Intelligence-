@@ -37,6 +37,7 @@ interface QAResponse {
   sources: DecisionSource[];
   retrieved_count: number;
   model_used: string;
+  embedding_source?: string;
 }
 
 const SAMPLE_QUERIES = [
@@ -227,9 +228,16 @@ export const RaceHistoryQA: React.FC<RaceHistoryQAProps> = ({ onClose }) => {
                       APEX Intelligence Response
                     </span>
                   </div>
-                  <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
-                    Model: {qaResult.model_used}
-                  </span>
+                  <div className="flex items-center gap-1.5 flex-wrap">
+                    <span className="text-[10px] font-mono text-slate-400 bg-slate-900 px-2 py-0.5 rounded border border-slate-800">
+                      LLM: {qaResult.model_used}
+                    </span>
+                    {qaResult.embedding_source && (
+                      <span className="text-[10px] font-mono text-cyan-400/90 bg-cyan-950/80 px-2 py-0.5 rounded border border-cyan-800/60">
+                        Embeddings: {qaResult.embedding_source}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <p className="text-sm font-sans text-slate-100 leading-relaxed font-medium">
                   {qaResult.answer}

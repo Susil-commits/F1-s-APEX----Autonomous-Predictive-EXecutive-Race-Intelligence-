@@ -101,6 +101,8 @@ async def test_answer_race_question_factual(seed_decision_history):
     assert len(response["sources"]) > 0
     assert response["sources"][0]["lap"] == 23
     assert "PIT_HARD" in response["sources"][0]["recommendation"]
+    assert "embedding_source" in response
+    assert response["embedding_source"] in ["sentence_transformer", "hash_fallback"]
 
 
 @pytest.mark.asyncio
@@ -110,9 +112,12 @@ async def test_answer_race_question_unanswerable_lap(seed_decision_history):
         query="What happened on lap 99?",
         race_id=seed_decision_history,
     )
+    assert "embedding_source" in response
+    assert response["embedding_source"] in ["sentence_transformer", "hash_fallback"]
     answer = response["answer"].lower()
     assert (
         "don't have that information" in answer
         or "no decision log exists" in answer
         or "lap 99" in answer
     )
+
