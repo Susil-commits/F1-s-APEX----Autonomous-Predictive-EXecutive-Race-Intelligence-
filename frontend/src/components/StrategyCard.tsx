@@ -77,6 +77,30 @@ export const StrategyCard: React.FC = () => {
             {(decision.confidence_score * 100).toFixed(0)}% AI Conf.
           </span>
         </div>
+
+        {/* Live Race Engineer Radio Commentary */}
+        {decision.commentary && (
+          <div className="mt-2.5 p-2.5 rounded-lg bg-cyan-950/40 border border-cyan-800/50 flex items-start gap-2">
+            <button
+              onClick={() => audioEngine.speakRadioMessage(decision.commentary || '')}
+              className="mt-0.5 p-1 rounded bg-cyan-900/60 hover:bg-cyan-800 text-cyan-300 transition-all active:scale-95 shrink-0"
+              title="Replay Race Engineer Radio"
+            >
+              <Zap className="w-3.5 h-3.5" />
+            </button>
+            <div className="flex-1">
+              <div className="flex items-center justify-between">
+                <span className="text-[9.5px] font-mono uppercase tracking-wider text-cyan-400 font-bold">
+                  Race Engineer Radio
+                </span>
+                <span className="text-[9px] font-mono text-slate-400">TEAM COMMS</span>
+              </div>
+              <p className="text-xs font-sans text-cyan-100 italic mt-0.5 leading-snug">
+                "{decision.commentary}"
+              </p>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Quick Action Button */}

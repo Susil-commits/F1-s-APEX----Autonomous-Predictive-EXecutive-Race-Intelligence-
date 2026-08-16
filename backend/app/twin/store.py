@@ -223,8 +223,60 @@ class RaceStore:
             pass
 
     def get_decision_history(self, race_id: str) -> List[Dict[str, Any]]:
-        """Retrieves all decision logs for a race."""
+        """Retrieves all decision logs for a race from in-memory cache."""
         return self.decision_history.get(race_id, [])
+
+    async def get_persisted_decisions(self, race_id: Optional[str] = None) -> List[Dict[str, Any]]:
+        """Queries persisted decision logs from database for RAG intelligence and auditing."""
+        try:
+            await self.ensure_db_ready()
+            async with get_db_session() as session:
+                stmt = select(DecisionLogModel)
+                if race_id:
+                    stmt = stmt.where(DecisionLogModel.race_id == race_id)
+                stmt = stmt.order_by(DecisionLogModel.lap.asc())
+                result = await session.execute(stmt)
+                rows = result.scalars().all()
+                if rows:
+                    return [
+                        {
+                            "id": r.id,
+                            "race_id": r.race_id,
+                            "lap": r.lap,
+                            "recommendation": r.recommendation,
+                            "confidence_score": r.confidence_score,
+                            "urgency": r.urgency,
+                            "rule_action": r.rule_action,
+                            "dqn_action": r.dqn_action,
+                            "q_value_margin": r.q_value_margin,
+                            "tyre_cliff_risk": r.tyre_cliff_risk,
+                            "explanation_payload": r.explanation_payload,
+                            "timestamp": str(r.timestamp),
+                        }
+                        for r in rows
+                    ]
+        except Exception as e:
+            logger.debug(f"[RaceStore] Persisted decisions query fallback: {e}")
+
+        # Fallback to in-memory decision history with normalized schema
+        raw_items = self.decision_history.get(race_id, []) if race_id else [l for logs in self.decision_history.values() for l in logs]
+        normalized = []
+        for item in raw_items:
+            dec = item.get("decision") or {}
+            normalized.append({
+                "race_id": item.get("race_id", race_id or ""),
+                "lap": item.get("lap", 1),
+                "recommendation": str(item.get("recommendation") or dec.get("recommendation", "MAINTAIN")).replace("StrategyAction.", ""),
+                "confidence_score": item.get("confidence_score") if item.get("confidence_score") is not None else dec.get("confidence_score", 0.85),
+                "urgency": item.get("urgency") or dec.get("urgency", "MEDIUM"),
+                "rule_action": str(item.get("rule_action") or dec.get("rule_engine_action", "MAINTAIN")).replace("StrategyAction.", ""),
+                "dqn_action": str(item.get("dqn_action") or dec.get("dqn_action", "")).replace("StrategyAction.", "") if (item.get("dqn_action") or dec.get("dqn_action")) else None,
+                "q_value_margin": item.get("q_value_margin") if item.get("q_value_margin") is not None else dec.get("q_value_margin"),
+                "tyre_cliff_risk": item.get("tyre_cliff_risk") or dec.get("tyre_cliff_risk", "LOW"),
+                "explanation_payload": item.get("explanation_payload") or dec,
+                "timestamp": item.get("timestamp", ""),
+            })
+        return normalized
 
     async def get_persisted_session_ticks(self, race_id: str) -> List[Dict[str, Any]]:
         """Queries historical telemetry ticks from database for cross-session replay."""

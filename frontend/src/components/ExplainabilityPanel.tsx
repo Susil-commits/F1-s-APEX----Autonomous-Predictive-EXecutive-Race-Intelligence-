@@ -40,6 +40,18 @@ export const ExplainabilityPanel: React.FC = () => {
             </div>
           ))}
         </div>
+
+        {decision.commentary && (
+          <div className="mt-2.5 p-2 rounded-lg bg-purple-950/30 border border-purple-800/50 flex items-start gap-2">
+            <Sparkles className="w-3.5 h-3.5 text-purple-400 shrink-0 mt-0.5" />
+            <div className="text-[11px] font-sans">
+              <span className="font-mono text-[9px] uppercase tracking-wider text-purple-300 font-bold block">
+                Radio Translation (LLM Transcriber)
+              </span>
+              <span className="text-purple-100 italic">"{decision.commentary}"</span>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Intelligence Consensus Comparison */}

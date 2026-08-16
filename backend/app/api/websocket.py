@@ -7,6 +7,7 @@ from fastapi import WebSocket, WebSocketDisconnect
 from backend.app.simulator.engine import RaceSimulator
 from backend.app.simulator.models import RaceState, StrategyAction, SafetyCarStatus, TrackCondition
 from backend.app.intelligence.feature_builder import FeatureBuilder
+from backend.app.intelligence.commentary_generator import generate_commentary
 from backend.app.strategy.dqn_agent import DQNAgent
 from backend.app.strategy.explainability import ExplainabilityEngine
 from backend.app.twin.store import store
@@ -90,6 +91,16 @@ class ConnectionManager:
             q_value_margin=q_margin,
             include_counterfactual=True,
         )
+        # Generate and attach LLM / persona radio commentary line
+        try:
+            explanation.commentary = generate_commentary(
+                explanation=explanation,
+                current_lap=state.current_lap,
+                persona="apex_core",
+            )
+        except Exception:
+            pass
+
         state.active_decision = explanation
         await store.log_decision(state.race_id, state.current_lap, explanation)
 

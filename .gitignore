@@ -36,3 +36,5 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 evaluations.npz
+backend/data/fastf1_cache/
+

@@ -5,7 +5,7 @@
  * V6 Turbo Hybrid engine sound synthesis, and text-to-speech race engineer radio announcements.
  */
 
-export type VoicePersona = 'apex_core' | 'bono' | 'gp' | 'xavi';
+export type VoicePersona = 'apex_core' | 'bono' | 'gp' | 'xavi' | 'guenther' | 'hugh_bird' | 'ricky';
 
 class AudioEngine {
   private audioCtx: AudioContext | null = null;
@@ -303,6 +303,27 @@ class AudioEngine {
         return `Box this lap for tyres, box now.`;
       }
       return `We are checking, ${rawText}. Plan A.`;
+    }
+
+    if (this.persona === 'guenther') {
+      if (rawText.toLowerCase().includes('box')) {
+        return `Gene, box this lap. Let's look like rockstars.`;
+      }
+      return `Push like hell, ${rawText}. No mistakes.`;
+    }
+
+    if (this.persona === 'hugh_bird') {
+      if (rawText.toLowerCase().includes('box')) {
+        return `Box this lap, Checo. Box confirm.`;
+      }
+      return `Checo, ${rawText}. Target is on track.`;
+    }
+
+    if (this.persona === 'ricky') {
+      if (rawText.toLowerCase().includes('box')) {
+        return `Box now Carlos, box for tyres.`;
+      }
+      return `Smooth operator, ${rawText}. Stint is solid.`;
     }
 
     return rawText;

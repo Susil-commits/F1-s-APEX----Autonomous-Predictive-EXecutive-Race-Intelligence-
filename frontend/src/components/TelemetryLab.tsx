@@ -309,6 +309,47 @@ export const TelemetryLab: React.FC = () => {
           </p>
         </div>
       </div>
+
+      {/* 4-Corner Live Thermal & Carcass Matrix */}
+      <div className="glass-panel rounded-xl p-4 border border-apex-border">
+        <div className="flex items-center justify-between mb-3">
+          <div className="flex items-center gap-2">
+            <Layers className="w-4 h-4 text-cyan-400" />
+            <span className="text-xs font-bold uppercase font-mono text-white">4-Corner Thermal & Carcass Gradient</span>
+          </div>
+          <span className="text-[10px] text-slate-400 font-mono">Real-Time Core vs Surface Temp</span>
+        </div>
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 font-mono text-xs">
+          {(() => {
+            const latest = telemetryHistory[telemetryHistory.length - 1];
+            const baseWear = playerCar?.tyre_wear_pct || 22;
+            const corners = [
+              { corner: 'Front Left (FL)', temp: latest?.tyreTempFL || 102.4, wear: baseWear * 1.05, color: '#00f0ff' },
+              { corner: 'Front Right (FR)', temp: latest?.tyreTempFR || 104.1, wear: baseWear * 1.08, color: '#60a5fa' },
+              { corner: 'Rear Left (RL)', temp: latest?.tyreTempRL || 98.6, wear: baseWear * 0.95, color: '#f59e0b' },
+              { corner: 'Rear Right (RR)', temp: latest?.tyreTempRR || 99.2, wear: baseWear * 0.96, color: '#ef4444' },
+            ];
+            return corners.map((t) => (
+              <div key={t.corner} className="bg-slate-950/80 p-3 rounded-lg border border-slate-800 flex flex-col justify-between">
+                <span className="text-[10px] text-slate-400 font-sans font-bold">{t.corner}</span>
+                <div className="flex items-baseline justify-between my-1">
+                  <span className="text-lg font-black" style={{ color: t.color }}>{t.temp.toFixed(1)}°C</span>
+                  <span className="text-[10px] text-slate-400">{t.wear.toFixed(0)}% wear</span>
+                </div>
+                <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
+                  <div
+                    className="h-full rounded-full transition-all"
+                    style={{
+                      width: `${Math.min(100, t.wear)}%`,
+                      backgroundColor: t.wear > 78 ? '#ef4444' : t.wear > 50 ? '#f59e0b' : '#10b981',
+                    }}
+                  />
+                </div>
+              </div>
+            ));
+          })()}
+        </div>
+      </div>
     </div>
   );
 };

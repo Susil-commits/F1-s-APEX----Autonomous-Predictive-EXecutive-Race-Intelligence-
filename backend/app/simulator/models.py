@@ -123,6 +123,7 @@ class DecisionExplanation(BaseModel):
     pit_window_status: str = "OPTIMAL" # EARLY, OPTIMAL, LATE, MISSED
     expected_time_delta_s: float = 0.0 # Expected net time gain/loss vs maintaining
     counterfactual_summary: Dict[str, Any] = Field(default_factory=dict)
+    commentary: Optional[str] = None
 
 
 class RaceState(BaseModel):

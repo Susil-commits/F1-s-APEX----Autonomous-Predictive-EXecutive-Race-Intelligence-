@@ -213,9 +213,12 @@ export const Header: React.FC = () => {
           title="Select Race Engineer Voice Persona"
         >
           <option value="apex_core">AI: APEX Core</option>
-          <option value="bono">Voice: "Bono"</option>
-          <option value="gp">Voice: "GP"</option>
-          <option value="xavi">Voice: "Xavi"</option>
+          <option value="bono">Voice: "Bono" (Mercedes)</option>
+          <option value="gp">Voice: "GP" (Red Bull)</option>
+          <option value="xavi">Voice: "Xavi" (Ferrari)</option>
+          <option value="guenther">Voice: "Guenther" (Haas)</option>
+          <option value="hugh_bird">Voice: "Hugh Bird" (Red Bull)</option>
+          <option value="ricky">Voice: "Ricky" (Ferrari)</option>
         </select>
 
         {/* Audio & Voice Radio Toggle */}

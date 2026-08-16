@@ -105,3 +105,48 @@ async def test_api_latest_benchmarks():
     assert "overall_summary" in data
     assert "circuit_breakdown" in data
     assert "dqn" in data["overall_summary"]
+
+
+@pytest.mark.asyncio
+async def test_api_race_ask():
+    # Initialize race first so decisions exist
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        init_res = await ac.post("/api/race/init", json={"track_name": "silverstone", "seed": 42})
+        assert init_res.status_code == 200
+
+        # Query RAG
+        ask_res = await ac.post("/api/race/ask", json={"question": "Why did we maintain position on lap 1?"})
+        assert ask_res.status_code == 200
+        ask_data = ask_res.json()
+        assert "answer" in ask_data
+        assert "sources" in ask_data
+        assert len(ask_data["sources"]) > 0
+
+
+@pytest.mark.asyncio
+async def test_api_tyre_model_meta():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        res = await ac.get("/api/intelligence/tyre-model")
+    assert res.status_code == 200
+    data = res.json()
+    assert "status" in data
+
+
+@pytest.mark.asyncio
+async def test_api_race_export():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        # Initialize session
+        init_res = await ac.post("/api/race/init", json={"track_name": "silverstone", "seed": 42})
+        assert init_res.status_code == 200
+        race_id = init_res.json()["state"]["race_id"]
+
+        # Export debrief
+        export_res = await ac.get(f"/api/race/export/{race_id}")
+        assert export_res.status_code == 200
+        export_data = export_res.json()
+        assert "markdown_report" in export_data
+        assert "decisions" in export_data
+        assert "APEX Race Intelligence Debrief Report" in export_data["markdown_report"]

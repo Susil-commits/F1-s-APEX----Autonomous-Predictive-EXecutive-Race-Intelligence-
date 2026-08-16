@@ -92,6 +92,7 @@ export interface DecisionExplanation {
   pit_window_status: string;
   expected_time_delta_s: number;
   counterfactual_summary: CounterfactualSummary;
+  commentary?: string;
 }
 
 export interface RaceState {
