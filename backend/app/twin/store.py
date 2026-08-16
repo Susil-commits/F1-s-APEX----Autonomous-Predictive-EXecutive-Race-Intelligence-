@@ -136,6 +136,9 @@ class RaceStore:
 
     async def persist_tick_async(self, state: RaceState):
         """Persists race session and tick snapshot asynchronously to database."""
+        self.active_races[state.race_id] = state
+        if state.race_id not in self.tick_history:
+            self.tick_history[state.race_id] = []
         try:
             await self.ensure_db_ready()
             async with get_db_session() as session:
@@ -160,18 +163,22 @@ class RaceStore:
                     db_session.updated_at = now
 
                 # Insert TelemetryTick snapshot (every lap or state change)
+                track_cond = state.weather.condition.value if hasattr(state.weather.condition, "value") else str(state.weather.condition)
+                sc_status = state.safety_car.value if hasattr(state.safety_car, "value") else str(state.safety_car)
+                state_json_payload = state.model_dump(mode="json")
+
                 tick_entry = TelemetryTickModel(
                     race_id=state.race_id,
                     lap=state.current_lap,
                     tick_index=len(self.tick_history.get(state.race_id, [])),
-                    track_condition=state.weather.condition if hasattr(state.weather, "condition") else "DRY",
-                    safety_car=state.safety_car,
-                    state_payload=state.model_dump(),
+                    track_condition=track_cond,
+                    safety_car=sc_status,
+                    state_payload=state_json_payload,
                     timestamp=now,
                 )
                 session.add(tick_entry)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"[RaceStore] Persist tick failed: {e}")
 
     async def log_decision(self, race_id: str, lap: int, decision: DecisionExplanation):
         """Asynchronously logs strategic decision explanation to hot memory, Redis, and persists to DB."""
@@ -180,7 +187,7 @@ class RaceStore:
         entry = {
             "race_id": race_id,
             "lap": lap,
-            "decision": decision.model_dump(),
+            "decision": decision.model_dump(mode="json"),
         }
         self.decision_history[race_id].append(entry)
 
@@ -205,22 +212,26 @@ class RaceStore:
         try:
             await self.ensure_db_ready()
             async with get_db_session() as session:
+                rec_val = decision.recommendation.value if hasattr(decision.recommendation, "value") else str(decision.recommendation)
+                rule_val = decision.rule_engine_action.value if hasattr(decision.rule_engine_action, "value") else (str(decision.rule_engine_action) if decision.rule_engine_action else None)
+                dqn_val = decision.dqn_action.value if hasattr(decision.dqn_action, "value") else (str(decision.dqn_action) if decision.dqn_action else None)
+
                 log_entry = DecisionLogModel(
                     race_id=race_id,
                     lap=lap,
-                    recommendation=str(decision.recommendation),
+                    recommendation=rec_val,
                     confidence_score=decision.confidence_score,
                     urgency=decision.urgency,
-                    rule_action=str(decision.rule_engine_action) if decision.rule_engine_action else None,
-                    dqn_action=str(decision.dqn_action) if decision.dqn_action else None,
+                    rule_action=rule_val,
+                    dqn_action=dqn_val,
                     q_value_margin=decision.q_value_margin,
-                    tyre_cliff_risk=decision.tyre_cliff_risk,
-                    explanation_payload=decision.model_dump(),
+                    tyre_cliff_risk=str(decision.tyre_cliff_risk),
+                    explanation_payload=decision.model_dump(mode="json"),
                     timestamp=datetime.now(timezone.utc),
                 )
                 session.add(log_entry)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"[RaceStore] Persist decision failed: {e}")
 
     def get_decision_history(self, race_id: str) -> List[Dict[str, Any]]:
         """Retrieves all decision logs for a race from in-memory cache."""
@@ -300,19 +311,20 @@ class RaceStore:
                 stmt = select(RaceSessionModel).order_by(RaceSessionModel.created_at.desc()).limit(20)
                 result = await session.execute(stmt)
                 sessions = result.scalars().all()
-                return [
-                    {
-                        "race_id": s.race_id,
-                        "track_name": s.track_name,
-                        "total_laps": s.total_laps,
-                        "is_finished": s.is_finished,
-                        "winner_car_id": s.winner_car_id,
-                        "created_at": str(s.created_at),
-                    }
-                    for s in sessions
-                ]
-        except Exception:
-            pass
+                if sessions:
+                    return [
+                        {
+                            "race_id": s.race_id,
+                            "track_name": s.track_name,
+                            "total_laps": s.total_laps,
+                            "is_finished": s.is_finished,
+                            "winner_car_id": s.winner_car_id,
+                            "created_at": str(s.created_at),
+                        }
+                        for s in sessions
+                    ]
+        except Exception as e:
+            logger.debug(f"[RaceStore] List persisted sessions DB query note: {e}")
         return [{"race_id": r_id, "track_name": "silverstone", "total_laps": 52} for r_id in self.active_races.keys()]
 
     def record_benchmark(self, result: Dict[str, Any]):

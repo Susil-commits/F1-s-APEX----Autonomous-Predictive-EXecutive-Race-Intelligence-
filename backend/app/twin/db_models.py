@@ -65,11 +65,11 @@ class DecisionLogModel(Base):
     lap: Mapped[int] = mapped_column(Integer, nullable=False)
     recommendation: Mapped[str] = mapped_column(String(32), nullable=False)
     confidence_score: Mapped[float] = mapped_column(Float, nullable=False)
-    urgency: Mapped[str] = mapped_column(String(32), nullable=False)
+    urgency: Mapped[str] = mapped_column(String(32), default="MEDIUM")
     rule_action: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     dqn_action: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     q_value_margin: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    tyre_cliff_risk: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
+    tyre_cliff_risk: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
     explanation_payload: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
     timestamp: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
