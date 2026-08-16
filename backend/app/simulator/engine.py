@@ -389,6 +389,79 @@ class RaceSimulator:
             winner_car_id=self.winner_car_id,
         )
 
+    @classmethod
+    def from_state(cls, state: RaceState) -> RaceSimulator:
+        """Reconstructs an active RaceSimulator from a historical RaceState snapshot."""
+        track_key = "silverstone"
+        if hasattr(state, "track") and state.track:
+            for k in ("silverstone", "monza", "spa", "monaco", "interlagos"):
+                if k in str(state.track.name).lower():
+                    track_key = k
+                    break
+
+        sim = cls(
+            track_name=track_key,
+            seed=state.seed if state.seed is not None else 42,
+            grid_size=len(state.cars) if state.cars else 10,
+        )
+        sim.race_id = state.race_id
+        sim.current_lap = state.current_lap
+        sim.tick = state.tick
+        sim.race_time_s = state.race_time_s
+        sim.is_finished = state.is_finished
+        sim.winner_car_id = state.winner_car_id
+        sim.safety_car = state.safety_car
+        sim.safety_car_laps_remaining = state.safety_car_laps_remaining
+        sim.weather = copy.deepcopy(state.weather)
+        sim.cars = copy.deepcopy(state.cars)
+        sim.events_log = copy.deepcopy(state.events_log)
+        return sim
+
+    def inject_weather(self, condition: TrackCondition, rain_intensity: float = 0.75):
+        """Forces immediate weather transition for pit-wall scenario injection."""
+        self.weather.condition = condition
+        self.weather.rain_intensity = float(rain_intensity)
+        if condition == TrackCondition.WET:
+            self.weather.rain_probability_next_5_laps = 0.90
+            self._log_event(self.current_lap, "SCENARIO_INJECT", f"⚡ INJECTED: Sudden heavy torrential rain ({int(rain_intensity * 100)}% intensity)!")
+        elif condition == TrackCondition.DAMP:
+            self.weather.rain_probability_next_5_laps = 0.60
+            self._log_event(self.current_lap, "SCENARIO_INJECT", "⚡ INJECTED: Light rainfall onset. Circuit is DAMP.")
+        else:
+            self.weather.rain_probability_next_5_laps = self.track.rain_probability_base
+            self._log_event(self.current_lap, "SCENARIO_INJECT", "⚡ INJECTED: Track rapidly dried. DRY racing conditions.")
+
+    def inject_safety_car(self, status: SafetyCarStatus, laps: int = 4):
+        """Forces immediate Safety Car / VSC deployment for stress-testing pit reactions."""
+        self.safety_car = status
+        self.safety_car_laps_remaining = max(1, laps)
+        if status == SafetyCarStatus.SAFETY_CAR:
+            self._log_event(self.current_lap, "SCENARIO_INJECT", f"⚡ INJECTED: Full Safety Car deployed ({laps} laps duration)!")
+        elif status == SafetyCarStatus.VSC:
+            self._log_event(self.current_lap, "SCENARIO_INJECT", f"⚡ INJECTED: Virtual Safety Car (VSC) activated ({laps} laps duration)!")
+        else:
+            self.safety_car_laps_remaining = 0
+            self._log_event(self.current_lap, "SCENARIO_INJECT", "⚡ INJECTED: Track is GREEN! Safety car withdrawn.")
+
+    def inject_puncture(self, car_id: Optional[str] = None, wear_delta: float = 55.0):
+        """Simulates sudden tyre puncture / acute degradation cliff for player or specified AI car."""
+        target_car = self.get_player_car() if car_id is None else next((c for c in self.cars if c.car_id == car_id), self.get_player_car())
+        if target_car:
+            target_car.tyre_wear_pct = min(100.0, target_car.tyre_wear_pct + wear_delta)
+            if target_car.tyre_wear_pct > 75.0:
+                target_car.tyre_cliff_reached = True
+            self._log_event(self.current_lap, "SCENARIO_INJECT", f"⚡ INJECTED: Debris damage on {target_car.driver_name}! Tyre wear jumped to {target_car.tyre_wear_pct:.1f}%.", target_car.car_id)
+
+    def clear_hazards(self):
+        """Resets active artificial hazards back to baseline clear conditions."""
+        self.safety_car = SafetyCarStatus.NONE
+        self.safety_car_laps_remaining = 0
+        self.weather.condition = TrackCondition.DRY
+        self.weather.rain_intensity = 0.0
+        self.weather.rain_probability_next_5_laps = self.track.rain_probability_base
+        self._log_event(self.current_lap, "SCENARIO_INJECT", "⚡ INJECTED: Reset all hazards. Circuit clear and green.")
+
     def clone(self) -> RaceSimulator:
         """Deep clones the simulator state for forward rollout counterfactuals."""
         return copy.deepcopy(self)
+

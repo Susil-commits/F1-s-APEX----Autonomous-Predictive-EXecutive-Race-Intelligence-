@@ -1,13 +1,50 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useRaceStore } from '../store/raceStore';
-import { GitCompare, Award, CheckCircle, AlertTriangle } from 'lucide-react';
+import { GitCompare, Award, CheckCircle, AlertTriangle, Play, Sparkles, FastForward } from 'lucide-react';
+import { StrategyAction } from '../types/race';
+
+const FORKABLE_ACTIONS = [
+  'PIT_SOFT',
+  'PIT_MEDIUM',
+  'PIT_HARD',
+  'PIT_INTER',
+  'PIT_WET',
+  'PUSH',
+  'CONSERVE',
+];
 
 export const CounterfactualView: React.FC = () => {
   const { raceState } = useRaceStore();
+  const [selectedForkAction, setSelectedForkAction] = useState<string>('PIT_MEDIUM');
+  const [forkResult, setForkResult] = useState<any | null>(null);
+  const [isForking, setIsForking] = useState<boolean>(false);
 
   if (!raceState?.active_decision?.counterfactual_summary?.alternatives) return null;
 
   const cf = raceState.active_decision.counterfactual_summary;
+
+  const handleForkTimeline = async () => {
+    setIsForking(true);
+    try {
+      const res = await fetch('/api/strategy/fork-counterfactual', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          proposed_action: selectedForkAction,
+          rollout_laps: 5,
+          state_payload: raceState,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setForkResult(data);
+      }
+    } catch (err) {
+      console.error('Fork counterfactual error:', err);
+    } finally {
+      setIsForking(false);
+    }
+  };
 
   return (
     <div className="glass-panel rounded-xl p-4 flex flex-col h-full border border-apex-border shadow-2xl">
@@ -47,11 +84,11 @@ export const CounterfactualView: React.FC = () => {
                       : 'text-slate-300 hover:bg-slate-800/30'
                   }`}
                 >
-                  <td className="py-2.5 flex items-center gap-1.5 truncate">
+                  <td className="py-2 flex items-center gap-1.5 truncate">
                     {isWinner && <Award className="w-3.5 h-3.5 text-emerald-400 shrink-0" />}
                     <span className="truncate">{alt.strategy}</span>
                   </td>
-                  <td className="py-2.5 text-center">
+                  <td className="py-2 text-center">
                     <span
                       className={`px-2 py-0.5 rounded text-[10px] font-black ${
                         isWinner
@@ -62,10 +99,10 @@ export const CounterfactualView: React.FC = () => {
                       P{alt.projected_position}
                     </span>
                   </td>
-                  <td className="py-2.5 text-right text-slate-300 font-bold">
+                  <td className="py-2 text-right text-slate-300 font-bold">
                     +{alt.projected_gap_to_leader.toFixed(1)}s
                   </td>
-                  <td className="py-2.5 text-right">
+                  <td className="py-2 text-right">
                     <span
                       className={`${
                         alt.projected_tyre_wear_pct > 75
@@ -85,12 +122,68 @@ export const CounterfactualView: React.FC = () => {
         </table>
       </div>
 
-      {/* Summary Footer */}
-      <div className="mt-3 pt-2.5 border-t border-slate-800 flex items-center justify-between text-[11px] font-sans">
-        <span className="text-slate-400 flex items-center gap-1 font-medium">
-          <CheckCircle className="w-3.5 h-3.5 text-emerald-400" /> Optimal simulated path:
-        </span>
-        <span className="font-bold text-emerald-400 font-mono text-xs">{cf.best_strategy}</span>
+      {/* Timeline Forking Sub-Panel */}
+      <div className="mt-3 pt-2.5 border-t border-slate-800 flex flex-col gap-2">
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-1.5">
+            <FastForward className="w-3.5 h-3.5 text-cyan-400" />
+            <span className="text-[10.5px] font-bold text-slate-300 font-sans">Fork Action:</span>
+          </div>
+
+          <div className="flex items-center gap-1.5">
+            <select
+              value={selectedForkAction}
+              onChange={(e) => setSelectedForkAction(e.target.value)}
+              className="bg-slate-900 border border-slate-700 text-cyan-300 font-mono text-[10px] rounded px-2 py-1 focus:outline-none"
+            >
+              {FORKABLE_ACTIONS.map((act) => (
+                <option key={act} value={act}>
+                  {act}
+                </option>
+              ))}
+            </select>
+
+            <button
+              onClick={handleForkTimeline}
+              disabled={isForking}
+              className="px-2.5 py-1 rounded bg-cyan-600 hover:bg-cyan-500 text-white font-mono text-[10px] font-bold transition-all disabled:opacity-50"
+            >
+              {isForking ? 'Simulating...' : 'Simulate 5 Laps'}
+            </button>
+          </div>
+        </div>
+
+        {/* Forking Outcome Result */}
+        {forkResult && (
+          <div className="p-2 rounded bg-slate-900/90 border border-cyan-800/60 font-mono text-[10.5px] flex items-center justify-between animate-fade-in">
+            <div>
+              <span className="text-slate-400 text-[9px] block font-sans">ALT POSITION</span>
+              <span className="font-black text-cyan-300">P{forkResult.final_alternate_position}</span>
+            </div>
+            <div>
+              <span className="text-slate-400 text-[9px] block font-sans">TIME DELTA</span>
+              <span
+                className={`font-black ${
+                  forkResult.time_delta_advantage_s > 0 ? 'text-emerald-400' : 'text-rose-400'
+                }`}
+              >
+                {forkResult.time_delta_advantage_s > 0 ? `-${forkResult.time_delta_advantage_s}s faster` : `+${Math.abs(forkResult.time_delta_advantage_s)}s slower`}
+              </span>
+            </div>
+            <div>
+              <span className="text-slate-400 text-[9px] block font-sans">VERDICT</span>
+              <span
+                className={`font-bold px-1.5 py-0.5 rounded text-[9px] ${
+                  forkResult.verdict === 'FAVORS_PROPOSED'
+                    ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
+                    : 'bg-slate-800 text-slate-400'
+                }`}
+              >
+                {forkResult.verdict}
+              </span>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

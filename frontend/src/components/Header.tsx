@@ -15,13 +15,23 @@ import {
   Sliders,
   Cpu,
   UserCheck,
+  MapPin,
 } from 'lucide-react';
 import { CIRCUIT_DATABASE } from '../data/trackGeometries';
 import { audioEngine, VoicePersona } from '../utils/audioEngine';
 
+const AVAILABLE_CIRCUITS = [
+  { id: 'silverstone', name: 'Silverstone Circuit', flag: '🇬🇧' },
+  { id: 'monza', name: 'Autodromo Nazionale Monza', flag: '🇮🇹' },
+  { id: 'spa', name: 'Circuit de Spa-Francorchamps', flag: '🇧🇪' },
+  { id: 'monaco', name: 'Circuit de Monaco', flag: '🇲🇨' },
+  { id: 'interlagos', name: 'Autódromo de Interlagos', flag: '🇧🇷' },
+];
+
 export const Header: React.FC = () => {
   const {
     raceState,
+    setRaceState,
     connected,
     isLocalTwin,
     isRunning,
@@ -34,6 +44,7 @@ export const Header: React.FC = () => {
   } = useRaceStore();
 
   const [activePersona, setActivePersona] = useState<VoicePersona>('apex_core');
+  const [isChangingTrack, setIsChangingTrack] = useState<boolean>(false);
 
   if (!raceState) return null;
 
@@ -55,8 +66,37 @@ export const Header: React.FC = () => {
   const handlePersonaChange = (p: VoicePersona) => {
     setActivePersona(p);
     audioEngine.setPersona(p);
-    audioEngine.speakRadioMessage(`Radio check, ${p === 'bono' ? 'Bono' : p === 'gp' ? 'GP' : p === 'xavi' ? 'Xavi' : 'APEX'} online.`);
+    audioEngine.speakRadioMessage(
+      `Radio check, ${p === 'bono' ? 'Bono' : p === 'gp' ? 'GP' : p === 'xavi' ? 'Xavi' : 'APEX'} online.`
+    );
   };
+
+  const handleTrackChange = async (newTrackId: string) => {
+    setIsChangingTrack(true);
+    try {
+      const res = await fetch('/api/race/init', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ track_name: newTrackId, seed: 42 }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        if (data.state) {
+          setRaceState(data.state);
+          audioEngine.speakRadioMessage(`Track session initialized: ${data.state.track.name}`);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to change track:', err);
+    } finally {
+      setIsChangingTrack(false);
+    }
+  };
+
+  const currentTrackKey =
+    AVAILABLE_CIRCUITS.find((c) =>
+      track.name.toLowerCase().includes(c.id) || track.name.toLowerCase().includes(c.name.toLowerCase())
+    )?.id || 'silverstone';
 
   const TABS: { id: WorkspaceTab; label: string; icon: React.ReactNode }[] = [
     { id: 'tactical', label: 'Tactical Pit Wall', icon: <Activity className="w-3.5 h-3.5" /> },
@@ -86,11 +126,23 @@ export const Header: React.FC = () => {
 
         <div className="h-6 w-px bg-slate-800 hidden md:block" />
 
-        {/* Track Badge */}
-        <div className="hidden sm:flex items-center gap-2 px-2.5 py-1 rounded-md bg-slate-900/80 border border-slate-800 text-xs">
-          <span className="text-sm">{circuitMeta.flag}</span>
-          <span className="font-bold text-slate-200">{track.name}</span>
-          <span className="text-slate-500 font-mono text-[10px]">({track.lap_distance_km} km)</span>
+        {/* Interactive Circuit Switcher */}
+        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-900/80 border border-slate-800 text-xs font-mono">
+          <MapPin className="w-3.5 h-3.5 text-cyan-400" />
+          <select
+            value={currentTrackKey}
+            onChange={(e) => handleTrackChange(e.target.value)}
+            disabled={isChangingTrack}
+            className="bg-transparent text-slate-200 font-bold focus:outline-none cursor-pointer text-xs"
+            title="Switch Active Grand Prix Circuit"
+          >
+            {AVAILABLE_CIRCUITS.map((c) => (
+              <option key={c.id} value={c.id} className="bg-slate-950 text-slate-200">
+                {c.flag} {c.name}
+              </option>
+            ))}
+          </select>
+          <span className="text-slate-500 text-[10px]">({track.lap_distance_km} km)</span>
         </div>
       </div>
 

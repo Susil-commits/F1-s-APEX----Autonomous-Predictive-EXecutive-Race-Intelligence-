@@ -1,0 +1,184 @@
+{
+  "timestamp": "2026-08-16T13:13:38.323338",
+  "total_tracks": 5,
+  "races_per_track": 3,
+  "total_races_evaluated": 45,
+  "overall_summary": {
+    "random": {
+      "avg_position": 6.53,
+      "win_rate_pct": 26.7,
+      "podium_rate_pct": 33.3,
+      "avg_gap_to_winner_s": 58.65,
+      "avg_blown_tyre_laps": 19.46,
+      "avg_pit_stops": 0.0
+    },
+    "rule_based": {
+      "avg_position": 1.27,
+      "win_rate_pct": 86.7,
+      "podium_rate_pct": 93.3,
+      "avg_gap_to_winner_s": 1.19,
+      "avg_blown_tyre_laps": 0.0,
+      "avg_pit_stops": 4.4
+    },
+    "dqn": {
+      "avg_position": 1.07,
+      "win_rate_pct": 93.3,
+      "podium_rate_pct": 100.0,
+      "avg_gap_to_winner_s": 0.12,
+      "avg_blown_tyre_laps": 0.0,
+      "avg_pit_stops": 4.3
+    }
+  },
+  "circuit_breakdown": [
+    {
+      "track_name": "silverstone",
+      "num_races": 3,
+      "policies": {
+        "random": {
+          "avg_position": 5.67,
+          "win_rate_pct": 33.3,
+          "podium_rate_pct": 33.3,
+          "avg_gap_to_winner_s": 31.17,
+          "avg_blown_tyre_laps": 19.0,
+          "avg_pit_stops": 0.0
+        },
+        "rule_based": {
+          "avg_position": 1.33,
+          "win_rate_pct": 66.7,
+          "podium_rate_pct": 100.0,
+          "avg_gap_to_winner_s": 1.17,
+          "avg_blown_tyre_laps": 0.0,
+          "avg_pit_stops": 4.0
+        },
+        "dqn": {
+          "avg_position": 1.0,
+          "win_rate_pct": 100.0,
+          "podium_rate_pct": 100.0,
+          "avg_gap_to_winner_s": 0.0,
+          "avg_blown_tyre_laps": 0.0,
+          "avg_pit_stops": 4.3
+        }
+      }
+    },
+    {
+      "track_name": "monza",
+      "num_races": 3,
+      "policies": {
+        "random": {
+          "avg_position": 4.0,
+          "win_rate_pct": 66.7,
+          "podium_rate_pct": 66.7,
+          "avg_gap_to_winner_s": 14.57,
+          "avg_blown_tyre_laps": 8.33,
+          "avg_pit_stops": 0.0
+        },
+        "rule_based": {
+          "avg_position": 1.0,
+          "win_rate_pct": 100.0,
+          "podium_rate_pct": 100.0,
+          "avg_gap_to_winner_s": 0.0,
+          "avg_blown_tyre_laps": 0.0,
+          "avg_pit_stops": 3.3
+        },
+        "dqn": {
+          "avg_position": 1.0,
+          "win_rate_pct": 100.0,
+          "podium_rate_pct": 100.0,
+          "avg_gap_to_winner_s": 0.0,
+          "avg_blown_tyre_laps": 0.0,
+          "avg_pit_stops": 3.0
+        }
+      }
+    },
+    {
+      "track_name": "spa",
+      "num_races": 3,
+      "policies": {
+        "random": {
+          "avg_position": 4.33,
+          "win_rate_pct": 33.3,
+          "podium_rate_pct": 66.7,
+          "avg_gap_to_winner_s": 15.06,
+          "avg_blown_tyre_laps": 13.33,
+          "avg_pit_stops": 0.0
+        },
+        "rule_based": {
+          "avg_position": 2.0,
+          "win_rate_pct": 66.7,
+          "podium_rate_pct": 66.7,
+          "avg_gap_to_winner_s": 4.79,
+          "avg_blown_tyre_laps": 0.0,
+          "avg_pit_stops": 4.0
+        },
+        "dqn": {
+          "avg_position": 1.0,
+          "win_rate_pct": 100.0,
+          "podium_rate_pct": 100.0,
+          "avg_gap_to_winner_s": 0.0,
+          "avg_blown_tyre_laps": 0.0,
+          "avg_pit_stops": 3.7
+        }
+      }
+    },
+    {
+      "track_name": "monaco",
+      "num_races": 3,
+      "policies": {
+        "random": {
+          "avg_position": 8.67,
+          "win_rate_pct": 0.0,
+          "podium_rate_pct": 0.0,
+          "avg_gap_to_winner_s": 70.66,
+          "avg_blown_tyre_laps": 20.33,
+          "avg_pit_stops": 0.0
+        },
+        "rule_based": {
+          "avg_position": 1.0,
+          "win_rate_pct": 100.0,
+          "podium_rate_pct": 100.0,
+          "avg_gap_to_winner_s": 0.0,
+          "avg_blown_tyre_laps": 0.0,
+          "avg_pit_stops": 4.7
+        },
+        "dqn": {
+          "avg_position": 1.0,
+          "win_rate_pct": 100.0,
+          "podium_rate_pct": 100.0,
+          "avg_gap_to_winner_s": 0.0,
+          "avg_blown_tyre_laps": 0.0,
+          "avg_pit_stops": 4.0
+        }
+      }
+    },
+    {
+      "track_name": "interlagos",
+      "num_races": 3,
+      "policies": {
+        "random": {
+          "avg_position": 10.0,
+          "win_rate_pct": 0.0,
+          "podium_rate_pct": 0.0,
+          "avg_gap_to_winner_s": 161.8,
+          "avg_blown_tyre_laps": 36.33,
+          "avg_pit_stops": 0.0
+        },
+        "rule_based": {
+          "avg_position": 1.0,
+          "win_rate_pct": 100.0,
+          "podium_rate_pct": 100.0,
+          "avg_gap_to_winner_s": 0.0,
+          "avg_blown_tyre_laps": 0.0,
+          "avg_pit_stops": 6.0
+        },
+        "dqn": {
+          "avg_position": 1.33,
+          "win_rate_pct": 66.7,
+          "podium_rate_pct": 100.0,
+          "avg_gap_to_winner_s": 0.6,
+          "avg_blown_tyre_laps": 0.0,
+          "avg_pit_stops": 6.7
+        }
+      }
+    }
+  ]
+}

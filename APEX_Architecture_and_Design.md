@@ -123,10 +123,11 @@ Before committing to a decision, roll the simulator forward N laps under 2-3 can
 
 - This is NOT the full "thousands of simulated futures" from the original spec — it's 3-5 fast forward-rollouts per decision point. Honest scope, still demonstrates the concept.
 
-### 3.8 Explainability Layer
-For every recommendation, log the structured reasoning: which features drove the decision, what the rule engine said vs what the DQN said, confidence/Q-values.
-
-- Don't reach for SHAP/LIME — overkill here. A structured `DecisionExplanation` object (feature values + which rule fired + Q-value margin) is honest, lightweight, and something you can actually explain line-by-line in an interview.
+### 3.8 Explainability & Model Distillation Layer
+For every recommendation, APEX provides transparent, multi-tiered explainability:
+1. **Rule Engine & Margin Decomposition**: Structured `DecisionExplanation` object capturing which heuristic rules fired, DQN $Q$-value margin ($\Delta Q = Q_1 - Q_2$), and tyre cliff risk.
+2. **TreeSHAP via Model Distillation**: TreeSHAP requires a tree-based architecture, whereas the DQN is a neural network (`MlpPolicy`). APEX trains a tree surrogate model (`GradientBoostingRegressor` / `XGBoost`) distilled directly from thousands of real DQN rollout steps across tracks and logged database telemetry (`DecisionLogModel`). `shap.TreeExplainer` decomposes this distilled surrogate into exact additive Shapley contributions $f(x) = \phi_0 + \sum \phi_i(x)$, providing a mathematically defensible and faithful explanation of policy preferences.
+3. **Graceful Fallback**: If no distilled model is present on disk, `TreeSHAPExplainer` falls back to a calibrated domain heuristic surrogate with an explicit log warning.
 
 ---
 

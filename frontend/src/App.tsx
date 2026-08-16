@@ -30,6 +30,8 @@ import { SHAPFeatureWaterfall } from './components/SHAPFeatureWaterfall';
 import { LapTimeDeltaTDecomposition } from './components/LapTimeDeltaTDecomposition';
 import { PitStrategyIsochroneMatrix } from './components/PitStrategyIsochroneMatrix';
 import { UndercutThreatMatrix } from './components/UndercutThreatMatrix';
+import { LiveScenarioInjector } from './components/LiveScenarioInjector';
+import { BenchmarkComparisonModal } from './components/BenchmarkComparisonModal';
 import { useRaceStore } from './store/raceStore';
 import { audioEngine } from './utils/audioEngine';
 import {
@@ -45,6 +47,8 @@ import {
   FileText,
   Volume2,
   VolumeX,
+  Zap,
+  BarChart2,
   X,
 } from 'lucide-react';
 
@@ -55,6 +59,7 @@ export const App: React.FC = () => {
   const [showPitSimModal, setShowPitSimModal] = useState<boolean>(false);
   const [showStandingsModal, setShowStandingsModal] = useState<boolean>(false);
   const [showAeroTunerModal, setShowAeroTunerModal] = useState<boolean>(false);
+  const [showBenchmarkModal, setShowBenchmarkModal] = useState<boolean>(false);
   const [engineAudioActive, setEngineAudioActive] = useState<boolean>(false);
 
   const events = raceState?.events_log || [];
@@ -81,6 +86,14 @@ export const App: React.FC = () => {
           {/* Quick Bar Action Buttons & Radio Waveform */}
           <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs">
             <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => setShowBenchmarkModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-purple-950/70 hover:bg-purple-900/90 text-purple-300 border border-purple-700/60 font-bold transition-all active:scale-95 shadow-sm shadow-purple-900/30"
+              >
+                <BarChart2 className="w-3.5 h-3.5 text-purple-400" />
+                <span>Strategy Benchmarks</span>
+              </button>
+
               <button
                 onClick={() => setShowCopilotModal(!showCopilotModal)}
                 className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-700/50 font-bold transition-all active:scale-95 shadow-sm shadow-cyan-900/20"
@@ -141,52 +154,39 @@ export const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Tab 1: Tactical Pit Wall Workspace */}
+        {/* Tab 1: Tactical Pit Wall Command Center */}
         {activeTab === 'tactical' && (
           <div className="flex flex-col gap-4 flex-1">
-            {/* Primary 3-Column Pit Wall Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-stretch">
-              {/* Left Column: Timing Tower (4 cols) */}
-              <div className="lg:col-span-4 min-h-[500px] flex flex-col">
+            {/* Top Tactical Row: Timing Tower + Track Map + Real-Time Telemetry */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+              {/* Timing Tower (Left 3 cols) */}
+              <div className="lg:col-span-3">
                 <TimingTower />
               </div>
 
-              {/* Center Column: Live Track Map & Pit Rejoin Radar (4 cols) */}
-              <div className="lg:col-span-4 flex flex-col gap-4 min-h-[500px]">
-                <div className="flex-1 min-h-[290px]">
-                  <TrackMap />
-                </div>
-                <div className="min-h-[210px]">
-                  <PitRejoinRadar />
-                </div>
+              {/* Vector Circuit Geometry & GPS Telemetry (Center 6 cols) */}
+              <div className="lg:col-span-6 flex flex-col gap-4">
+                <TrackMap />
+                <TelemetryCharts />
               </div>
 
-              {/* Right Column: Decision Intelligence & Counterfactuals (4 cols) */}
-              <div className="lg:col-span-4 flex flex-col gap-4 min-h-[500px]">
+              {/* AI Strategic Intelligence & Copilot (Right 3 cols) */}
+              <div className="lg:col-span-3 flex flex-col gap-4">
                 <StrategyCard />
-                <div className="flex-1 min-h-[210px]">
-                  <ExplainabilityPanel />
-                </div>
-                <div className="flex-1 min-h-[200px]">
-                  <CounterfactualView />
-                </div>
+                <ExplainabilityPanel />
+                <LiveScenarioInjector />
+                <CounterfactualView />
               </div>
             </div>
 
-            {/* Secondary Advanced Tactical Grid (Stint Planner, Battle Radar, Doppler Weather) */}
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              <div className="lg:col-span-4">
-                <StintStrategyPlanner />
-              </div>
-              <div className="lg:col-span-4">
-                <DriverBattleRadar />
-              </div>
-              <div className="lg:col-span-4">
-                <WeatherDopplerRadar />
-              </div>
+            {/* Middle Row: Radar & Pit Windows */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <PitRejoinRadar />
+              <DriverBattleRadar />
+              <WeatherDopplerRadar />
             </div>
 
-            {/* Competitor Undercut & Overcut Threat Radar */}
+            {/* Competitor Undercut Threat Matrix */}
             <UndercutThreatMatrix />
 
             {/* Micro-Sector Timing Grid */}
@@ -237,6 +237,7 @@ export const App: React.FC = () => {
         {/* Tab 4: Strategy Sandbox */}
         {activeTab === 'sandbox' && (
           <div className="flex flex-col gap-4 flex-1">
+            <LiveScenarioInjector />
             <StrategySandbox />
             <PitStrategyIsochroneMatrix />
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
@@ -250,42 +251,15 @@ export const App: React.FC = () => {
             <MonteCarloStrategySim />
           </div>
         )}
-
-        {/* Bottom Live Radio & Event Log Ticker */}
-        <div className="glass-panel rounded-xl p-3 border border-apex-border flex items-center gap-3 text-xs font-mono">
-          <div className="flex items-center gap-1.5 text-apex-cyan font-black uppercase tracking-wider shrink-0 px-2 py-1 rounded bg-cyan-950/60 border border-cyan-800/40">
-            <Radio className="w-3.5 h-3.5 animate-pulse" />
-            <span>Race Control Feed</span>
-          </div>
-
-          <div className="flex-1 overflow-x-auto whitespace-nowrap flex items-center gap-6 text-slate-300">
-            {events.length > 0 ? (
-              events
-                .slice(-6)
-                .reverse()
-                .map((ev, idx) => (
-                  <div key={idx} className="flex items-center gap-2 shrink-0">
-                    <span className="text-slate-500 font-bold">[Lap {ev.lap}]</span>
-                    <span className="text-apex-cyan uppercase text-[10px] font-bold">
-                      [{ev.event_type}]
-                    </span>
-                    <span className="text-slate-200">{ev.message}</span>
-                  </div>
-                ))
-            ) : (
-              <span className="text-slate-500 italic">Waiting for green flag...</span>
-            )}
-          </div>
-        </div>
       </main>
 
-      {/* Floating AI Strategist Copilot Popup Modal */}
+      {/* Floating AI Pit Wall Copilot Drawer (when opened) */}
       {showCopilotModal && (
-        <div className="fixed bottom-16 right-6 z-50 w-full max-w-lg shadow-2xl animate-fadeIn">
+        <div className="fixed bottom-6 right-6 z-40 w-96 max-w-[calc(100vw-3rem)] shadow-2xl animate-slide-up">
           <div className="relative">
             <button
               onClick={() => setShowCopilotModal(false)}
-              className="absolute top-3 right-3 z-10 p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all"
+              className="absolute top-2 right-2 z-10 p-1 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all"
             >
               <X className="w-4 h-4" />
             </button>
@@ -293,6 +267,12 @@ export const App: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* Benchmark Comparison Modal */}
+      <BenchmarkComparisonModal
+        isOpen={showBenchmarkModal}
+        onClose={() => setShowBenchmarkModal(false)}
+      />
 
       {/* Chassis Aero Setup Modal */}
       {showAeroTunerModal && (

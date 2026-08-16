@@ -145,10 +145,12 @@ flowchart TD
         RuleEng --> ActionSpace
     end
 
-    subgraph ExplainabilityXAI ["🔍 Explainability & Attribution"]
+    subgraph ExplainabilityXAI ["🔍 Explainability & Model Distillation"]
+        DistilledSurrogate["Distilled Tree Surrogate Model<br/>(Fit on DQN Q-Values & Telemetry)"]
         SHAP["TreeSHAP Waterfall Attribution<br/>f(x) = base + &Sigma; &phi;i"]
         TreeReason["Strategic Decision Reasoning Tree"]
-        Feat28 --> SHAP
+        Feat28 --> DistilledSurrogate
+        DistilledSurrogate --> SHAP
         ActionSpace --> TreeReason
     end
 
@@ -172,7 +174,7 @@ flowchart TD
   - `1: PUSH` — Deploy maximum engine mapping and aggressive cornering ($-0.4\text{ s/lap}$, $+2.5\times$ wear rate).
   - `2: CONSERVE` — Lift-and-coast fuel/tyre preservation mode ($+0.3\text{ s/lap}$, $-40\%$ wear rate).
   - `3: PIT_SOFT`, `4: PIT_MEDIUM`, `5: PIT_HARD`, `6: PIT_INTER`, `7: PIT_WET` — Execute box call for designated compound.
-- **Explainable AI (TreeSHAP)**: Decomposes strategic policy confidence score $f(x) = \phi_0 + \sum_{i=1}^{28} \phi_i(x)$ via `shap.TreeExplainer` and `/api/strategy/shap`, attributing positive and negative feature weights in real time.
+- **Explainable AI (TreeSHAP on Distilled Surrogate)**: Decomposes strategic policy confidence via model distillation: a tree-based surrogate model (`backend/models/shap_surrogate.joblib`) is distilled from the trained DQN's actual $Q(s, a)$ decision surface over thousands of simulated race rollouts and logged DB telemetry. `shap.TreeExplainer` computes exact Shapley attributions $f(x) = \phi_0 + \sum_{i=1}^{28} \phi_i(x)$ via `/api/strategy/shap`, with graceful fallback to heuristic baselines if no distilled model is present.
 - **1,000-Rollout Monte Carlo Engine**: Projects 1,000 parallel stochastic forward trajectories via `MonteCarloEngine` and `/api/strategy/monte-carlo` with Gaussian pace variance ($\sigma = 0.38\text{ s}$) and dynamic safety car transition probabilities.
 
 ---
@@ -381,12 +383,12 @@ APEX/
 │   │   ├── twin/                          # SQLAlchemy database models, async session manager & write-through store
 │   │   ├── api/                           # FastAPI routes & WebSocket broadcaster
 │   │   └── main.py                        # FastAPI entry point
-│   ├── models/                            # Trained DQN checkpoints & reward convergence plots
-│   ├── training/                          # Advanced RL training pipeline with EvalCallback
-│   └── tests/                             # 27/27 unit & integration tests
+│   ├── models/                            # Trained DQN checkpoints & multi-action distilled TreeSHAP artifacts
+│   ├── training/                          # RL training (train_dqn.py) & surrogate distillation (distill_dqn_surrogate.py)
+│   └── tests/                             # 34/34 unit & integration tests
 ├── frontend/                              # React 18 + Vite + Tailwind Mission Control
 │   ├── src/
-│   │   ├── components/                    # 21 Mission Control components (SHAP, Monte Carlo, DVR, Gantt, etc.)
+│   │   ├── components/                    # 34 Mission Control components (SHAP Comparator, Scenario Injector, DVR, etc.)
 │   │   ├── data/                          # Multi-circuit vector geometries (Silverstone, Monza, Spa, etc.)
 │   │   ├── utils/                         # audioEngine (DSP + Personas + V6 Synth), clientSimulator (Twin)
 │   │   ├── store/                         # Zustand state store
@@ -428,14 +430,17 @@ Open your browser and navigate to **[http://localhost:8000](http://localhost:800
 
 ---
 
-## 🧪 Testing & Automated Verification
+## 🧪 Testing, Training & Distillation
 
 ```bash
-# Run all unit and integration tests (27/27 passing)
+# Run all unit and integration tests (34/34 passing)
 uv run pytest
 
-# Re-run automated strategy benchmark evaluation
-uv run python benchmarks/run_benchmarks.py
+# Distill multi-action DQN policy decision surface into TreeSHAP surrogate
+uv run python backend/training/distill_dqn_surrogate.py --episodes 80
+
+# Re-run automated strategy benchmark evaluation across all 5 circuits
+uv run python benchmarks/run_benchmarks.py --races-per-track 5
 
 # Train / fine-tune DQN policy with EvalCallback
 uv run python backend/training/train_dqn.py --steps 80000
