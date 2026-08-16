@@ -11,7 +11,7 @@ from backend.app.api.websocket import manager
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # Initialize default race session on startup
-    manager.init_race(track_name="silverstone", seed=42)
+    await manager.init_race(track_name="silverstone", seed=42)
     print("[APEX] Backend server initialized with default Silverstone race.")
     yield
     manager.stop_loop()
@@ -62,7 +62,7 @@ async def websocket_endpoint(websocket: WebSocket):
             elif msg_type == "PAUSE":
                 manager.stop_loop()
             elif msg_type == "STEP":
-                manager.step_once()
+                await manager.step_once()
             elif msg_type == "SET_SPEED":
                 manager.set_speed(float(data.get("speed", 1.0)))
             elif msg_type == "ACTION":

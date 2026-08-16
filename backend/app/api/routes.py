@@ -77,7 +77,7 @@ async def get_tracks():
 @router.post("/race/init")
 async def init_race(req: InitRaceRequest):
     manager.stop_loop()
-    state = manager.init_race(track_name=req.track_name, seed=req.seed)
+    state = await manager.init_race(track_name=req.track_name, seed=req.seed)
     await manager.broadcast({
         "type": "STATE_UPDATE",
         "state": state.model_dump(),
@@ -103,7 +103,7 @@ async def pause_race():
 @router.post("/race/step")
 async def step_race():
     manager.stop_loop()
-    state = manager.step_once()
+    state = await manager.step_once()
     if state:
         await manager.broadcast({
             "type": "STATE_UPDATE",
@@ -154,7 +154,7 @@ async def inject_live_scenario(req: ScenarioInjectionRequest):
     - CLEAR_HAZARDS
     """
     if not manager.sim:
-        manager.init_race()
+        await manager.init_race()
 
     scen = req.scenario_type.upper()
     sim = manager.sim
@@ -197,7 +197,7 @@ async def inject_live_scenario(req: ScenarioInjectionRequest):
 @router.get("/race/state")
 async def get_current_state():
     if not manager.sim:
-        manager.init_race()
+        await manager.init_race()
     return manager.sim.get_state()
 
 
@@ -208,7 +208,7 @@ async def get_shap_attribution(car_id: Optional[str] = None):
     from backend.app.intelligence.feature_builder import FeatureBuilder
 
     if not manager.sim:
-        manager.init_race()
+        await manager.init_race()
 
     state = manager.sim.get_state()
     features = FeatureBuilder.extract_features(state, target_car_id=car_id)
@@ -237,7 +237,7 @@ async def get_shap_pairwise_comparison(
     from backend.app.intelligence.feature_builder import FeatureBuilder
 
     if not manager.sim:
-        manager.init_race()
+        await manager.init_race()
 
     state = manager.sim.get_state()
     features = FeatureBuilder.extract_features(state, target_car_id=car_id)
@@ -286,7 +286,7 @@ async def fork_counterfactual_timeline(req: ForkCounterfactualRequest):
 
     if target_state is None:
         if not manager.sim:
-            manager.init_race()
+            await manager.init_race()
         target_state = manager.sim.get_state()
 
     result = CounterfactualChecker.fork_timeline(
@@ -303,7 +303,7 @@ async def run_monte_carlo(req: MonteCarloRequest):
     from backend.app.strategy.monte_carlo import MonteCarloEngine
 
     if not manager.sim:
-        manager.init_race()
+        await manager.init_race()
 
     state = manager.sim.get_state()
     results = MonteCarloEngine.run_simulation(

@@ -20,8 +20,8 @@ async def test_race_store_async_persistence():
     sim = RaceSimulator(track_name="silverstone", seed=999)
     state = sim.step()
     
-    # Save to store
-    store.save_state(state)
+    # Save to store asynchronously
+    await store.save_state(state)
     assert store.get_state(state.race_id) is not None
     
     # Test async tick persistence
@@ -51,7 +51,7 @@ async def test_race_store_redis_hot_cache_fallback():
     state = sim.step()
 
     # Save state
-    custom_store.save_state(state)
+    await custom_store.save_state(state)
 
     # get_hot_state should return valid state despite Redis being offline
     retrieved_state = await custom_store.get_hot_state(state.race_id)
@@ -60,8 +60,9 @@ async def test_race_store_redis_hot_cache_fallback():
     assert retrieved_state.current_lap == state.current_lap
 
 
-def test_race_store_multi_worker_redis_read_through(monkeypatch):
-    """Tests multi-worker safe read-through: Worker B has empty memory but reads tick state from Redis."""
+@pytest.mark.asyncio
+async def test_race_store_multi_worker_redis_read_through(monkeypatch):
+    """Tests multi-worker safe read-through: Worker B has empty memory but reads tick state from async Redis."""
     from backend.app.twin.store import RaceStore
     sim = RaceSimulator(track_name="silverstone", seed=555)
     state = sim.step()
@@ -69,29 +70,34 @@ def test_race_store_multi_worker_redis_read_through(monkeypatch):
     # Simulated in-memory Redis dict store
     redis_mock_db = {}
 
-    class MockRedis:
-        def ping(self):
+    class AsyncMockRedis:
+        async def ping(self):
             return True
 
-        def set(self, key, value, ex=None):
+        async def set(self, key, value, ex=None):
             redis_mock_db[key] = value
 
-        def get(self, key):
+        async def get(self, key):
             return redis_mock_db.get(key)
 
-    # Worker A: saves state
+    mock_client = AsyncMockRedis()
+
+    # Worker A: saves state asynchronously without blocking
     worker_a_store = RaceStore()
-    monkeypatch.setattr(worker_a_store, "get_sync_redis", lambda: MockRedis())
-    worker_a_store.save_state(state)
+    async def mock_get_async_redis():
+        return mock_client
+
+    monkeypatch.setattr(worker_a_store, "get_async_redis", mock_get_async_redis)
+    await worker_a_store.save_state(state)
     assert f"apex:race:{state.race_id}:hot_state" in redis_mock_db
 
     # Worker B: fresh instance with empty active_races
     worker_b_store = RaceStore()
     assert state.race_id not in worker_b_store.active_races
-    monkeypatch.setattr(worker_b_store, "get_sync_redis", lambda: MockRedis())
+    monkeypatch.setattr(worker_b_store, "get_async_redis", mock_get_async_redis)
 
-    # Worker B calls get_state -> reads through Redis and populates its local active_races
-    fetched = worker_b_store.get_state(state.race_id)
+    # Worker B calls get_hot_state -> reads through Redis and populates its local active_races
+    fetched = await worker_b_store.get_hot_state(state.race_id)
     assert fetched is not None
     assert fetched.race_id == state.race_id
     assert fetched.current_lap == state.current_lap

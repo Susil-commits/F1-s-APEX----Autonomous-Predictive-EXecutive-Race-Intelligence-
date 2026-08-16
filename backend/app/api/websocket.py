@@ -53,20 +53,20 @@ class ConnectionManager:
         for d in dead:
             self.active_connections.discard(d)
 
-    def init_race(self, track_name: str = "silverstone", seed: int = 42) -> RaceState:
+    async def init_race(self, track_name: str = "silverstone", seed: int = 42) -> RaceState:
         """Initializes a new race session."""
         self.sim = RaceSimulator(track_name=track_name, seed=seed)
         # Process initial state & explanation
         state = self.sim.step()
-        self._enrich_state(state)
-        store.save_state(state)
+        await self._enrich_state(state)
+        await store.save_state(state)
         return state
 
     def queue_action(self, action: StrategyAction):
         """Queues a strategy action for the player car."""
         self._queued_player_action = action
 
-    def step_once(self) -> RaceState:
+    async def step_once(self) -> Optional[RaceState]:
         """Advances the simulation by exactly one lap tick."""
         if not self.sim or self.sim.is_finished:
             return self.sim.get_state() if self.sim else None
@@ -75,11 +75,11 @@ class ConnectionManager:
         self._queued_player_action = None
 
         state = self.sim.step(player_action=action)
-        self._enrich_state(state)
-        store.save_state(state)
+        await self._enrich_state(state)
+        await store.save_state(state)
         return state
 
-    def _enrich_state(self, state: RaceState):
+    async def _enrich_state(self, state: RaceState):
         """Runs intelligence & RL pipeline and attaches explainability to state."""
         obs = FeatureBuilder.extract_features(state)
         dqn_action, q_margin = self.dqn_agent.predict_action(obs)
@@ -91,7 +91,7 @@ class ConnectionManager:
             include_counterfactual=True,
         )
         state.active_decision = explanation
-        store.log_decision(state.race_id, state.current_lap, explanation)
+        await store.log_decision(state.race_id, state.current_lap, explanation)
 
     async def start_loop(self):
         """Starts background async loop ticking the race."""
@@ -99,16 +99,17 @@ class ConnectionManager:
             return
         self.is_running = True
         if self.sim is None:
-            self.init_race()
+            await self.init_race()
 
         while self.is_running and self.sim and not self.sim.is_finished:
-            state = self.step_once()
-            await self.broadcast({
-                "type": "STATE_UPDATE",
-                "state": state.model_dump(),
-                "is_running": self.is_running,
-                "sim_speed": self.sim_speed,
-            })
+            state = await self.step_once()
+            if state:
+                await self.broadcast({
+                    "type": "STATE_UPDATE",
+                    "state": state.model_dump(),
+                    "is_running": self.is_running,
+                    "sim_speed": self.sim_speed,
+                })
 
             # Calculate sleep based on sim_speed (1.0s / sim_speed)
             delay = max(0.05, 1.0 / max(0.1, self.sim_speed))
