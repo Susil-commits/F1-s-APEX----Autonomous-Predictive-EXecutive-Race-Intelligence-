@@ -103,13 +103,6 @@ class RaceStore:
         except RuntimeError:
             pass
 
-    def save_state_sync(self, state: RaceState):
-        """Synchronous in-memory fallback for offline test fixtures or benchmark CLI tools."""
-        self.active_races[state.race_id] = state
-        if state.race_id not in self.tick_history:
-            self.tick_history[state.race_id] = []
-        self.tick_history[state.race_id].append(state.model_dump())
-
     def get_state(self, race_id: str) -> Optional[RaceState]:
         """Retrieves active state from L1 in-memory store."""
         return self.active_races.get(race_id)
