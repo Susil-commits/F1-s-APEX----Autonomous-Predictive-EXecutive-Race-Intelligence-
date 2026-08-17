@@ -1,0 +1,38 @@
+# Git & IDE
+.git
+.gitignore
+.vscode
+.idea
+.agents
+.gemini
+
+# Python virtual environment and caches
+.venv
+venv
+ENV
+env
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache
+.coverage
+htmlcov
+*.egg-info
+dist
+build
+
+# Node & Frontend build artifacts
+frontend/node_modules
+frontend/dist
+frontend/.vite
+
+# Logs and databases
+*.log
+*.sqlite3
+*.db
+backend/apex_twin.db
+
+# OS files
+.DS_Store
+Thumbs.db

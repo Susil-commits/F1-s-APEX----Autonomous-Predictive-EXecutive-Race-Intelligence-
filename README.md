@@ -1,6 +1,13 @@
 # APEX — Autonomous Predictive & EXecutive Race Intelligence
 
 <p align="center">
+  <a href="https://github.com/Susil-commits/F1-s-APEX----Autonomous-Predictive-EXecutive-Race-Intelligence-/actions/workflows/ci.yml">
+    <img src="https://github.com/Susil-commits/F1-s-APEX----Autonomous-Predictive-EXecutive-Race-Intelligence-/actions/workflows/ci.yml/badge.svg" alt="CI Build Status" />
+  </a>
+  <a href="https://github.com/Susil-commits/F1-s-APEX----Autonomous-Predictive-EXecutive-Race-Intelligence-/actions/workflows/docker-publish.yml">
+    <img src="https://github.com/Susil-commits/F1-s-APEX----Autonomous-Predictive-EXecutive-Race-Intelligence-/actions/workflows/docker-publish.yml/badge.svg" alt="Docker Build & Publish" />
+  </a>
+  <img src="https://img.shields.io/badge/Docker-Containerized-2496ED.svg?logo=docker&logoColor=white" alt="Docker Containerized" />
   <img src="https://img.shields.io/badge/Python-3.12-blue.svg" alt="Python 3.12" />
   <img src="https://img.shields.io/badge/FastAPI-0.115-009688.svg" alt="FastAPI" />
   <img src="https://img.shields.io/badge/MCP-2.0.0-purple.svg" alt="MCP Server" />
@@ -236,7 +243,55 @@ APEX/
 
 ---
 
-## 🚀 Quick Start
+## 🐳 Docker Deployment & Quickstart
+
+APEX is fully containerized with a production multi-stage `Dockerfile` and `docker-compose.yml` orchestration stack including PostgreSQL 16 and Redis 7.
+
+### Option A: One-Command Full Stack via Docker Compose (Recommended)
+
+```bash
+# Clone the repository
+git clone https://github.com/Susil-commits/F1-s-APEX----Autonomous-Predictive-EXecutive-Race-Intelligence-.git
+cd F1-s-APEX----Autonomous-Predictive-EXecutive-Race-Intelligence-
+
+# Build and launch APEX Application, Redis 7, and PostgreSQL 16
+docker compose up -d --build
+```
+
+Access the unified full-stack dashboard at **[http://localhost:8000](http://localhost:8000)**.
+- **REST / WebSocket API**: `http://localhost:8000/api` & `ws://localhost:8000/ws`
+- **Swagger / OpenAPI Documentation**: `http://localhost:8000/docs`
+- **Health Check**: `http://localhost:8000/api/health`
+
+To view container logs or stop the stack:
+```bash
+# View live logs across services
+docker compose logs -f app
+
+# Tear down the stack
+docker compose down
+```
+
+### Option B: Standalone Docker Container
+
+```bash
+# Build the unified image (multi-stage build with React SPA + FastAPI backend)
+docker build -t apex-race-intelligence:latest .
+
+# Run container on port 8000
+docker run -d --name apex-app -p 8000:8000 apex-race-intelligence:latest
+```
+
+### Option C: Pull Pre-built Image from GitHub Container Registry (GHCR)
+
+```bash
+docker pull ghcr.io/susil-commits/f1-s-apex----autonomous-predictive-executive-race-intelligence-:latest
+docker run -d -p 8000:8000 ghcr.io/susil-commits/f1-s-apex----autonomous-predictive-executive-race-intelligence-:latest
+```
+
+---
+
+## 🚀 Local Development Quick Start
 
 ### 1. Prerequisites
 - **Python 3.11 - 3.12** & [`uv`](https://docs.astral.sh/uv/)
