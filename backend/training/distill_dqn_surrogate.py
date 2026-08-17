@@ -3,37 +3,41 @@
 Trains high-fidelity tree surrogate models (global & per-action) to imitate
 the trained DQN's Q-value predictions across realistic race rollouts and logged telemetry.
 """
-from typing import List, Tuple, Dict, Any, Optional
-import os
-import sys
 import argparse
 import asyncio
 import hashlib
-from datetime import datetime, timezone
 import json
+import os
+from datetime import UTC, datetime
+from typing import Any
+
 import joblib
 import numpy as np
 import torch
 from sklearn.ensemble import GradientBoostingRegressor
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import r2_score, mean_squared_error, mean_absolute_error
+from sqlalchemy import select
 from stable_baselines3 import DQN
 
+from backend.app.intelligence.feature_builder import (
+    FEATURE_DIM,
+    FEATURE_NAMES,
+    FeatureBuilder,
+)
 from backend.app.simulator.models import StrategyAction
 from backend.app.simulator.track import list_available_tracks
-from backend.app.strategy.gym_env import ApexRaceGymEnv, ACTION_MAP
-from backend.app.intelligence.feature_builder import FeatureBuilder, FEATURE_NAMES, FEATURE_DIM
+from backend.app.strategy.gym_env import ACTION_MAP, ApexRaceGymEnv
 from backend.app.twin.database import get_db_session, init_db
-from backend.app.twin.db_models import DecisionLogModel, TelemetryTickModel
-from sqlalchemy import select
+from backend.app.twin.db_models import TelemetryTickModel
 
 
 def collect_dqn_rollouts(
     model: DQN,
     num_episodes: int = 100,
-    tracks: Optional[List[str]] = None,
+    tracks: list[str] | None = None,
     seed_offset: int = 42,
-) -> Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """
     Executes real rollouts using the trained DQN policy in diverse race environments.
     
@@ -46,10 +50,10 @@ def collect_dqn_rollouts(
     if tracks is None:
         tracks = list_available_tracks() or ["silverstone", "monza", "spa", "monaco", "interlagos"]
 
-    feature_list: List[np.ndarray] = []
-    chosen_q_list: List[float] = []
-    action_list: List[int] = []
-    q_dist_list: List[np.ndarray] = []
+    feature_list: list[np.ndarray] = []
+    chosen_q_list: list[float] = []
+    action_list: list[int] = []
+    q_dist_list: list[np.ndarray] = []
 
     print(f"[Distillation] Collecting rollouts across {len(tracks)} circuits ({num_episodes} total episodes)...")
     device = model.device
@@ -94,7 +98,7 @@ def collect_dqn_rollouts(
 
 async def load_persisted_telemetry_samples(
     model: DQN,
-) -> Tuple[Optional[np.ndarray], Optional[np.ndarray], Optional[np.ndarray]]:
+) -> tuple[np.ndarray | None, np.ndarray | None, np.ndarray | None]:
     """
     Extracts real race session states from database and computes corresponding DQN Q-values.
     """
@@ -151,9 +155,9 @@ def train_surrogate_model(
     save_path: str = "backend/models/shap_surrogate.joblib",
     multi_action_save_path: str = "backend/models/shap_multi_action_surrogate.joblib",
     meta_path: str = "backend/models/shap_surrogate_meta.json",
-    dqn_model_hash: Optional[str] = None,
-    dqn_model_path: Optional[str] = None,
-) -> Tuple[GradientBoostingRegressor, Dict[int, GradientBoostingRegressor]]:
+    dqn_model_hash: str | None = None,
+    dqn_model_path: str | None = None,
+) -> tuple[GradientBoostingRegressor, dict[int, GradientBoostingRegressor]]:
     """
     Trains global chosen-Q surrogate and per-action surrogate tree models.
     """
@@ -182,7 +186,7 @@ def train_surrogate_model(
     rmse_test = float(np.sqrt(mean_squared_error(y_test, y_pred_test)))
     mae_test = mean_absolute_error(y_test, y_pred_test)
 
-    print(f"[Distillation] Global Surrogate Evaluation:")
+    print("[Distillation] Global Surrogate Evaluation:")
     print(f"  • Train R² Score: {r2_train:.4f}")
     print(f"  • Test  R² Score: {r2_test:.4f}")
     print(f"  • Test  RMSE:     {rmse_test:.4f}")
@@ -192,9 +196,9 @@ def train_surrogate_model(
     print(f"[Distillation] Saved global surrogate model to {save_path}")
 
     # Train per-action models
-    print(f"[Distillation] Fitting 8 Per-Action tree surrogate models for differential SHAP...")
-    action_models: Dict[int, GradientBoostingRegressor] = {}
-    action_metrics: Dict[str, Any] = {}
+    print("[Distillation] Fitting 8 Per-Action tree surrogate models for differential SHAP...")
+    action_models: dict[int, GradientBoostingRegressor] = {}
+    action_metrics: dict[str, Any] = {}
 
     for action_idx in range(8):
         action_name = ACTION_MAP.get(action_idx, StrategyAction.MAINTAIN).value
@@ -226,7 +230,7 @@ def train_surrogate_model(
     meta_payload = {
         "dqn_model_hash": dqn_model_hash,
         "dqn_model_path": dqn_model_path,
-        "distilled_at": datetime.now(timezone.utc).isoformat(),
+        "distilled_at": datetime.now(UTC).isoformat(),
         "n_samples": len(X),
         "train_samples": len(X_train),
         "test_samples": len(X_test),
@@ -304,7 +308,7 @@ def run_distillation_pipeline(
     episodes: int = 40,
     include_db: bool = False,
     **kwargs,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Alias entrypoint for autonomous self-healing agent."""
     run_distillation(
         dqn_model_path=dqn_model_path,

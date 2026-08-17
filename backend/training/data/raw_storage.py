@@ -1,11 +1,12 @@
 """Raw data storage manager with cryptographic hashing, metadata tracking, and disk persistence."""
 from __future__ import annotations
 
-import os
-import json
 import hashlib
+import json
 import logging
-from typing import Dict, Any, Optional
+import os
+from typing import Any
+
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -16,7 +17,7 @@ DEFAULT_RAW_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "data", "r
 class RawStorageManager:
     """Manages raw dataset artifacts, disk serialization, and integrity hashing."""
 
-    def __init__(self, storage_dir: Optional[str] = None):
+    def __init__(self, storage_dir: str | None = None):
         self.storage_dir = storage_dir or DEFAULT_RAW_DIR
         os.makedirs(self.storage_dir, exist_ok=True)
 
@@ -37,7 +38,7 @@ class RawStorageManager:
         df: pd.DataFrame,
         category: str,
         identifier: str,
-        metadata: Optional[Dict[str, Any]] = None,
+        metadata: dict[str, Any] | None = None,
     ) -> str:
         """Saves a raw dataframe as CSV alongside its JSON metadata manifest.
         
@@ -66,7 +67,7 @@ class RawStorageManager:
         logger.info(f"[RawStorageManager] Stored {len(df)} rows to {filepath}")
         return filepath
 
-    def load_raw_table(self, category: str, identifier: str) -> Optional[pd.DataFrame]:
+    def load_raw_table(self, category: str, identifier: str) -> pd.DataFrame | None:
         """Loads a raw dataframe from disk if it exists."""
         clean_id = identifier.replace(" ", "_").replace("/", "_").lower()
         filepath = os.path.join(self.storage_dir, category, f"{clean_id}.csv")

@@ -1,20 +1,19 @@
 """Digital Twin state store and persistence layer with non-blocking async SQLAlchemy and Redis hot caching."""
-from typing import Dict, List, Optional, Any
-import os
 import json
 import logging
-import asyncio
-from datetime import datetime, timezone
+import os
+from datetime import UTC, datetime
+from typing import Any
+
 import redis.asyncio as aioredis
 from sqlalchemy import select
 
-from backend.app.simulator.models import RaceState, DecisionExplanation
+from backend.app.simulator.models import DecisionExplanation, RaceState
 from backend.app.twin.database import get_db_session, init_db
 from backend.app.twin.db_models import (
+    DecisionLogModel,
     RaceSessionModel,
     TelemetryTickModel,
-    DecisionLogModel,
-    BenchmarkRunModel,
 )
 
 logger = logging.getLogger(__name__)
@@ -32,17 +31,17 @@ class RaceStore:
     - Tier 3 (L3 Database Archive): Async persistent historical archive in SQLAlchemy (PostgreSQL / SQLite).
     """
 
-    def __init__(self, redis_url: Optional[str] = None):
-        self.active_races: Dict[str, RaceState] = {}
-        self.tick_history: Dict[str, List[Dict[str, Any]]] = {}
-        self.decision_history: Dict[str, List[Dict[str, Any]]] = {}
-        self.benchmark_runs: List[Dict[str, Any]] = []
+    def __init__(self, redis_url: str | None = None):
+        self.active_races: dict[str, RaceState] = {}
+        self.tick_history: dict[str, list[dict[str, Any]]] = {}
+        self.decision_history: dict[str, list[dict[str, Any]]] = {}
+        self.benchmark_runs: list[dict[str, Any]] = []
         self._db_initialized: bool = False
         self.redis_url = redis_url or REDIS_URL
-        self._async_redis: Optional[aioredis.Redis] = None
+        self._async_redis: aioredis.Redis | None = None
         self._redis_available: bool = True
 
-    async def get_async_redis(self) -> Optional[aioredis.Redis]:
+    async def get_async_redis(self) -> aioredis.Redis | None:
         """Lazy initialization of async Redis client connection with timeout protection."""
         if not self._redis_available:
             return None
@@ -101,11 +100,11 @@ class RaceStore:
         except Exception as e:
             logger.debug(f"[RaceStore] Save state DB persist error: {e}")
 
-    def get_state(self, race_id: str) -> Optional[RaceState]:
+    def get_state(self, race_id: str) -> RaceState | None:
         """Retrieves active state from L1 in-memory store."""
         return self.active_races.get(race_id)
 
-    async def get_hot_state(self, race_id: str) -> Optional[RaceState]:
+    async def get_hot_state(self, race_id: str) -> RaceState | None:
         """
         Asynchronously retrieves active state using non-blocking read-through caching:
         1. Checks L1 in-memory dict
@@ -142,7 +141,7 @@ class RaceStore:
             async with get_db_session() as session:
                 # Upsert RaceSession
                 db_session = await session.get(RaceSessionModel, state.race_id)
-                now = datetime.now(timezone.utc)
+                now = datetime.now(UTC)
                 if not db_session:
                     db_session = RaceSessionModel(
                         race_id=state.race_id,
@@ -223,17 +222,17 @@ class RaceStore:
                     q_value_margin=decision.q_value_margin,
                     tyre_cliff_risk=str(decision.tyre_cliff_risk),
                     explanation_payload=decision.model_dump(mode="json"),
-                    timestamp=datetime.now(timezone.utc),
+                    timestamp=datetime.now(UTC),
                 )
                 session.add(log_entry)
         except Exception as e:
             logger.warning(f"[RaceStore] Persist decision failed: {e}")
 
-    def get_decision_history(self, race_id: str) -> List[Dict[str, Any]]:
+    def get_decision_history(self, race_id: str) -> list[dict[str, Any]]:
         """Retrieves all decision logs for a race from in-memory cache."""
         return self.decision_history.get(race_id, [])
 
-    async def get_persisted_decisions(self, race_id: Optional[str] = None) -> List[Dict[str, Any]]:
+    async def get_persisted_decisions(self, race_id: str | None = None) -> list[dict[str, Any]]:
         """Queries persisted decision logs from database for RAG intelligence and auditing."""
         mem_items = self.decision_history.get(race_id, []) if race_id else [l for logs in self.decision_history.values() for l in logs]
         try:
@@ -286,7 +285,7 @@ class RaceStore:
             })
         return normalized
 
-    async def get_persisted_session_ticks(self, race_id: str) -> List[Dict[str, Any]]:
+    async def get_persisted_session_ticks(self, race_id: str) -> list[dict[str, Any]]:
         """Queries historical telemetry ticks from database for cross-session replay."""
         try:
             await self.ensure_db_ready()
@@ -300,7 +299,7 @@ class RaceStore:
             pass
         return self.tick_history.get(race_id, [])
 
-    async def list_persisted_sessions(self) -> List[Dict[str, Any]]:
+    async def list_persisted_sessions(self) -> list[dict[str, Any]]:
         """Lists all recorded race sessions in database."""
         try:
             await self.ensure_db_ready()
@@ -324,12 +323,12 @@ class RaceStore:
             logger.debug(f"[RaceStore] List persisted sessions DB query note: {e}")
         return [{"race_id": r_id, "track_name": "silverstone", "total_laps": 52} for r_id in self.active_races.keys()]
 
-    def get_rolling_window(self, race_id: str, window_size: int = 10) -> List[Dict[str, Any]]:
+    def get_rolling_window(self, race_id: str, window_size: int = 10) -> list[dict[str, Any]]:
         """Returns the last N tick snapshots for rolling telemetry analysis."""
         history = self.tick_history.get(race_id, [])
         return history[-window_size:] if history else []
 
-    def snapshot_race(self, race_id: str) -> Optional[str]:
+    def snapshot_race(self, race_id: str) -> str | None:
         """Exports a full serialized JSON snapshot of current race state and history."""
         state = self.get_state(race_id)
         if state is None:
@@ -341,7 +340,7 @@ class RaceStore:
         }
         return json.dumps(snapshot)
 
-    def restore_snapshot(self, snapshot_json: str) -> Optional[RaceState]:
+    def restore_snapshot(self, snapshot_json: str) -> RaceState | None:
         """Restores a RaceState from a serialized JSON snapshot."""
         try:
             data = json.loads(snapshot_json)
@@ -353,7 +352,7 @@ class RaceStore:
             logger.warning(f"[RaceStore] Restore snapshot failed: {e}")
             return None
 
-    def record_benchmark(self, result: Dict[str, Any]):
+    def record_benchmark(self, result: dict[str, Any]):
         """Saves a benchmark evaluation result."""
         self.benchmark_runs.append(result)
 

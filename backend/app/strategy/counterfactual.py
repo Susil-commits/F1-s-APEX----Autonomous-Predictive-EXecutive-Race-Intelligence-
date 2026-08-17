@@ -3,11 +3,10 @@
 Provides deterministic timeline forking, multi-lap scenario projection, undercut/overcut
 threat analysis, and delta-T advantage calculations across strategic action candidates.
 """
-from typing import Dict, List, Any, Optional, Union, TypedDict
-import numpy as np
+from typing import Any, TypedDict
 
 from backend.app.simulator.engine import RaceSimulator
-from backend.app.simulator.models import RaceState, StrategyAction, TyreCompound
+from backend.app.simulator.models import RaceState, StrategyAction
 
 
 class CandidateOption(TypedDict):
@@ -23,12 +22,12 @@ class CounterfactualChecker:
         cls,
         sim: RaceSimulator,
         rollout_laps: int = 4,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Executes fast forward rollouts of candidate actions and compares projected positions and times.
         """
         player = sim.get_player_car()
-        candidates: List[CandidateOption] = [
+        candidates: list[CandidateOption] = [
             {"name": "Maintain Current Stint", "action": StrategyAction.MAINTAIN},
             {"name": "Box Now (Hard Tyres)", "action": StrategyAction.PIT_HARD},
             {"name": "Box Now (Medium Tyres)", "action": StrategyAction.PIT_MEDIUM},
@@ -77,9 +76,9 @@ class CounterfactualChecker:
     def fork_timeline(
         cls,
         historical_state: RaceState,
-        proposed_action: Union[str, StrategyAction],
+        proposed_action: str | StrategyAction,
         rollout_laps: int = 5,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Forks from a historical state and compares forward timeline under proposed action vs baseline.
         """

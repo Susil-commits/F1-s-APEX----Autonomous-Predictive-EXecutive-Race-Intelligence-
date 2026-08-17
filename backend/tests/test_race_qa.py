@@ -1,19 +1,17 @@
 """Unit tests for APEX Race History RAG, embeddings, and grounding."""
-import pytest
 import numpy as np
+import pytest
 
-from backend.app.twin.store import store
-from backend.app.simulator.models import DecisionExplanation, StrategyAction
 from backend.app.intelligence.embeddings import (
     embed_text,
     embed_texts,
-    embed_decision_log,
-    format_decision_log,
 )
 from backend.app.intelligence.race_qa import (
     RaceQAEngine,
     answer_race_question,
 )
+from backend.app.simulator.models import DecisionExplanation, StrategyAction
+from backend.app.twin.store import store
 
 
 @pytest.fixture(autouse=True)

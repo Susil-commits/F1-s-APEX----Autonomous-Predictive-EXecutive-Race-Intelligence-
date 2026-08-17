@@ -1,13 +1,18 @@
 """WebSocket live streaming and race control loop."""
 import asyncio
 import json
-from typing import Set, Optional
-from fastapi import WebSocket, WebSocketDisconnect
 
-from backend.app.simulator.engine import RaceSimulator
-from backend.app.simulator.models import RaceState, StrategyAction, SafetyCarStatus, TrackCondition
-from backend.app.intelligence.feature_builder import FeatureBuilder
+from fastapi import WebSocket
+
 from backend.app.intelligence.commentary_generator import generate_commentary
+from backend.app.intelligence.feature_builder import FeatureBuilder
+from backend.app.simulator.engine import RaceSimulator
+from backend.app.simulator.models import (
+    RaceState,
+    SafetyCarStatus,
+    StrategyAction,
+    TrackCondition,
+)
 from backend.app.strategy.dqn_agent import DQNAgent
 from backend.app.strategy.explainability import ExplainabilityEngine
 from backend.app.twin.store import store
@@ -17,13 +22,13 @@ class ConnectionManager:
     """Manages active client WebSocket connections and race loop broadcasting."""
 
     def __init__(self):
-        self.active_connections: Set[WebSocket] = set()
-        self.sim: Optional[RaceSimulator] = None
+        self.active_connections: set[WebSocket] = set()
+        self.sim: RaceSimulator | None = None
         self.dqn_agent = DQNAgent()
         self.is_running = False
         self.sim_speed = 1.0  # 1.0x, 2.0x, 5.0x, etc.
-        self.loop_task: Optional[asyncio.Task] = None
-        self._queued_player_action: Optional[StrategyAction] = None
+        self.loop_task: asyncio.Task | None = None
+        self._queued_player_action: StrategyAction | None = None
 
     async def connect(self, websocket: WebSocket):
         await websocket.accept()
@@ -67,7 +72,7 @@ class ConnectionManager:
         """Queues a strategy action for the player car."""
         self._queued_player_action = action
 
-    async def step_once(self) -> Optional[RaceState]:
+    async def step_once(self) -> RaceState | None:
         """Advances the simulation by exactly one lap tick."""
         if not self.sim or self.sim.is_finished:
             return self.sim.get_state() if self.sim else None

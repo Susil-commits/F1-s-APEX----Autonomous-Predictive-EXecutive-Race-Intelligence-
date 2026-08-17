@@ -2,7 +2,8 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import List, Optional, Dict, Any
+from typing import Any
+
 from pydantic import BaseModel, Field
 
 
@@ -93,7 +94,7 @@ class VehicleHealthState(BaseModel):
     battery_voltage_v: float = 780.0
     cooling_efficiency: float = 0.95
     failure_probability: float = 0.01
-    active_alarms: List[str] = Field(default_factory=list)
+    active_alarms: list[str] = Field(default_factory=list)
 
 
 class OpponentState(BaseModel):
@@ -141,8 +142,8 @@ class CarState(BaseModel):
     position: int = 1
     current_lap: int = 1
     lap_progress_pct: float = 0.0     # 0.0 - 100.0% within current lap
-    last_lap_time_s: Optional[float] = None
-    best_lap_time_s: Optional[float] = None
+    last_lap_time_s: float | None = None
+    best_lap_time_s: float | None = None
     total_race_time_s: float = 0.0
     gap_to_leader_s: float = 0.0
     gap_to_car_ahead_s: float = 0.0
@@ -161,17 +162,17 @@ class CarState(BaseModel):
     in_pit: bool = False
     pit_count: int = 0
     laps_since_last_pit: int = 0
-    pit_stop_queued_compound: Optional[TyreCompound] = None
+    pit_stop_queued_compound: TyreCompound | None = None
     
     # Status
     is_dnf: bool = False
-    dnf_reason: Optional[str] = None
+    dnf_reason: str | None = None
 
     # Sub-states
-    driver_state: Optional[DriverState] = None
-    tyre_state: Optional[TyreState] = None
-    health_state: Optional[VehicleHealthState] = None
-    risk_state: Optional[RiskState] = None
+    driver_state: DriverState | None = None
+    tyre_state: TyreState | None = None
+    health_state: VehicleHealthState | None = None
+    risk_state: RiskState | None = None
 
 
 class WeatherState(BaseModel):
@@ -190,25 +191,25 @@ class RaceEvent(BaseModel):
     timestamp_s: float
     event_type: str                  # e.g., "PIT_STOP", "OVERTAKE", "SAFETY_CAR", "WEATHER_CHANGE", "DNF"
     message: str
-    car_id: Optional[str] = None
+    car_id: str | None = None
 
 
 class DecisionExplanation(BaseModel):
     recommendation: StrategyAction
     confidence_score: float = Field(default=0.85, ge=0.0, le=1.0)
     urgency: str = "MEDIUM"          # LOW, MEDIUM, HIGH, CRITICAL
-    primary_factors: List[str] = Field(default_factory=list)
+    primary_factors: list[str] = Field(default_factory=list)
     rule_engine_action: StrategyAction
-    dqn_action: Optional[StrategyAction] = None
-    ppo_action: Optional[StrategyAction] = None
-    q_value_margin: Optional[float] = None
+    dqn_action: StrategyAction | None = None
+    ppo_action: StrategyAction | None = None
+    q_value_margin: float | None = None
     tyre_cliff_risk: str = "LOW"
     pit_window_status: str = "OPTIMAL" # EARLY, OPTIMAL, LATE, MISSED
     expected_time_delta_s: float = 0.0 # Expected net time gain/loss vs maintaining
-    counterfactual_summary: Dict[str, Any] = Field(default_factory=dict)
-    commentary: Optional[str] = None
+    counterfactual_summary: dict[str, Any] = Field(default_factory=dict)
+    commentary: str | None = None
     risk_score: float = 0.15
-    alternative_actions: List[Dict[str, Any]] = Field(default_factory=list)
+    alternative_actions: list[dict[str, Any]] = Field(default_factory=list)
 
 
 class RaceState(BaseModel):
@@ -224,15 +225,15 @@ class RaceState(BaseModel):
     safety_car_laps_remaining: int = 0
     
     weather: WeatherState = Field(default_factory=WeatherState)
-    cars: List[CarState] = Field(default_factory=list)
-    events_log: List[RaceEvent] = Field(default_factory=list)
+    cars: list[CarState] = Field(default_factory=list)
+    events_log: list[RaceEvent] = Field(default_factory=list)
     
-    active_decision: Optional[DecisionExplanation] = None
+    active_decision: DecisionExplanation | None = None
     is_finished: bool = False
-    winner_car_id: Optional[str] = None
+    winner_car_id: str | None = None
 
     # Historical and Digital Twin Context
-    opponents: List[OpponentState] = Field(default_factory=list)
-    global_risk: Optional[RiskState] = None
-    strategy: Optional[StrategyState] = None
-    decision_history: List[Dict[str, Any]] = Field(default_factory=list)
+    opponents: list[OpponentState] = Field(default_factory=list)
+    global_risk: RiskState | None = None
+    strategy: StrategyState | None = None
+    decision_history: list[dict[str, Any]] = Field(default_factory=list)

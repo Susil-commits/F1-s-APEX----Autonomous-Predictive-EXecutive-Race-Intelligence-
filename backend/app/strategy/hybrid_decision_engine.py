@@ -2,27 +2,22 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, Any, List, Optional, Tuple
 
-from backend.app.simulator.models import (
-    RaceState,
-    StrategyAction,
-    CarState,
-    DecisionExplanation,
-    TyreCompound,
-    DrivingMode,
-    TrackCondition,
-)
-from backend.app.strategy.rule_engine import RuleEngine
-from backend.app.strategy.monte_carlo import MonteCarloEngine
-from backend.app.strategy.dqn_agent import DQNAgent
-from backend.app.strategy.ppo_agent import PPOStrategyAgent
-from backend.app.strategy.safe_rl_guardrail import ActionMaskGuardrail
+from backend.app.intelligence.opponent_model import OpponentIntelligenceEngine
 from backend.app.intelligence.tyre_model import TyreModel
 from backend.app.intelligence.weather_model import WeatherPredictor
-from backend.app.intelligence.opponent_model import OpponentIntelligenceEngine
-from backend.app.intelligence.driver_model import DriverIntelligenceEngine
-from backend.app.intelligence.vehicle_health_model import VehicleHealthIntelligence
+from backend.app.simulator.models import (
+    DecisionExplanation,
+    RaceState,
+    StrategyAction,
+    TrackCondition,
+    TyreCompound,
+)
+from backend.app.strategy.dqn_agent import DQNAgent
+from backend.app.strategy.monte_carlo import MonteCarloEngine
+from backend.app.strategy.ppo_agent import PPOStrategyAgent
+from backend.app.strategy.rule_engine import RuleEngine
+from backend.app.strategy.safe_rl_guardrail import ActionMaskGuardrail
 
 logger = logging.getLogger(__name__)
 
@@ -37,7 +32,7 @@ class HybridDecisionAggregator:
     def evaluate_decision(
         self,
         state: RaceState,
-        target_car_id: Optional[str] = None,
+        target_car_id: str | None = None,
         num_mc_rollouts: int = 150,
     ) -> DecisionExplanation:
         """

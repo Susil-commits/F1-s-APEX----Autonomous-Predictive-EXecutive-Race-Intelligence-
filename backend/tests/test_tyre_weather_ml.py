@@ -1,8 +1,12 @@
 """Unit tests for Phase 2: Tyre ML suite, RUL, and Weather Intelligence."""
-import pytest
-from backend.app.intelligence.tyre_model import TyreModel, TyreMLSuite
+from backend.app.intelligence.tyre_model import TyreMLSuite, TyreModel
 from backend.app.intelligence.weather_model import WeatherPredictor
-from backend.app.simulator.models import TyreCompound, DrivingMode, WeatherState, TrackCondition
+from backend.app.simulator.models import (
+    DrivingMode,
+    TrackCondition,
+    TyreCompound,
+    WeatherState,
+)
 
 
 def test_tyre_ml_suite_predictions():

@@ -1,13 +1,13 @@
 """Vehicle Health Intelligence: Synthetic telemetry generator, Isolation Forest anomaly detection, and component health scoring."""
 from __future__ import annotations
 
-import os
 import logging
-from typing import Dict, Any, List, Optional, Tuple
-from pydantic import BaseModel, Field
-import numpy as np
-from sklearn.ensemble import IsolationForest
+import os
+
 import joblib
+import numpy as np
+from pydantic import BaseModel
+from sklearn.ensemble import IsolationForest
 
 logger = logging.getLogger(__name__)
 
@@ -34,16 +34,16 @@ class VehicleHealthReport(BaseModel):
     is_anomalous: bool
     anomaly_score: float # -1.0 (severe anomaly) to +1.0 (normal)
     failure_probability: float # 0.0 to 1.0
-    failure_horizon_laps: Optional[int] # Estimated laps until mechanical failure
-    subsystem_health: Dict[str, float] # engine, brakes, battery, cooling (0-100)
-    active_alarms: List[str]
-    recommended_mitigation: Optional[str]
+    failure_horizon_laps: int | None # Estimated laps until mechanical failure
+    subsystem_health: dict[str, float] # engine, brakes, battery, cooling (0-100)
+    active_alarms: list[str]
+    recommended_mitigation: str | None
 
 
 class VehicleHealthIntelligence:
     """Monitors multi-sensor powertrain and chassis telemetry for anomaly detection and preventive strategy."""
 
-    _detector: Optional[IsolationForest] = None
+    _detector: IsolationForest | None = None
 
     @classmethod
     def get_detector(cls) -> IsolationForest:
@@ -77,17 +77,17 @@ class VehicleHealthIntelligence:
     def generate_synthetic_telemetry(
         n_samples: int = 100,
         anomaly_rate: float = 0.08,
-        anomaly_type: Optional[str] = None,
+        anomaly_type: str | None = None,
         seed: int = 42,
-    ) -> Tuple[List[VehicleTelemetrySample], List[bool]]:
+    ) -> tuple[list[VehicleTelemetrySample], list[bool]]:
         """
         Generates realistic F1 powertrain & chassis telemetry sequences:
         - Normal operation
         - Anomalies (overheating, voltage_drop, power_loss, brake_degradation, battery_anomaly)
         """
         rng = np.random.default_rng(seed)
-        samples: List[VehicleTelemetrySample] = []
-        is_anom_list: List[bool] = []
+        samples: list[VehicleTelemetrySample] = []
+        is_anom_list: list[bool] = []
 
         for i in range(n_samples):
             is_anomaly = rng.uniform(0.0, 1.0) < anomaly_rate
@@ -159,10 +159,10 @@ class VehicleHealthIntelligence:
 
         overall_health = round(float(np.mean([eng_health, oil_health, brk_health, bat_health, cool_health])), 1)
 
-        alarms: List[str] = []
-        mitigation: Optional[str] = None
+        alarms: list[str] = []
+        mitigation: str | None = None
         failure_prob = 0.01
-        failure_horizon: Optional[int] = None
+        failure_horizon: int | None = None
 
         if sample.engine_temp_c > 125.0 or sample.cooling_efficiency < 0.65:
             alarms.append("ENGINE_OVERHEATING_CRITICAL")

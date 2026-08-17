@@ -2,12 +2,16 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, Any, List, Optional
-from pydantic import BaseModel, Field
-import numpy as np
 
-from backend.app.simulator.models import CarState, TyreCompound, DrivingMode, WeatherState, TrackConfig
+import numpy as np
+from pydantic import BaseModel
+
 from backend.app.intelligence.tyre_model import TyreModel
+from backend.app.simulator.models import (
+    CarState,
+    TrackConfig,
+    WeatherState,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -35,7 +39,7 @@ class OpponentIntelligenceEngine:
     def predict_opponent_state(
         cls,
         opponent: CarState,
-        player_car: Optional[CarState],
+        player_car: CarState | None,
         track: TrackConfig,
         weather: WeatherState,
         race_lap: int,
@@ -127,12 +131,12 @@ class OpponentIntelligenceEngine:
     @classmethod
     def predict_all_opponents(
         cls,
-        cars: List[CarState],
-        player_car_id: Optional[str],
+        cars: list[CarState],
+        player_car_id: str | None,
         track: TrackConfig,
         weather: WeatherState,
         race_lap: int,
-    ) -> List[OpponentPrediction]:
+    ) -> list[OpponentPrediction]:
         """Runs predictions across all non-player cars in grid."""
         player = next((c for c in cars if (player_car_id and c.car_id == player_car_id) or c.is_player), None)
         predictions = []

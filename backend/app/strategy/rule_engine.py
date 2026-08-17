@@ -1,23 +1,20 @@
 """Rule-based expert strategy baseline for race strategy decision intelligence."""
-from typing import Tuple, List, Optional
-from backend.app.simulator.models import (
-    RaceState,
-    CarState,
-    StrategyAction,
-    TyreCompound,
-    DrivingMode,
-    TrackCondition,
-    SafetyCarStatus,
-)
+
 from backend.app.intelligence.tyre_model import TyreModel
 from backend.app.intelligence.weather_model import WeatherPredictor
+from backend.app.simulator.models import (
+    DrivingMode,
+    RaceState,
+    StrategyAction,
+    TyreCompound,
+)
 
 
 class RuleEngine:
     """Deterministic, explainable rule-based strategy baseline."""
 
     @classmethod
-    def evaluate(cls, state: RaceState, target_car_id: Optional[str] = None) -> Tuple[StrategyAction, List[str], str]:
+    def evaluate(cls, state: RaceState, target_car_id: str | None = None) -> tuple[StrategyAction, list[str], str]:
         """
         Evaluates race state and returns:
         (recommended_action, primary_reasoning_factors, urgency_level)
@@ -36,7 +33,7 @@ class RuleEngine:
         weather_eval = WeatherPredictor.evaluate_weather_risk(state.weather, car.tyre_compound)
         pit_window = TyreModel.calculate_pit_window(car, state.track, state.weather)
 
-        factors: List[str] = []
+        factors: list[str] = []
 
         # ---------------------------------------------------------
         # Rule 1: Immediate Weather Emergency (Highest Priority)

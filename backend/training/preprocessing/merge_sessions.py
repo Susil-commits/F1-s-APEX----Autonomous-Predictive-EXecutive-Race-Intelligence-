@@ -2,13 +2,11 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, Any, Optional, List
+
 import pandas as pd
-import numpy as np
 
 from .clean_laps import clean_laps_dataframe
 from .clean_weather import clean_weather_dataframe
-from .clean_race_control import clean_race_control_dataframe
 
 logger = logging.getLogger(__name__)
 
@@ -18,7 +16,7 @@ class SessionDataMerger:
 
     @staticmethod
     def merge_session_components(
-        raw_components: Dict[str, pd.DataFrame],
+        raw_components: dict[str, pd.DataFrame],
         circuit_name: str = "Silverstone",
         season: int = 2023,
     ) -> pd.DataFrame:

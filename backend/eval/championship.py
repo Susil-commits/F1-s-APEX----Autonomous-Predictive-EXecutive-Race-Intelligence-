@@ -2,13 +2,13 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, Any, List, Optional
-from pydantic import BaseModel, Field
+from typing import Any
+
 import numpy as np
-import pandas as pd
+from pydantic import BaseModel, Field
 
 from backend.app.simulator.engine import RaceSimulator
-from backend.app.simulator.models import StrategyAction, TrackCondition, SafetyCarStatus
+from backend.app.simulator.models import SafetyCarStatus, StrategyAction, TrackCondition
 from backend.app.strategy.hybrid_decision_engine import hybrid_decision_aggregator
 
 logger = logging.getLogger(__name__)
@@ -26,7 +26,7 @@ class TeamStanding(BaseModel):
     dnfs: int = 0
     races_run: int = 0
     avg_finish: float = 0.0
-    strategy_distribution: Dict[str, int] = Field(default_factory=dict)
+    strategy_distribution: dict[str, int] = Field(default_factory=dict)
 
 
 class ChampionshipSimulator:
@@ -47,15 +47,15 @@ class ChampionshipSimulator:
         cls,
         total_races: int = 100,
         seed: int = 42,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Executes N championship rounds, tracking standings and points progression.
         """
         rng = np.random.default_rng(seed)
-        standings: Dict[str, TeamStanding] = {
+        standings: dict[str, TeamStanding] = {
             t["name"]: TeamStanding(team_name=t["name"], archetype=t["archetype"]) for t in cls.AI_TEAMS
         }
-        all_finishes: Dict[str, List[int]] = {t["name"]: [] for t in cls.AI_TEAMS}
+        all_finishes: dict[str, list[int]] = {t["name"]: [] for t in cls.AI_TEAMS}
 
         for r_i in range(total_races):
             track_name = cls.TRACKS[r_i % len(cls.TRACKS)]
@@ -94,7 +94,7 @@ class ChampionshipSimulator:
                         st.dnfs += 1
 
         # Calculate average finishes
-        leaderboard: List[TeamStanding] = []
+        leaderboard: list[TeamStanding] = []
         for t_name, st in standings.items():
             fin_list = all_finishes[t_name]
             st.avg_finish = round(float(np.mean(fin_list)) if fin_list else 10.0, 2)

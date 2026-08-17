@@ -1,6 +1,7 @@
 """Integration tests for FastAPI endpoints."""
 import pytest
-from httpx import AsyncClient, ASGITransport
+from httpx import ASGITransport, AsyncClient
+
 from backend.app.main import app
 
 

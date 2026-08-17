@@ -1,13 +1,17 @@
 """Unit tests for the Redis L2 hot-cache tier, write-through/read-through round-trips, and graceful degradation."""
-from typing import Any, cast
-import pytest
 import json
+from typing import Any, cast
+
+import pytest
 import redis.asyncio as aioredis
-from unittest.mock import AsyncMock, MagicMock
 
 from backend.app.simulator.engine import RaceSimulator
-from backend.app.simulator.models import RaceState, DecisionExplanation, StrategyAction
-from backend.app.twin.store import RaceStore, REDIS_HOT_KEY_PREFIX, REDIS_HOT_TTL_SECONDS
+from backend.app.simulator.models import DecisionExplanation, StrategyAction
+from backend.app.twin.store import (
+    REDIS_HOT_KEY_PREFIX,
+    REDIS_HOT_TTL_SECONDS,
+    RaceStore,
+)
 
 
 @pytest.mark.asyncio

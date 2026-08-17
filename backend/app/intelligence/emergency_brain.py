@@ -2,17 +2,14 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, Any, List, Optional, Tuple
-from pydantic import BaseModel, Field
+
+from pydantic import BaseModel
 
 from backend.app.simulator.models import (
     RaceState,
     StrategyAction,
-    CarState,
     TrackCondition,
-    SafetyCarStatus,
     TyreCompound,
-    DrivingMode,
 )
 
 logger = logging.getLogger(__name__)
@@ -25,7 +22,7 @@ class EmergencyEvent(BaseModel):
     detected_lap: int
     impact_loss_s: float
     recommended_action: StrategyAction
-    top_reasons: List[str]
+    top_reasons: list[str]
     confidence: float
 
 
@@ -33,7 +30,7 @@ class EmergencyBrain:
     """Fast-path autonomous incident detector and tactical responder."""
 
     @classmethod
-    def process_state(cls, state: RaceState, target_car_id: Optional[str] = None) -> Optional[EmergencyEvent]:
+    def process_state(cls, state: RaceState, target_car_id: str | None = None) -> EmergencyEvent | None:
         """
         Executes Emergency Pipeline:
         DETECT -> CLASSIFY -> ESTIMATE IMPACT -> GENERATE ACTIONS -> RANK -> SELECT.

@@ -4,15 +4,12 @@ Enforces physical, regulatory, and environmental safety constraints on neural po
 Applies dynamic action masking M(s) in {0, 1}^8 to prevent illegal or hazardous strategic decisions
 (e.g., dry slicks during torrential rain, double-pitting in pit lane, or push mode at 80% wear cliff).
 """
-from typing import Dict, List, Tuple, Optional, Any
 import numpy as np
 from pydantic import BaseModel
 
 from backend.app.simulator.models import (
     RaceState,
-    CarState,
     StrategyAction,
-    TyreCompound,
     TrackCondition,
 )
 from backend.app.strategy.gym_env import ACTION_MAP
@@ -20,17 +17,17 @@ from backend.app.strategy.gym_env import ACTION_MAP
 
 class GuardrailEvaluation(BaseModel):
     is_safe: bool
-    action_mask: List[bool]  # 8-element mask for ACTION_MAP
-    masked_actions: List[str]
-    allowed_actions: List[str]
-    violations: List[str]
+    action_mask: list[bool]  # 8-element mask for ACTION_MAP
+    masked_actions: list[str]
+    allowed_actions: list[str]
+    violations: list[str]
 
 
 class ActionMaskGuardrail:
     """Computes dynamic safety action masks to guarantee Safe RL execution."""
 
     @classmethod
-    def get_action_mask(cls, state: RaceState, target_car_id: Optional[str] = None) -> np.ndarray:
+    def get_action_mask(cls, state: RaceState, target_car_id: str | None = None) -> np.ndarray:
         """
         Computes 8-D boolean mask array for ACTION_MAP.
         Returns: np.ndarray of dtype bool and shape (8,)
@@ -90,7 +87,7 @@ class ActionMaskGuardrail:
         cls,
         q_values: np.ndarray,
         state: RaceState,
-        target_car_id: Optional[str] = None,
+        target_car_id: str | None = None,
         mask_penalty: float = -1e9,
     ) -> np.ndarray:
         """
@@ -106,7 +103,7 @@ class ActionMaskGuardrail:
         cls,
         proposed_action: StrategyAction,
         state: RaceState,
-        target_car_id: Optional[str] = None,
+        target_car_id: str | None = None,
     ) -> GuardrailEvaluation:
         """
         Validates whether a specific proposed strategic action complies with all safety rules.

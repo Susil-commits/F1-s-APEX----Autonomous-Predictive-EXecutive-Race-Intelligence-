@@ -1,10 +1,8 @@
 """Jolpica / Ergast API Loader for historical race results, pit stops, and championship standings."""
 from __future__ import annotations
 
-import os
-import json
 import logging
-from typing import Dict, Any, Optional, List
+
 import httpx
 import pandas as pd
 
@@ -18,7 +16,7 @@ BASE_JOLPICA_URL = "https://api.jolpica.com/ergast/f1"
 class JolpicaDataLoader:
     """Fetches and normalizes historical F1 season, race, pit stop, and standings data from Jolpica API."""
 
-    def __init__(self, storage_manager: Optional[RawStorageManager] = None):
+    def __init__(self, storage_manager: RawStorageManager | None = None):
         self.storage = storage_manager or RawStorageManager()
 
     def fetch_season_races(self, year: int) -> pd.DataFrame:

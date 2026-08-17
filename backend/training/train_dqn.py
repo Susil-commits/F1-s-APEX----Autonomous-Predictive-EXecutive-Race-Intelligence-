@@ -1,11 +1,9 @@
 """Enterprise-grade DQN Training Pipeline for APEX Strategy Engine."""
-import os
-import sys
 import argparse
-from typing import List
-import numpy as np
+import os
+
 import matplotlib.pyplot as plt
-import gymnasium as gym
+import numpy as np
 from stable_baselines3 import DQN
 from stable_baselines3.common.callbacks import BaseCallback, EvalCallback
 from stable_baselines3.common.monitor import Monitor
@@ -19,8 +17,8 @@ class EpisodeRewardLogger(BaseCallback):
 
     def __init__(self, verbose: int = 0):
         super().__init__(verbose)
-        self.episode_rewards: List[float] = []
-        self.episode_lengths: List[int] = []
+        self.episode_rewards: list[float] = []
+        self.episode_lengths: list[int] = []
 
     def _on_step(self) -> bool:
         for info in self.locals.get("infos", []):
@@ -40,7 +38,7 @@ def train(
     os.makedirs(save_dir, exist_ok=True)
     model_save_path = os.path.join(save_dir, "apex_dqn.zip")
 
-    print(f"[APEX DQN] Initializing training & evaluation environments...")
+    print("[APEX DQN] Initializing training & evaluation environments...")
 
     def make_train_env():
         env = ApexRaceGymEnv(track_name="silverstone")
@@ -66,7 +64,7 @@ def train(
 
     reward_logger = EpisodeRewardLogger()
 
-    print(f"[APEX DQN] Creating DQN Agent with Prioritized Exploration & 50k Replay Buffer...")
+    print("[APEX DQN] Creating DQN Agent with Prioritized Exploration & 50k Replay Buffer...")
     model = DQN(
         policy="MlpPolicy",
         env=train_env,
@@ -102,7 +100,7 @@ def train(
     if os.path.exists(best_model_path):
         import shutil
         shutil.copy(best_model_path, model_save_path)
-        print(f"[APEX DQN] Synced apex_dqn.zip with best evaluation checkpoint.")
+        print("[APEX DQN] Synced apex_dqn.zip with best evaluation checkpoint.")
 
     # Export training curves plot
     if len(reward_logger.episode_rewards) > 0:
@@ -135,7 +133,7 @@ def train(
         except Exception as e:
             print(f"[APEX DQN] Warning: Could not generate training plot: {e}")
 
-    print(f"[APEX DQN] Training completed successfully!")
+    print("[APEX DQN] Training completed successfully!")
 
     if distill:
         print("[APEX DQN] Triggering automatic surrogate distillation pipeline...")

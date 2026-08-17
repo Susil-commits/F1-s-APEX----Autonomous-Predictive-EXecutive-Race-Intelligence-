@@ -1,19 +1,18 @@
 """Car physics, tyre degradation models, and lap time computation engine."""
-from typing import Tuple, Dict
+
 import numpy as np
 
 from backend.app.simulator.models import (
     CarState,
-    TrackConfig,
-    WeatherState,
-    TyreCompound,
     DrivingMode,
-    TrackCondition,
     SafetyCarStatus,
+    TrackCondition,
+    TrackConfig,
+    TyreCompound,
+    WeatherState,
 )
 
-
-COMPOUND_SPECS: Dict[TyreCompound, Dict[str, float]] = {
+COMPOUND_SPECS: dict[TyreCompound, dict[str, float]] = {
     TyreCompound.SOFT: {
         "pace_delta_s": -0.85,          # Fastest in dry
         "base_wear_rate_pct": 3.40,     # % wear per standard lap
@@ -51,7 +50,7 @@ COMPOUND_SPECS: Dict[TyreCompound, Dict[str, float]] = {
     },
 }
 
-MODE_SPECS: Dict[DrivingMode, Dict[str, float]] = {
+MODE_SPECS: dict[DrivingMode, dict[str, float]] = {
     DrivingMode.PUSH: {
         "pace_delta_s": -0.75,
         "wear_multiplier": 1.45,
@@ -81,7 +80,7 @@ class CarPhysics:
         track_wear_factor: float,
         weather: WeatherState,
         rng: np.random.Generator,
-    ) -> Tuple[float, bool]:
+    ) -> tuple[float, bool]:
         """Calculates new tyre wear percentage and cliff status for a lap."""
         spec = COMPOUND_SPECS[compound]
         mode_spec = MODE_SPECS[mode]

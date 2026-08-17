@@ -1,9 +1,10 @@
 """Explainability Layer for APEX decision intelligence."""
-from typing import Optional, Dict, Any
-from backend.app.simulator.models import RaceState, DecisionExplanation, StrategyAction
-from backend.app.strategy.rule_engine import RuleEngine
-from backend.app.strategy.counterfactual import CounterfactualChecker
+from typing import Any
+
 from backend.app.intelligence.tyre_model import TyreModel
+from backend.app.simulator.models import DecisionExplanation, RaceState, StrategyAction
+from backend.app.strategy.counterfactual import CounterfactualChecker
+from backend.app.strategy.rule_engine import RuleEngine
 
 
 class ExplainabilityEngine:
@@ -13,8 +14,8 @@ class ExplainabilityEngine:
     def generate_explanation(
         cls,
         sim: Any,
-        dqn_action: Optional[StrategyAction] = None,
-        q_value_margin: Optional[float] = None,
+        dqn_action: StrategyAction | None = None,
+        q_value_margin: float | None = None,
         include_counterfactual: bool = True,
     ) -> DecisionExplanation:
         """Generates comprehensive explanation schema."""

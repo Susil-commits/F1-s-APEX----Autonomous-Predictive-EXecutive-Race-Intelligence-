@@ -1,5 +1,4 @@
 """Unit tests for the counterfactual rollout evaluator and timeline forking engine."""
-import pytest
 from backend.app.simulator.engine import RaceSimulator
 from backend.app.simulator.models import StrategyAction, TyreCompound
 from backend.app.strategy.counterfactual import CounterfactualChecker

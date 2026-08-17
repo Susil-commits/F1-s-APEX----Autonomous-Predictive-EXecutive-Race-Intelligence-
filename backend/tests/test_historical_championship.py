@@ -1,8 +1,7 @@
 """Unit tests for Phase 9: Synthetic Data Factory, Historical Replay, and Championship Tournament."""
-import pytest
-from backend.training.synthetic_data_factory import SyntheticDataFactory
 from backend.app.simulator.historical_replay import HistoricalRaceReplay
 from backend.eval.championship import ChampionshipSimulator
+from backend.training.synthetic_data_factory import SyntheticDataFactory
 
 
 def test_synthetic_data_factory_generation():

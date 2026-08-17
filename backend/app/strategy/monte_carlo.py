@@ -15,14 +15,17 @@ Generates full outcome distributions, finish histograms, win/podium probabilitie
 """
 from __future__ import annotations
 
-import time
 import logging
-from typing import Dict, List, Any, Optional, Tuple
+import time
+from typing import Any
+
 import numpy as np
 
-from backend.app.simulator.models import RaceState, StrategyAction, TyreCompound, DrivingMode
 from backend.app.intelligence.tyre_model import TyreModel
 from backend.app.intelligence.weather_model import WeatherPredictor
+from backend.app.simulator.models import (
+    RaceState,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -47,8 +50,8 @@ class MonteCarloEngine:
         cls,
         state: RaceState,
         num_rollouts_per_action: int = 200,
-        target_car_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        target_car_id: str | None = None,
+    ) -> dict[str, Any]:
         """
         Runs parallel vectorized rollouts across all 9 candidate strategic actions.
         """
@@ -78,7 +81,7 @@ class MonteCarloEngine:
         is_sc = sc_status == "SAFETY_CAR"
         is_vsc = sc_status == "VSC"
 
-        results: List[Dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
         n_rollouts = max(1, num_rollouts_per_action)
 
         rng = np.random.default_rng(state.current_lap * 101 + current_pos * 17)
@@ -171,7 +174,7 @@ class MonteCarloEngine:
             exp_finish = round(float(np.mean(projected_positions[~dnf_mask])) if np.sum(~dnf_mask) > 0 else float(total_cars), 2)
 
             # Position distribution histogram (P1 through P10)
-            pos_dist: Dict[str, int] = {}
+            pos_dist: dict[str, int] = {}
             for p in range(1, min(11, total_cars + 1)):
                 pos_dist[f"P{p}"] = int(np.sum(projected_positions == p))
 
@@ -213,8 +216,8 @@ class MonteCarloEngine:
         cls,
         state: RaceState,
         num_rollouts: int = 1000,
-        target_car_id: Optional[str] = None,
-    ) -> Dict[str, Any]:
+        target_car_id: str | None = None,
+    ) -> dict[str, Any]:
         """
         Executes stochastic forward simulations across candidate strategic profiles.
         Maintains backward compatibility with legacy 4-plan schema.
@@ -276,7 +279,7 @@ class MonteCarloEngine:
         ]
 
         rollouts_per_strategy = max(1, num_rollouts // len(strategies))
-        results: List[Dict[str, Any]] = []
+        results: list[dict[str, Any]] = []
 
         np.random.seed(state.current_lap * 37 + player.position + 13)
 

@@ -1,5 +1,4 @@
 """Unit tests for backend Monte Carlo stochastic simulation engine."""
-import pytest
 from backend.app.simulator.engine import RaceSimulator
 from backend.app.strategy.monte_carlo import MonteCarloEngine
 

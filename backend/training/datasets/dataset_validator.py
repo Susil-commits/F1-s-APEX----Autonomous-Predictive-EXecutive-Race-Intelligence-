@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, Any, List, Optional, Tuple
-import pandas as pd
+from typing import Any
+
 import numpy as np
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -14,7 +15,6 @@ SPARSE_EVENT_COLS = {"PitInTime", "PitOutTime", "dnf_reason", "DriverNumber", "T
 
 class DatasetValidationError(Exception):
     """Raised when training data fails schema, range, or null constraints."""
-    pass
 
 
 class DatasetValidator:
@@ -23,10 +23,10 @@ class DatasetValidator:
     @staticmethod
     def validate_features_dataframe(
         df: pd.DataFrame,
-        required_columns: Optional[List[str]] = None,
+        required_columns: list[str] | None = None,
         max_null_pct: float = 0.02,
-        ignore_sparse_cols: Optional[set] = None,
-    ) -> Dict[str, Any]:
+        ignore_sparse_cols: set | None = None,
+    ) -> dict[str, Any]:
         """
         Validates feature dataframe:
         - Required columns are present

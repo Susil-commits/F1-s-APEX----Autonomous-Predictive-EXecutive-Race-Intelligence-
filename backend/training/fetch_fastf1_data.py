@@ -3,11 +3,11 @@
 Extracts real-world Formula 1 lap-by-lap tyre degradation data across multiple circuits
 and seasons, computing driver-normalized lap-time degradation deltas.
 """
-from typing import List, Dict, Any, Optional, Tuple
-import os
 import logging
-import pandas as pd
+import os
+
 import numpy as np
+import pandas as pd
 
 logger = logging.getLogger(__name__)
 
@@ -15,7 +15,7 @@ CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "fastf1_cache"
 OUTPUT_CSV = os.path.join(os.path.dirname(__file__), "..", "data", "real_tyre_data.csv")
 
 # Standard benchmark sessions covering different degradation profiles
-DEFAULT_RACES: List[Tuple[int, str, str]] = [
+DEFAULT_RACES: list[tuple[int, str, str]] = [
     (2023, "Silverstone", "R"),
     (2023, "Monza", "R"),
     (2023, "Belgium", "R"),
@@ -182,7 +182,7 @@ def generate_synthetic_fallback_data() -> pd.DataFrame:
 
 
 def fetch_all_real_races(
-    races: Optional[List[Tuple[int, str, str]]] = None,
+    races: list[tuple[int, str, str]] | None = None,
     output_path: str = OUTPUT_CSV,
     force_download: bool = False,
     allow_synthetic_fallback: bool = False,
@@ -195,7 +195,7 @@ def fetch_all_real_races(
     races_to_fetch = races or DEFAULT_RACES
     setup_fastf1_cache()
 
-    collected_dfs: List[pd.DataFrame] = []
+    collected_dfs: list[pd.DataFrame] = []
 
     try:
         import fastf1

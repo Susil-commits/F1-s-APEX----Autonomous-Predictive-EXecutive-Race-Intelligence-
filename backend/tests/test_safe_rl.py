@@ -1,11 +1,10 @@
 """Unit tests for Safe RL Action Masking Guardrail."""
-import pytest
 import numpy as np
 
 from backend.app.simulator.engine import RaceSimulator
-from backend.app.simulator.models import TrackCondition, StrategyAction, DrivingMode
-from backend.app.strategy.safe_rl_guardrail import ActionMaskGuardrail
+from backend.app.simulator.models import StrategyAction, TrackCondition
 from backend.app.strategy.gym_env import ACTION_MAP
+from backend.app.strategy.safe_rl_guardrail import ActionMaskGuardrail
 
 
 def test_guardrail_dry_all_normal_allowed():

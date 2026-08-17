@@ -1,9 +1,17 @@
 """Unit tests for Phase 3: Opponent, Driver, and Vehicle Health Intelligence."""
-import pytest
-from backend.app.simulator.models import CarState, TyreCompound, DrivingMode, WeatherState, TrackConfig, TrackCondition
-from backend.app.intelligence.opponent_model import OpponentIntelligenceEngine
 from backend.app.intelligence.driver_model import DriverIntelligenceEngine
-from backend.app.intelligence.vehicle_health_model import VehicleHealthIntelligence, VehicleTelemetrySample
+from backend.app.intelligence.opponent_model import OpponentIntelligenceEngine
+from backend.app.intelligence.vehicle_health_model import (
+    VehicleHealthIntelligence,
+    VehicleTelemetrySample,
+)
+from backend.app.simulator.models import (
+    CarState,
+    TrackCondition,
+    TrackConfig,
+    TyreCompound,
+    WeatherState,
+)
 
 
 def test_opponent_intelligence_predictions():

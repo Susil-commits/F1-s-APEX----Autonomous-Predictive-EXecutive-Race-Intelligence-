@@ -1,13 +1,13 @@
 """DQN Neural Policy Agent with Safe RL Action Masking and Epistemic Uncertainty."""
 import os
-from typing import Optional, Tuple, Dict, Any, List
+from typing import Any
+
 import numpy as np
 import torch
 from stable_baselines3 import DQN
 
 from backend.app.simulator.models import StrategyAction
-from backend.app.strategy.gym_env import ACTION_MAP, ApexRaceGymEnv
-
+from backend.app.strategy.gym_env import ACTION_MAP
 
 MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "models", "apex_dqn.zip")
 
@@ -15,9 +15,9 @@ MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "models", "apex
 class DQNAgent:
     """Wrapper for DQN reinforcement learning strategy policy with epistemic uncertainty and Safe RL action masking."""
 
-    def __init__(self, model_path: Optional[str] = None):
+    def __init__(self, model_path: str | None = None):
         self.model_path = model_path or MODEL_PATH
-        self.model: Optional[DQN] = None
+        self.model: DQN | None = None
         self._load_model()
 
     def _load_model(self):
@@ -35,7 +35,7 @@ class DQNAgent:
     def is_loaded(self) -> bool:
         return self.model is not None
 
-    def get_q_values(self, obs: np.ndarray, action_mask: Optional[np.ndarray] = None) -> np.ndarray:
+    def get_q_values(self, obs: np.ndarray, action_mask: np.ndarray | None = None) -> np.ndarray:
         """
         Extracts raw or masked Q-value vector Q(s, a) across all 8 strategic actions.
         """
@@ -60,8 +60,8 @@ class DQNAgent:
     def predict_action(
         self,
         obs: np.ndarray,
-        action_mask: Optional[np.ndarray] = None,
-    ) -> Tuple[StrategyAction, float]:
+        action_mask: np.ndarray | None = None,
+    ) -> tuple[StrategyAction, float]:
         """
         Predicts the optimal strategic action and estimated Q-value margin.
         If action_mask is provided, invalid actions are filtered out (Safe RL).
@@ -91,8 +91,8 @@ class DQNAgent:
         self,
         obs: np.ndarray,
         temperature: float = 1.0,
-        action_mask: Optional[np.ndarray] = None,
-    ) -> Dict[str, float]:
+        action_mask: np.ndarray | None = None,
+    ) -> dict[str, float]:
         """
         Computes Boltzmann softmax probability distribution pi(a|s) across all 8 actions.
         """
@@ -115,7 +115,7 @@ class DQNAgent:
     def compute_policy_entropy(
         self,
         obs: np.ndarray,
-        action_mask: Optional[np.ndarray] = None,
+        action_mask: np.ndarray | None = None,
     ) -> float:
         """
         Computes normalized policy Shannon entropy H(pi) in [0.0, 1.0] as uncertainty metric.
@@ -131,8 +131,8 @@ class DQNAgent:
     def compute_action_advantages(
         self,
         obs: np.ndarray,
-        action_mask: Optional[np.ndarray] = None,
-    ) -> Dict[str, float]:
+        action_mask: np.ndarray | None = None,
+    ) -> dict[str, float]:
         """
         Computes advantage A(s, a) = Q(s, a) - V(s) where V(s) is max_a Q(s, a).
         """
@@ -149,8 +149,8 @@ class DQNAgent:
     def predict_strategic_profile(
         self,
         obs: np.ndarray,
-        action_mask: Optional[np.ndarray] = None,
-    ) -> Dict[str, Any]:
+        action_mask: np.ndarray | None = None,
+    ) -> dict[str, Any]:
         """
         Produces full neural policy decision profile with action probabilities, advantages, and uncertainty.
         """

@@ -1,12 +1,10 @@
 """Unit tests for the Autonomous Multi-Step Agentic Race Strategist."""
-import pytest
-from backend.app.simulator.engine import RaceSimulator
-from backend.app.simulator.models import StrategyAction, TrackCondition, SafetyCarStatus
 from backend.app.intelligence.agentic_strategist import (
-    AgenticRaceStrategist,
     AgenticStrategyPlan,
     get_agentic_strategist,
 )
+from backend.app.simulator.engine import RaceSimulator
+from backend.app.simulator.models import SafetyCarStatus, StrategyAction, TrackCondition
 
 
 def test_agentic_strategist_singleton():

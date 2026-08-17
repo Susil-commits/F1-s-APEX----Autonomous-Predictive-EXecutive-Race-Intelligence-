@@ -1,8 +1,8 @@
 """Vehicle telemetry, fuel load effect, and thermal strain feature engineering."""
 from __future__ import annotations
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 
 def _get_numeric_series(df: pd.DataFrame, col: str, default: float) -> pd.Series:

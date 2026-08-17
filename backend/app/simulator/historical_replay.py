@@ -1,14 +1,16 @@
 """Historical Race Replay: Reconstructs real F1 sessions and evaluates APEX decisions against actual pit walls."""
 from __future__ import annotations
 
-import os
 import logging
-from typing import Dict, Any, List, Optional
-from pydantic import BaseModel, Field
-import pandas as pd
+from typing import Any
 
-from backend.app.simulator.models import RaceState, StrategyAction, TrackCondition, SafetyCarStatus
+from pydantic import BaseModel
+
 from backend.app.simulator.engine import RaceSimulator
+from backend.app.simulator.models import (
+    SafetyCarStatus,
+    TrackCondition,
+)
 from backend.app.strategy.hybrid_decision_engine import hybrid_decision_aggregator
 
 logger = logging.getLogger(__name__)
@@ -21,7 +23,7 @@ class HistoricalDecisionPoint(BaseModel):
     real_outcome_description: str
     apex_recommended_action: str
     apex_confidence_score: float
-    apex_rationale: List[str]
+    apex_rationale: list[str]
     agreement_with_real_team: bool
     counterfactual_advantage_s: float
 
@@ -29,7 +31,7 @@ class HistoricalDecisionPoint(BaseModel):
 class HistoricalRaceReplay:
     """Reconstructs real historical F1 Grand Prix sessions and runs APEX decision comparisons."""
 
-    HISTORICAL_CATALOG: Dict[str, Dict[str, Any]] = {
+    HISTORICAL_CATALOG: dict[str, dict[str, Any]] = {
         "silverstone_2023": {
             "title": "2023 British Grand Prix (Silverstone)",
             "track": "silverstone",
@@ -86,7 +88,7 @@ class HistoricalRaceReplay:
     }
 
     @classmethod
-    def list_available_replays(cls) -> List[Dict[str, Any]]:
+    def list_available_replays(cls) -> list[dict[str, Any]]:
         """Returns catalogue of pre-configured historical benchmark replays."""
         return [
             {
@@ -100,14 +102,14 @@ class HistoricalRaceReplay:
         ]
 
     @classmethod
-    def run_historical_replay(cls, race_key: str = "monaco_2023") -> Dict[str, Any]:
+    def run_historical_replay(cls, race_key: str = "monaco_2023") -> dict[str, Any]:
         """
         Executes historical decision analysis at critical points.
         """
         config = cls.HISTORICAL_CATALOG.get(race_key, cls.HISTORICAL_CATALOG["silverstone_2023"])
         sim = RaceSimulator(track_name=config["track"], seed=42)
 
-        results: List[HistoricalDecisionPoint] = []
+        results: list[HistoricalDecisionPoint] = []
         agreements = 0
 
         for item in config["key_events"]:

@@ -1,11 +1,12 @@
 """Async database engine and session manager for APEX."""
 import os
+from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
-from typing import AsyncGenerator
+
 from sqlalchemy.ext.asyncio import (
-    create_async_engine,
     AsyncSession,
     async_sessionmaker,
+    create_async_engine,
 )
 
 from backend.app.twin.db_models import Base

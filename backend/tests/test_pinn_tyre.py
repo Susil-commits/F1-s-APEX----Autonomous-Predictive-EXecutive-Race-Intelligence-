@@ -1,8 +1,7 @@
 """Unit tests for Physics-Informed Neural Network (PINN) Tyre Residual Compensator."""
-import pytest
-from backend.app.simulator.models import TyreCompound, DrivingMode
 from backend.app.intelligence.pinn_tyre_residual import PINNTyreResidualCompensator
 from backend.app.intelligence.tyre_model import TyreModel
+from backend.app.simulator.models import DrivingMode, TyreCompound
 
 
 def test_pinn_singleton_initialization():

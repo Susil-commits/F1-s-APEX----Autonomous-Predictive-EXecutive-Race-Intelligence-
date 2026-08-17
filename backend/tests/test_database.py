@@ -1,10 +1,11 @@
 """Unit tests for SQLAlchemy async database models and persistent RaceStore."""
 import pytest
-from backend.app.simulator.engine import RaceSimulator
-from backend.app.twin.database import init_db, get_db_session
-from backend.app.twin.db_models import RaceSessionModel, TelemetryTickModel
-from backend.app.twin.store import store
 from sqlalchemy import select
+
+from backend.app.simulator.engine import RaceSimulator
+from backend.app.twin.database import get_db_session, init_db
+from backend.app.twin.db_models import RaceSessionModel
+from backend.app.twin.store import store
 
 
 @pytest.mark.asyncio

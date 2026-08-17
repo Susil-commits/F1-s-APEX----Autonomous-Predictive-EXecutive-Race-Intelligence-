@@ -1,9 +1,10 @@
 """Training pipeline for PPO reinforcement learning strategy agent."""
 from __future__ import annotations
 
-import os
 import argparse
 import logging
+import os
+
 from stable_baselines3 import PPO
 from stable_baselines3.common.callbacks import EvalCallback
 from stable_baselines3.common.monitor import Monitor

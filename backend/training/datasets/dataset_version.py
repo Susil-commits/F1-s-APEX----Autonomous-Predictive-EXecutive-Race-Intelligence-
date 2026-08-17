@@ -1,15 +1,15 @@
 """Dataset metadata and versioning manager with anti-leakage train/validation/test splits."""
 from __future__ import annotations
 
-import os
-import json
 import hashlib
+import json
 import logging
-from datetime import datetime, timezone
-from typing import Dict, Any, List, Optional
-from pydantic import BaseModel, Field
-import pandas as pd
+import os
+from datetime import UTC, datetime
+
 import numpy as np
+import pandas as pd
+from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
@@ -20,24 +20,24 @@ class DatasetVersionMetadata(BaseModel):
     """Metadata schema for versioned training datasets."""
     dataset_version: str
     source: str
-    seasons: List[int]
-    sessions: List[str]
+    seasons: list[int]
+    sessions: list[str]
     features_version: str
-    creation_timestamp: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    creation_timestamp: str = Field(default_factory=lambda: datetime.now(UTC).isoformat())
     row_count: int
-    missing_values: Dict[str, int]
+    missing_values: dict[str, int]
     schema_hash: str
-    feature_names: List[str]
+    feature_names: list[str]
     split_strategy: str = "race_season_split"
-    train_races: List[str]
-    val_races: List[str]
-    test_races: List[str]
+    train_races: list[str]
+    val_races: list[str]
+    test_races: list[str]
 
 
 class DatasetVersionRegistry:
     """Manages version manifests and split generation for clean data governance."""
 
-    def __init__(self, registry_dir: Optional[str] = None):
+    def __init__(self, registry_dir: str | None = None):
         self.registry_dir = registry_dir or DATASETS_REGISTRY_DIR
         os.makedirs(self.registry_dir, exist_ok=True)
 
@@ -55,7 +55,7 @@ class DatasetVersionRegistry:
         season_col: str = "season",
         test_season: int = 2023,
         val_ratio: float = 0.20,
-    ) -> Dict[str, pd.DataFrame]:
+    ) -> dict[str, pd.DataFrame]:
         """
         Partitions datasets strictly across races/seasons.
         Never allows laps from the same race session to mix across train, val, and test splits.
@@ -123,12 +123,12 @@ class DatasetVersionRegistry:
         version: str,
         source: str,
         features_version: str = "v1.0",
-        train_races: Optional[List[str]] = None,
-        val_races: Optional[List[str]] = None,
-        test_races: Optional[List[str]] = None,
+        train_races: list[str] | None = None,
+        val_races: list[str] | None = None,
+        test_races: list[str] | None = None,
     ) -> DatasetVersionMetadata:
         """Registers and persists metadata manifest for a dataset version."""
-        missing: Dict[str, int] = {str(col): int(cnt) for col, cnt in df.isnull().sum().items() if int(cnt) > 0}
+        missing: dict[str, int] = {str(col): int(cnt) for col, cnt in df.isnull().sum().items() if int(cnt) > 0}
         seasons = [int(s) for s in df["season"].unique()] if "season" in df.columns else [2023]
         sessions = [str(s) for s in df["circuit"].unique()] if "circuit" in df.columns else ["Silverstone"]
 

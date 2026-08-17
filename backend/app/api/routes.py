@@ -1,17 +1,22 @@
 """REST API endpoints for APEX race intelligence."""
+import asyncio
+import json
 import os
 import sys
-import json
-import asyncio
-from datetime import datetime, timezone
-from typing import Optional, Dict, Any, List
+from datetime import UTC, datetime
+from typing import Any
+
 from fastapi import APIRouter, HTTPException, Query
 from pydantic import BaseModel
 
 from backend.app.api.websocket import manager
-from backend.app.simulator.models import StrategyAction, TrackCondition, SafetyCarStatus, RaceState
-from backend.app.simulator.track import list_available_tracks, TRACKS
-
+from backend.app.simulator.models import (
+    RaceState,
+    SafetyCarStatus,
+    StrategyAction,
+    TrackCondition,
+)
+from backend.app.simulator.track import TRACKS
 
 router = APIRouter(prefix="/api")
 
@@ -35,27 +40,27 @@ class InjectRequest(BaseModel):
 
 class ScenarioInjectionRequest(BaseModel):
     scenario_type: str  # TORRENTIAL_RAIN, DAMP_TRACK, DRY_TRACK, SAFETY_CAR, VSC, PUNCTURE, GREEN_FLAG, CLEAR_HAZARDS
-    intensity: Optional[float] = 0.8
-    laps: Optional[int] = 4
-    car_id: Optional[str] = None
-    wear_delta: Optional[float] = 50.0
+    intensity: float | None = 0.8
+    laps: int | None = 4
+    car_id: str | None = None
+    wear_delta: float | None = 50.0
 
 
 class MonteCarloRequest(BaseModel):
     rollouts: int = 1000
-    target_car_id: Optional[str] = None
+    target_car_id: str | None = None
 
 
 class ForkCounterfactualRequest(BaseModel):
-    race_id: Optional[str] = None
-    lap: Optional[int] = None
+    race_id: str | None = None
+    lap: int | None = None
     proposed_action: str = "PIT_SOFT"
     rollout_laps: int = 5
-    state_payload: Optional[Dict[str, Any]] = None
+    state_payload: dict[str, Any] | None = None
 
 
 class RaceAskRequest(BaseModel):
-    race_id: Optional[str] = None
+    race_id: str | None = None
     question: str
     top_k: int = 5
 
@@ -212,10 +217,10 @@ async def get_current_state():
 
 
 @router.get("/strategy/shap")
-async def get_shap_attribution(car_id: Optional[str] = None):
+async def get_shap_attribution(car_id: str | None = None):
     """Computes real TreeSHAP additive feature attributions for active race state."""
-    from backend.app.intelligence.shap_explainer import TreeSHAPExplainer
     from backend.app.intelligence.feature_builder import FeatureBuilder
+    from backend.app.intelligence.shap_explainer import TreeSHAPExplainer
 
     if not manager.sim:
         await manager.init_race()
@@ -240,14 +245,14 @@ async def get_shap_attribution(car_id: Optional[str] = None):
 async def get_shap_pairwise_comparison(
     action_a: str = Query("PUSH", description="Primary action to evaluate (e.g. PUSH, PIT_MEDIUM)"),
     action_b: str = Query("CONSERVE", description="Baseline action to compare against (e.g. CONSERVE, MAINTAIN)"),
-    car_id: Optional[str] = None,
+    car_id: str | None = None,
 ):
     """
     Computes differential Shapley attributions: 'Why Action A over Action B?'.
     Decomposes Delta Q = (E[f_A] - E[f_B]) + sum(phi_i(A) - phi_i(B)).
     """
-    from backend.app.intelligence.shap_explainer import TreeSHAPExplainer
     from backend.app.intelligence.feature_builder import FeatureBuilder
+    from backend.app.intelligence.shap_explainer import TreeSHAPExplainer
 
     if not manager.sim:
         await manager.init_race()
@@ -394,7 +399,7 @@ async def get_latest_benchmarks():
     try:
         from benchmarks.run_benchmarks import run_multi_circuit_benchmark
         return run_multi_circuit_benchmark(races_per_track=2, save_json=True)
-    except Exception as e:
+    except Exception:
         return {
             "timestamp": "2026-08-16T12:00:00Z",
             "total_tracks": 5,
@@ -483,10 +488,10 @@ async def export_race_debrief(race_id: str):
 
     # Build Markdown Summary Report
     lines = [
-        f"# APEX Race Intelligence Debrief Report",
+        "# APEX Race Intelligence Debrief Report",
         f"**Race Session ID**: `{race_id}`  ",
         f"**Circuit**: {track_name} | **Total Laps**: {total_laps}  ",
-        f"**Exported**: {datetime.now(timezone.utc).strftime('%Y-%m-%d %H:%M:%S UTC')}  ",
+        f"**Exported**: {datetime.now(UTC).strftime('%Y-%m-%d %H:%M:%S UTC')}  ",
         "",
         "---",
         "",
@@ -536,7 +541,7 @@ async def export_race_debrief(race_id: str):
 async def get_weather_intelligence():
     """Returns predictive weather state, track wetness index, drying rate, and crossover metrics."""
     from backend.app.intelligence.weather_model import WeatherPredictor
-    from backend.app.simulator.models import WeatherState, TyreCompound
+    from backend.app.simulator.models import TyreCompound, WeatherState
     weather = manager.sim.weather if (manager.sim and manager.sim.weather) else WeatherState()
     probs = WeatherPredictor.predict_rain_probabilities(weather)
     risk = WeatherPredictor.evaluate_weather_risk(weather, TyreCompound.MEDIUM)
@@ -579,7 +584,10 @@ async def get_driver_intelligence():
 @router.get("/intelligence/health")
 async def get_vehicle_health_intelligence():
     """Returns powertrain/chassis multi-sensor health telemetry and anomaly detection status."""
-    from backend.app.intelligence.vehicle_health_model import VehicleHealthIntelligence, VehicleTelemetrySample
+    from backend.app.intelligence.vehicle_health_model import (
+        VehicleHealthIntelligence,
+        VehicleTelemetrySample,
+    )
     # If active player car has telemetry
     player = manager.sim.get_player_car() if manager.sim else None
     push_mode = (player.driving_mode.value == "PUSH") if (player and hasattr(player.driving_mode, "value")) else False
@@ -641,17 +649,17 @@ async def run_ai_championship(races: int = 10):
 @router.get("/observability/metrics")
 async def get_system_observability():
     """Returns latency profiling, model load status, and store memory metrics."""
-    from backend.app.twin.store import store
     from backend.app.intelligence.tyre_model import TyreModel
-    from backend.app.strategy.ppo_agent import PPOStrategyAgent
     from backend.app.strategy.dqn_agent import DQNAgent
+    from backend.app.strategy.ppo_agent import PPOStrategyAgent
+    from backend.app.twin.store import store
 
     ppo_agent = PPOStrategyAgent()
     dqn_agent = DQNAgent()
 
     return {
         "system_status": "ONLINE",
-        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "timestamp_utc": datetime.now(UTC).isoformat(),
         "models": {
             "tyre_model_calibrated": TyreModel.is_calibrated(),
             "dqn_policy_loaded": dqn_agent.is_loaded(),

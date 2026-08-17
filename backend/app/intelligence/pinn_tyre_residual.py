@@ -5,16 +5,16 @@ that learns non-linear micro-thermal degradation deltas from FastF1 telemetry:
 Delta_t_lap = PhysicsModel(compound, wear) + PINN_residual(track_severity, thermal_load, moisture, mode)
 """
 import os
-from typing import Dict, Optional, Tuple, Any, List
+from typing import Any, Optional
+
 import numpy as np
 import torch
-import torch.nn as nn
+from torch import nn
 
-from backend.app.simulator.models import TyreCompound, DrivingMode
 from backend.app.intelligence.tyre_model import TyreModel
+from backend.app.simulator.models import DrivingMode, TyreCompound
 
-
-COMPOUND_SOFTNESS: Dict[TyreCompound, float] = {
+COMPOUND_SOFTNESS: dict[TyreCompound, float] = {
     TyreCompound.SOFT: 1.0,
     TyreCompound.MEDIUM: 0.7,
     TyreCompound.HARD: 0.4,
@@ -22,7 +22,7 @@ COMPOUND_SOFTNESS: Dict[TyreCompound, float] = {
     TyreCompound.WET: 0.3,
 }
 
-MODE_INTENSITY: Dict[DrivingMode, float] = {
+MODE_INTENSITY: dict[DrivingMode, float] = {
     DrivingMode.PUSH: 1.25,
     DrivingMode.NORMAL: 1.0,
     DrivingMode.CONSERVE: 0.75,
@@ -51,7 +51,7 @@ class PINNTyreResidualCompensator:
 
     _instance: Optional["PINNTyreResidualCompensator"] = None
 
-    def __init__(self, weights_path: Optional[str] = None):
+    def __init__(self, weights_path: str | None = None):
         self.model = PINNResidualMLP(in_features=6, hidden_dim=32)
         self.weights_path = weights_path or os.path.join(
             os.path.dirname(__file__), "..", "..", "models", "pinn_tyre_weights.pt"
@@ -136,7 +136,7 @@ class PINNTyreResidualCompensator:
 
     def fine_tune_on_session_telemetry(
         self,
-        telemetry_samples: List[Dict[str, Any]],
+        telemetry_samples: list[dict[str, Any]],
         learning_rate: float = 0.001,
         epochs: int = 10,
     ) -> float:

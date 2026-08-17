@@ -2,9 +2,11 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, Any, List, Tuple
+from typing import Any
+
 import numpy as np
-from backend.app.simulator.models import WeatherState, TrackCondition, TyreCompound
+
+from backend.app.simulator.models import TrackCondition, TyreCompound, WeatherState
 
 logger = logging.getLogger(__name__)
 
@@ -70,7 +72,7 @@ class WeatherPredictor:
                 return 0.45 # Severe aquaplaning (near total loss of lateral adhesion)
 
     @classmethod
-    def predict_rain_probabilities(cls, weather: WeatherState) -> Dict[str, float]:
+    def predict_rain_probabilities(cls, weather: WeatherState) -> dict[str, float]:
         """Predicts 5-minute and 10-minute rain onset/continuation probabilities."""
         base_prob = float(getattr(weather, "rain_probability_next_5_laps", 0.10))
         if weather.rain_intensity > 0.1:
@@ -100,7 +102,7 @@ class WeatherPredictor:
             return TyreCompound.HARD
 
     @classmethod
-    def evaluate_weather_risk(cls, weather: WeatherState, current_compound: TyreCompound) -> Dict[str, Any]:
+    def evaluate_weather_risk(cls, weather: WeatherState, current_compound: TyreCompound) -> dict[str, Any]:
         """Evaluates whether current tyres are mismatched with weather."""
         wetness = cls.calculate_track_wetness(weather)
         is_slick = current_compound in (TyreCompound.SOFT, TyreCompound.MEDIUM, TyreCompound.HARD)

@@ -6,27 +6,22 @@ the agent executes automated diagnostics, triggers surrogate re-distillation,
 and logs plain-language Race Control commentary.
 """
 
-import os
-import sys
-import json
 import datetime
-from pathlib import Path
-from typing import Dict, Any, Optional, Tuple, List
+from typing import Any
 
 from pydantic import BaseModel, Field
 
 from backend.app.intelligence.shap_explainer import TreeSHAPExplainer
-from backend.app.intelligence.commentary_generator import generate_commentary
-from backend.eval.run_eval import run_full_evaluation, check_thresholds, load_baselines
+from backend.eval.run_eval import run_full_evaluation
 
 
 class AgentHealingAction(BaseModel):
     timestamp_utc: str
     action_type: str  # "DRIFT_RESOLVED", "REDISTILL_TRIGGERED", "BENCHMARK_VERIFIED", "NO_ACTION_REQUIRED"
     trigger_reason: str
-    previous_fidelity_r2: Optional[float] = None
-    post_healing_fidelity_r2: Optional[float] = None
-    pillar_breakdown: Dict[str, Any] = Field(default_factory=dict)
+    previous_fidelity_r2: float | None = None
+    post_healing_fidelity_r2: float | None = None
+    pillar_breakdown: dict[str, Any] = Field(default_factory=dict)
     plain_language_debrief: str
     status: str = "COMPLETED"
 
@@ -35,9 +30,9 @@ class SelfHealingAgent:
     """Autonomous reliability and drift verification agent for APEX intelligence."""
 
     def __init__(self):
-        self.action_history: List[AgentHealingAction] = []
+        self.action_history: list[AgentHealingAction] = []
 
-    def get_health_summary(self) -> Dict[str, Any]:
+    def get_health_summary(self) -> dict[str, Any]:
         """Provides an instant diagnostic snapshot of model health and alignment."""
         explainer = TreeSHAPExplainer.get_instance()
         drift_status = explainer.verify_drift()
@@ -60,7 +55,7 @@ class SelfHealingAgent:
         3. If drift is detected and auto_redistill is True, triggers re-distillation.
         4. Emits structured plain-language debrief.
         """
-        start_time = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        start_time = datetime.datetime.now(datetime.UTC).isoformat()
         explainer = TreeSHAPExplainer.get_instance()
         drift_status = explainer.verify_drift()
 
@@ -97,7 +92,9 @@ class SelfHealingAgent:
         if auto_redistill:
             try:
                 # Run distillation pipeline
-                from backend.training.distill_dqn_surrogate import run_distillation_pipeline
+                from backend.training.distill_dqn_surrogate import (
+                    run_distillation_pipeline,
+                )
                 distill_meta = run_distillation_pipeline(n_samples=2000, epochs=30)
                 
                 # Reset singleton and re-verify
@@ -143,7 +140,7 @@ class SelfHealingAgent:
         return action
 
 
-_agent_instance: Optional[SelfHealingAgent] = None
+_agent_instance: SelfHealingAgent | None = None
 
 
 def get_self_healing_agent() -> SelfHealingAgent:

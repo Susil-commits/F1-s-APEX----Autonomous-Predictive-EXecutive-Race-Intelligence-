@@ -2,9 +2,10 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, Any, List, Optional
-from pydantic import BaseModel, Field
+from typing import Any
+
 import numpy as np
+from pydantic import BaseModel
 
 from backend.app.simulator.models import CarState, DrivingMode
 
@@ -24,7 +25,7 @@ class DriverSkillProfile(BaseModel):
     mistake_base_prob: float # per lap error chance
 
 
-DRIVER_REGISTRY: Dict[str, DriverSkillProfile] = {
+DRIVER_REGISTRY: dict[str, DriverSkillProfile] = {
     "M. Verstappen": DriverSkillProfile(driver_name="M. Verstappen", team="Red Bull Racing", pace_bias_s=-0.25, consistency_score=0.95, tyre_management_skill=0.92, aggression=0.92, defence_strength=0.94, overtake_skill=0.95, mistake_base_prob=0.015),
     "L. Norris": DriverSkillProfile(driver_name="L. Norris", team="McLaren", pace_bias_s=-0.15, consistency_score=0.90, tyre_management_skill=0.88, aggression=0.86, defence_strength=0.88, overtake_skill=0.90, mistake_base_prob=0.025),
     "C. Leclerc": DriverSkillProfile(driver_name="C. Leclerc", team="Ferrari", pace_bias_s=-0.10, consistency_score=0.88, tyre_management_skill=0.84, aggression=0.89, defence_strength=0.87, overtake_skill=0.92, mistake_base_prob=0.030),
@@ -65,7 +66,7 @@ class DriverIntelligenceEngine:
         car: CarState,
         race_lap: int,
         total_laps: int,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Calculates dynamic driver status under current race context."""
         profile = cls.get_profile(car.driver_name)
         

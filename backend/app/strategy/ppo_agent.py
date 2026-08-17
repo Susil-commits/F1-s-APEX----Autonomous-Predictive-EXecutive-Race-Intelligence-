@@ -1,14 +1,13 @@
 """Proximal Policy Optimization (PPO) strategy policy wrapper for APEX."""
 from __future__ import annotations
 
-import os
 import logging
-from typing import Optional, Dict, Any, Tuple
-import numpy as np
+import os
+
 from stable_baselines3 import PPO
 
-from backend.app.simulator.models import StrategyAction, RaceState, TyreCompound
 from backend.app.intelligence.feature_builder import FeatureBuilder
+from backend.app.simulator.models import RaceState, StrategyAction
 from backend.app.strategy.gym_env import ACTION_MAP
 
 logger = logging.getLogger(__name__)
@@ -19,9 +18,9 @@ PPO_MODEL_PATH = os.path.join(os.path.dirname(__file__), "..", "..", "models", "
 class PPOStrategyAgent:
     """PPO Reinforcement Learning decision policy with heuristic fallback safety."""
 
-    def __init__(self, model_path: Optional[str] = None):
+    def __init__(self, model_path: str | None = None):
         self.model_path = model_path or PPO_MODEL_PATH
-        self.model: Optional[PPO] = None
+        self.model: PPO | None = None
         self._load_model()
 
     def _load_model(self):
@@ -40,7 +39,7 @@ class PPOStrategyAgent:
         self,
         state: RaceState,
         deterministic: bool = True,
-    ) -> Tuple[StrategyAction, float]:
+    ) -> tuple[StrategyAction, float]:
         """Selects strategic action via PPO policy with estimated action probability."""
         features = FeatureBuilder.extract_features(state)
 

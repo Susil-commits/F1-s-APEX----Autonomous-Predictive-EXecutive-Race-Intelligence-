@@ -1,11 +1,10 @@
 """Unified Session Loader bridging FastF1, Jolpica, and synthetic scenario generation."""
 from __future__ import annotations
 
-import os
 import logging
-from typing import Dict, Any, Optional, List, Tuple
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 
 from .fastf1_loader import FastF1DataLoader
 from .jolpica_loader import JolpicaDataLoader
@@ -17,7 +16,7 @@ logger = logging.getLogger(__name__)
 class UnifiedSessionLoader:
     """Unified session loader for orchestrating race telemetry and timing data extraction."""
 
-    def __init__(self, raw_storage: Optional[RawStorageManager] = None, offline_only: bool = False):
+    def __init__(self, raw_storage: RawStorageManager | None = None, offline_only: bool = False):
         self.storage = raw_storage or RawStorageManager()
         self.offline_only = offline_only
         self.fastf1 = FastF1DataLoader(storage_manager=self.storage, offline_only=offline_only)
@@ -29,8 +28,8 @@ class UnifiedSessionLoader:
         circuit: str,
         session_type: str = "R",
         allow_synthetic_fallback: bool = True,
-        offline_only: Optional[bool] = None,
-    ) -> Dict[str, pd.DataFrame]:
+        offline_only: bool | None = None,
+    ) -> dict[str, pd.DataFrame]:
         """Loads all components of an F1 session (laps, weather, results, race control)."""
         is_offline = self.offline_only if offline_only is None else offline_only
         data = self.fastf1.load_session_raw(year, circuit, session_type, offline_only=is_offline)
@@ -45,7 +44,7 @@ class UnifiedSessionLoader:
         logger.info(f"[UnifiedSessionLoader] Generating high-fidelity synthetic session for {year} {circuit}")
         return self._generate_synthetic_session(year, circuit)
 
-    def _generate_synthetic_session(self, year: int, circuit: str) -> Dict[str, pd.DataFrame]:
+    def _generate_synthetic_session(self, year: int, circuit: str) -> dict[str, pd.DataFrame]:
         """Generates realistic synthetic session tables with laps, weather, and results."""
         np.random.seed(year * 100 + len(circuit))
         drivers = ["VER", "NOR", "LEC", "HAM", "RUS", "PIA", "SAI", "ALO", "PER", "TSU"]

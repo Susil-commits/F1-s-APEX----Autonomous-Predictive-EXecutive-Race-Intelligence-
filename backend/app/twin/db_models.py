@@ -1,14 +1,15 @@
 """SQLAlchemy ORM models for APEX Digital Twin & Telemetry Persistence."""
-from datetime import datetime, timezone
-from typing import Optional, List, Dict, Any
+from datetime import UTC, datetime
+from typing import Any, Optional
+
 from sqlalchemy import (
-    String,
-    Integer,
-    Float,
+    JSON,
     Boolean,
     DateTime,
+    Float,
     ForeignKey,
-    JSON,
+    Integer,
+    String,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -18,7 +19,7 @@ class Base(DeclarativeBase):
 
 
 def utcnow() -> datetime:
-    return datetime.now(timezone.utc)
+    return datetime.now(UTC)
 
 
 class RaceSessionModel(Base):
@@ -30,14 +31,14 @@ class RaceSessionModel(Base):
     total_laps: Mapped[int] = mapped_column(Integer, nullable=False, default=52)
     current_lap: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
     is_finished: Mapped[bool] = mapped_column(Boolean, default=False)
-    winner_car_id: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
-    total_race_time_s: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    seed: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
+    winner_car_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    total_race_time_s: Mapped[float | None] = mapped_column(Float, nullable=True)
+    seed: Mapped[int | None] = mapped_column(Integer, nullable=True)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
     updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
 
-    ticks: Mapped[List["TelemetryTickModel"]] = relationship("TelemetryTickModel", back_populates="session", cascade="all, delete-orphan")
-    decisions: Mapped[List["DecisionLogModel"]] = relationship("DecisionLogModel", back_populates="session", cascade="all, delete-orphan")
+    ticks: Mapped[list["TelemetryTickModel"]] = relationship("TelemetryTickModel", back_populates="session", cascade="all, delete-orphan")
+    decisions: Mapped[list["DecisionLogModel"]] = relationship("DecisionLogModel", back_populates="session", cascade="all, delete-orphan")
 
 
 class TelemetryTickModel(Base):
@@ -50,7 +51,7 @@ class TelemetryTickModel(Base):
     tick_index: Mapped[int] = mapped_column(Integer, nullable=False)
     track_condition: Mapped[str] = mapped_column(String(32), default="DRY")
     safety_car: Mapped[str] = mapped_column(String(32), default="NONE")
-    state_payload: Mapped[Dict[str, Any]] = mapped_column(JSON, nullable=False)
+    state_payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
     timestamp: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
     session: Mapped[Optional["RaceSessionModel"]] = relationship("RaceSessionModel", back_populates="ticks")
@@ -66,11 +67,11 @@ class DecisionLogModel(Base):
     recommendation: Mapped[str] = mapped_column(String(32), nullable=False)
     confidence_score: Mapped[float] = mapped_column(Float, nullable=False)
     urgency: Mapped[str] = mapped_column(String(32), default="MEDIUM")
-    rule_action: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
-    dqn_action: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
-    q_value_margin: Mapped[Optional[float]] = mapped_column(Float, nullable=True)
-    tyre_cliff_risk: Mapped[Optional[str]] = mapped_column(String(32), nullable=True)
-    explanation_payload: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    rule_action: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    dqn_action: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    q_value_margin: Mapped[float | None] = mapped_column(Float, nullable=True)
+    tyre_cliff_risk: Mapped[str | None] = mapped_column(String(32), nullable=True)
+    explanation_payload: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
     timestamp: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
 
     session: Mapped[Optional["RaceSessionModel"]] = relationship("RaceSessionModel", back_populates="decisions")
@@ -91,4 +92,4 @@ class BenchmarkRunModel(Base):
     avg_gap_to_p1_s: Mapped[float] = mapped_column(Float, nullable=False)
     blown_tyre_laps: Mapped[float] = mapped_column(Float, nullable=False)
     avg_pit_stops: Mapped[float] = mapped_column(Float, nullable=False)
-    details_json: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSON, nullable=True)
+    details_json: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)

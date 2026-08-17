@@ -1,8 +1,8 @@
 """Strategy state, stint progression, and pit window optimization features."""
 from __future__ import annotations
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 
 def compute_strategy_features(df: pd.DataFrame, total_laps: int = 52) -> pd.DataFrame:

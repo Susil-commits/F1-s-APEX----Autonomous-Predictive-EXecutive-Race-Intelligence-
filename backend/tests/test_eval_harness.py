@@ -1,16 +1,16 @@
 """Unit tests for the APEX Automated Evaluation Harness & Self-Healing Agent Loop."""
-import json
-import pytest
-from pathlib import Path
 
+from backend.app.intelligence.agent_loop import (
+    AgentHealingAction,
+    get_self_healing_agent,
+)
 from backend.eval.run_eval import (
-    load_baselines,
     check_thresholds,
-    run_full_evaluation,
     evaluate_shap_surrogate,
     evaluate_tyre_model_calibration,
+    load_baselines,
+    run_full_evaluation,
 )
-from backend.app.intelligence.agent_loop import get_self_healing_agent, AgentHealingAction
 
 
 def test_baseline_schema_and_thresholds():

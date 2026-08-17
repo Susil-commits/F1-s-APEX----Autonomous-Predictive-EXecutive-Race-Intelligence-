@@ -1,18 +1,24 @@
 """Tyre degradation predictor, remaining useful life estimation, and ML regression suite."""
 from __future__ import annotations
 
-import os
 import json
 import logging
-from typing import Dict, Tuple, Optional, Any, List
-import numpy as np
-import pandas as pd
-from sklearn.linear_model import LinearRegression, Ridge
-from sklearn.ensemble import RandomForestRegressor
-import joblib
+import os
+from typing import Any
 
-from backend.app.simulator.models import TyreCompound, DrivingMode, CarState, TrackConfig, WeatherState
+import joblib
+import numpy as np
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.linear_model import LinearRegression
+
 from backend.app.simulator.car import COMPOUND_SPECS, MODE_SPECS
+from backend.app.simulator.models import (
+    CarState,
+    DrivingMode,
+    TrackConfig,
+    TyreCompound,
+    WeatherState,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -22,7 +28,7 @@ CALIBRATED_MODEL_PATH = os.path.join(
 TYRE_ML_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "models", "tyre")
 
 # Empirical track severity multipliers relative to baseline (1.0)
-CIRCUIT_DEGRADATION_SEVERITY: Dict[str, float] = {
+CIRCUIT_DEGRADATION_SEVERITY: dict[str, float] = {
     "bahrain": 1.35,      # Highly abrasive asphalt & high rear thermal stress
     "spain": 1.25,        # High-energy lateral loads (Turn 3/9)
     "barcelona": 1.25,
@@ -41,8 +47,8 @@ class TyreMLSuite:
     """Multi-model tyre degradation regression and cliff classification suite."""
 
     def __init__(self):
-        self.linear_model: Optional[LinearRegression] = None
-        self.rf_model: Optional[RandomForestRegressor] = None
+        self.linear_model: LinearRegression | None = None
+        self.rf_model: RandomForestRegressor | None = None
         self.is_trained: bool = False
         os.makedirs(TYRE_ML_DIR, exist_ok=True)
         self._load_or_init_models()
@@ -100,7 +106,7 @@ class TyreMLSuite:
         track_temp_c: float = 32.0,
         circuit_abrasion: float = 1.0,
         model_type: str = "rf",
-    ) -> Tuple[float, Tuple[float, float]]:
+    ) -> tuple[float, tuple[float, float]]:
         """Predicts lap time loss (s) with 90% confidence interval."""
         if not self.is_trained:
             self.train_default_models()
@@ -133,7 +139,7 @@ _ML_SUITE = TyreMLSuite()
 class TyreModel:
     """Predicts tyre degradation curves, lap-time delta, remaining useful life, and cliff probabilities."""
 
-    _calibrated_cache: Optional[Dict[str, Any]] = None
+    _calibrated_cache: dict[str, Any] | None = None
 
     @classmethod
     def get_circuit_degradation_factor(cls, track_name: str) -> float:
@@ -145,7 +151,7 @@ class TyreModel:
         return 1.0
 
     @classmethod
-    def load_calibrated_model(cls, path: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    def load_calibrated_model(cls, path: str | None = None) -> dict[str, Any] | None:
         """Loads real FastF1 calibrated tyre model parameters from disk."""
         target_path = path or CALIBRATED_MODEL_PATH
         if cls._calibrated_cache is not None:
@@ -201,7 +207,7 @@ class TyreModel:
         tyre_age_laps: int,
         mode: DrivingMode = DrivingMode.NORMAL,
         track_wear_factor: float = 1.0,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Predicts remaining useful laps with confidence interval and cliff probability."""
         remaining_laps = cls.estimate_remaining_laps(compound, wear_pct, mode, track_wear_factor)
         cliff_prob = min(1.0, max(0.0, (wear_pct - 45.0) / 40.0)) if wear_pct > 45.0 else 0.02
@@ -224,7 +230,7 @@ class TyreModel:
         cls,
         compound: TyreCompound,
         wear_pct: float,
-        tyre_age_laps: Optional[int] = None,
+        tyre_age_laps: int | None = None,
     ) -> float:
         """Predicts the lap-time penalty (in seconds) incurred from current tyre degradation."""
         comp_str = compound.value if hasattr(compound, "value") else str(compound)
@@ -267,7 +273,7 @@ class TyreModel:
         track_temp_c: float = 32.0,
         track_name: str = "silverstone",
         model_type: str = "rf",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Predicts next lap time and confidence interval using ML regression suite."""
         abrasion = cls.get_circuit_degradation_factor(track_name)
         delta_loss, (ci_low_delta, ci_high_delta) = _ML_SUITE.predict_delta(
@@ -294,12 +300,14 @@ class TyreModel:
         track_name: str = "silverstone",
         track_temp_c: float = 35.0,
         rain_intensity: float = 0.0,
-        tyre_age_laps: Optional[int] = None,
+        tyre_age_laps: int | None = None,
     ) -> float:
         """PINN hybrid lap time degradation prediction."""
         base_loss = cls.predict_lap_time_loss(compound, wear_pct, tyre_age_laps)
         try:
-            from backend.app.intelligence.pinn_tyre_residual import PINNTyreResidualCompensator
+            from backend.app.intelligence.pinn_tyre_residual import (
+                PINNTyreResidualCompensator,
+            )
             pinn = PINNTyreResidualCompensator.get_instance()
             pinn_residual = pinn.predict_residual_delta_s(
                 compound=compound,
@@ -318,7 +326,7 @@ class TyreModel:
         car: CarState,
         track: TrackConfig,
         weather: WeatherState,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """Calculates optimal pit window range and urgency."""
         spec = COMPOUND_SPECS[car.tyre_compound]
         remaining_laps_to_cliff = TyreModel.estimate_remaining_laps(

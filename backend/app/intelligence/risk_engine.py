@@ -2,16 +2,13 @@
 from __future__ import annotations
 
 import logging
-from typing import Dict, Any, List, Optional
+
 import numpy as np
 
 from backend.app.simulator.models import (
     RaceState,
-    CarState,
     RiskState,
-    TrackCondition,
     TyreCompound,
-    DrivingMode,
 )
 
 logger = logging.getLogger(__name__)
@@ -21,7 +18,7 @@ class RiskEngine:
     """Calculates multi-dimensional operational risk scores and risk-adjusted expected outcomes."""
 
     @classmethod
-    def evaluate_risk(cls, state: RaceState, target_car_id: Optional[str] = None) -> RiskState:
+    def evaluate_risk(cls, state: RaceState, target_car_id: str | None = None) -> RiskState:
         """
         Computes composite risk profile:
         - DNF risk

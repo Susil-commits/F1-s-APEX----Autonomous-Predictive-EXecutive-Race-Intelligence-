@@ -1,9 +1,8 @@
 """Track configurations and circuit database for APEX."""
-from typing import Dict, List
+
 from backend.app.simulator.models import TrackConfig
 
-
-TRACKS: Dict[str, TrackConfig] = {
+TRACKS: dict[str, TrackConfig] = {
     "silverstone": TrackConfig(
         name="Silverstone Circuit",
         country="Great Britain",
@@ -72,6 +71,6 @@ def get_track(name: str = "silverstone") -> TrackConfig:
     return TRACKS.get(name.lower(), TRACKS["silverstone"])
 
 
-def list_available_tracks() -> List[str]:
+def list_available_tracks() -> list[str]:
     """List all available track identifiers."""
     return list(TRACKS.keys())

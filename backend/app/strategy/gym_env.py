@@ -1,13 +1,13 @@
 """Gymnasium Environment for training RL race strategy agents."""
-from typing import Optional, Dict, Any, Tuple
-import gymnasium as gym
-from gymnasium import spaces
-import numpy as np
+from typing import Any
 
+import gymnasium as gym
+import numpy as np
+from gymnasium import spaces
+
+from backend.app.intelligence.feature_builder import FEATURE_DIM, FeatureBuilder
 from backend.app.simulator.engine import RaceSimulator
 from backend.app.simulator.models import StrategyAction, TrackCondition, TyreCompound
-from backend.app.intelligence.feature_builder import FeatureBuilder, FEATURE_DIM
-
 
 ACTION_MAP = {
     0: StrategyAction.MAINTAIN,
@@ -30,7 +30,7 @@ class ApexRaceGymEnv(gym.Env):
         super().__init__()
         self.track_name = track_name
         self.default_seed = seed
-        self.sim: Optional[RaceSimulator] = None
+        self.sim: RaceSimulator | None = None
 
         # 8 discrete strategic actions
         self.action_space = spaces.Discrete(8)
@@ -46,9 +46,9 @@ class ApexRaceGymEnv(gym.Env):
     def reset(
         self,
         *,
-        seed: Optional[int] = None,
-        options: Optional[Dict[str, Any]] = None,
-    ) -> Tuple[np.ndarray, Dict[str, Any]]:
+        seed: int | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> tuple[np.ndarray, dict[str, Any]]:
         super().reset(seed=seed)
         race_seed = seed if seed is not None else np.random.randint(1, 100000)
         self.sim = RaceSimulator(
@@ -61,7 +61,7 @@ class ApexRaceGymEnv(gym.Env):
         obs = FeatureBuilder.extract_features(state)
         return obs, {"race_id": state.race_id, "seed": race_seed}
 
-    def step(self, action: int) -> Tuple[np.ndarray, float, bool, bool, Dict[str, Any]]:
+    def step(self, action: int) -> tuple[np.ndarray, float, bool, bool, dict[str, Any]]:
         if self.sim is None:
             self.reset()
         assert self.sim is not None

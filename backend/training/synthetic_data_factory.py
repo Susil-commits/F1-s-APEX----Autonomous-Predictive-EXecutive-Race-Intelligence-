@@ -1,15 +1,16 @@
 """Synthetic Data Factory: Large-scale scenario generator for imitation, supervised, and RL training."""
 from __future__ import annotations
 
-import os
 import logging
-from typing import Dict, Any, List, Optional, Tuple
-import pandas as pd
-import numpy as np
+import os
+from typing import Any
 
-from backend.app.simulator.engine import RaceSimulator
-from backend.app.simulator.models import TrackCondition, SafetyCarStatus, StrategyAction
+import numpy as np
+import pandas as pd
+
 from backend.app.intelligence.feature_builder import FeatureBuilder
+from backend.app.simulator.engine import RaceSimulator
+from backend.app.simulator.models import SafetyCarStatus, TrackCondition
 from backend.app.strategy.rule_engine import RuleEngine
 
 logger = logging.getLogger(__name__)
@@ -24,7 +25,7 @@ class SyntheticDataFactory:
     def generate_scenario_dataset(
         cls,
         n_races: int = 20,
-        output_csv: Optional[str] = None,
+        output_csv: str | None = None,
         seed: int = 42,
     ) -> pd.DataFrame:
         """
@@ -32,7 +33,7 @@ class SyntheticDataFactory:
         recording (state_features, expert_action, reward, next_state, outcome_position).
         """
         rng = np.random.default_rng(seed)
-        records: List[Dict[str, Any]] = []
+        records: list[dict[str, Any]] = []
 
         for r_idx in range(n_races):
             track = rng.choice(TRACK_POOL)

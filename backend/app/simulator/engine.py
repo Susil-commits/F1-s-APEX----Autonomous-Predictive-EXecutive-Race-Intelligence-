@@ -3,22 +3,22 @@ from __future__ import annotations
 
 import copy
 import uuid
-from typing import List, Dict, Optional, Tuple, TypedDict
+from typing import TypedDict
+
 import numpy as np
 
+from backend.app.simulator.car import CarPhysics
 from backend.app.simulator.models import (
     CarState,
+    DrivingMode,
+    RaceEvent,
     RaceState,
-    TrackConfig,
-    WeatherState,
+    SafetyCarStatus,
+    StrategyAction,
     TrackCondition,
     TyreCompound,
-    DrivingMode,
-    StrategyAction,
-    SafetyCarStatus,
-    RaceEvent,
+    WeatherState,
 )
-from backend.app.simulator.car import CarPhysics
 from backend.app.simulator.track import get_track
 
 
@@ -31,7 +31,7 @@ class DriverProfile(TypedDict):
     pace_bias: float
 
 
-DEFAULT_DRIVERS: List[DriverProfile] = [
+DEFAULT_DRIVERS: list[DriverProfile] = [
     {"car_id": "car_01", "name": "M. Verstappen", "team": "Red Bull Racing", "number": 1, "is_player": False, "pace_bias": -0.25},
     {"car_id": "car_02", "name": "L. Norris", "team": "McLaren", "number": 4, "is_player": False, "pace_bias": -0.15},
     {"car_id": "car_03", "name": "C. Leclerc", "team": "Ferrari", "number": 16, "is_player": False, "pace_bias": -0.10},
@@ -65,7 +65,7 @@ class RaceSimulator:
         self.tick = 0
         self.race_time_s = 0.0
         self.is_finished = False
-        self.winner_car_id: Optional[str] = None
+        self.winner_car_id: str | None = None
         
         self.safety_car = SafetyCarStatus.NONE
         self.safety_car_laps_remaining = 0
@@ -81,7 +81,7 @@ class RaceSimulator:
         )
         
         # Initialize cars on starting grid
-        self.cars: List[CarState] = []
+        self.cars: list[CarState] = []
         drivers_subset = DEFAULT_DRIVERS[:grid_size]
         for idx, d in enumerate(drivers_subset):
             # Starting tyre strategy heuristic for AI cars
@@ -114,7 +114,7 @@ class RaceSimulator:
             )
             self.cars.append(car)
 
-        self.events_log: List[RaceEvent] = [
+        self.events_log: list[RaceEvent] = [
             RaceEvent(
                 lap=0,
                 timestamp_s=0.0,
@@ -130,7 +130,7 @@ class RaceSimulator:
                 return car
         return self.cars[0]
 
-    def apply_action(self, action: StrategyAction, target_car_id: Optional[str] = None):
+    def apply_action(self, action: StrategyAction, target_car_id: str | None = None):
         """Applies a strategic decision to the player car (or specified car)."""
         target = self.get_player_car() if target_car_id is None else next((c for c in self.cars if c.car_id == target_car_id), None)
         if not target or target.is_dnf:
@@ -156,7 +156,7 @@ class RaceSimulator:
             target.in_pit = True
             self._log_event(target.current_lap, "BOX_CALL", f"BOX BOX: {target.driver_name} scheduled to pit for {compound_map[action].value}", target.car_id)
 
-    def step(self, player_action: Optional[StrategyAction] = None) -> RaceState:
+    def step(self, player_action: StrategyAction | None = None) -> RaceState:
         """Advances the simulation by 1 lap tick."""
         if self.is_finished:
             return self.get_state()
@@ -178,7 +178,7 @@ class RaceSimulator:
         self._process_ai_competitor_strategies()
 
         # 5. Simulate lap for every car
-        lap_times: Dict[str, float] = {}
+        lap_times: dict[str, float] = {}
         for car in self.cars:
             if car.is_dnf:
                 continue
@@ -309,7 +309,7 @@ class RaceSimulator:
             if rand_incident < 0.015 and self.current_lap < self.track.total_laps - 4:
                 self.safety_car = SafetyCarStatus.SAFETY_CAR
                 self.safety_car_laps_remaining = self.rng.integers(3, 6)
-                self._log_event(self.current_lap, "SAFETY_CAR", f"YELLOW FLAG: Physical Safety Car deployed! Incident on track.")
+                self._log_event(self.current_lap, "SAFETY_CAR", "YELLOW FLAG: Physical Safety Car deployed! Incident on track.")
             elif rand_incident < 0.035 and self.current_lap < self.track.total_laps - 3:
                 self.safety_car = SafetyCarStatus.VSC
                 self.safety_car_laps_remaining = self.rng.integers(2, 4)
@@ -367,7 +367,7 @@ class RaceSimulator:
 
         self.cars = active_cars + dnf_cars
 
-    def _log_event(self, lap: int, event_type: str, message: str, car_id: Optional[str] = None):
+    def _log_event(self, lap: int, event_type: str, message: str, car_id: str | None = None):
         """Appends a timestamped event to the race log."""
         self.events_log.append(
             RaceEvent(
@@ -382,11 +382,17 @@ class RaceSimulator:
     def get_state(self) -> RaceState:
         """Returns the full, validated Pydantic snapshot of the current state with hierarchical intelligence sub-states."""
         # Ensure track wetness and grip are synchronized
-        from backend.app.intelligence.weather_model import WeatherPredictor
         from backend.app.intelligence.driver_model import DriverIntelligenceEngine
-        from backend.app.intelligence.tyre_model import TyreModel
         from backend.app.intelligence.opponent_model import OpponentIntelligenceEngine
-        from backend.app.simulator.models import DriverState, TyreState, VehicleHealthState, RiskState, OpponentState
+        from backend.app.intelligence.tyre_model import TyreModel
+        from backend.app.intelligence.weather_model import WeatherPredictor
+        from backend.app.simulator.models import (
+            DriverState,
+            OpponentState,
+            RiskState,
+            TyreState,
+            VehicleHealthState,
+        )
 
         self.weather.track_wetness = WeatherPredictor.calculate_track_wetness(self.weather)
         player_car = self.get_player_car()
@@ -425,7 +431,7 @@ class RaceSimulator:
             )
 
         # Compute opponent tactical predictions
-        opponents: List[OpponentState] = []
+        opponents: list[OpponentState] = []
         try:
             opp_preds = OpponentIntelligenceEngine.predict_all_opponents(self.cars, player_car.car_id if player_car else None, self.track, self.weather, self.current_lap)
             for op in opp_preds:
@@ -515,7 +521,7 @@ class RaceSimulator:
             self.safety_car_laps_remaining = 0
             self._log_event(self.current_lap, "SCENARIO_INJECT", "⚡ INJECTED: Track is GREEN! Safety car withdrawn.")
 
-    def inject_puncture(self, car_id: Optional[str] = None, wear_delta: float = 55.0):
+    def inject_puncture(self, car_id: str | None = None, wear_delta: float = 55.0):
         """Simulates sudden tyre puncture / acute degradation cliff for player or specified AI car."""
         target_car = self.get_player_car() if car_id is None else next((c for c in self.cars if c.car_id == car_id), self.get_player_car())
         if target_car:

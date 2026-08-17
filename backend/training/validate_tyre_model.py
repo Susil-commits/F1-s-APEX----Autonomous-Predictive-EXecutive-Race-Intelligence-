@@ -3,20 +3,21 @@
 Fits degradation models on real F1 telemetry data across circuits, validates against a
 held-out race, benchmarks against a naive linear baseline, and persists validation plots.
 """
-from typing import Dict, Any, Tuple, Optional
-import os
 import json
 import logging
+import os
+from typing import Any
+
+import matplotlib
 import numpy as np
 import pandas as pd
-import matplotlib
+
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from sklearn.metrics import r2_score, root_mean_squared_error
 
 from backend.training.fetch_fastf1_data import (
     OUTPUT_CSV,
-    DEFAULT_RACES,
     fetch_all_real_races,
 )
 
@@ -30,7 +31,7 @@ VALIDATION_PLOT_PNG = os.path.join(MODELS_DIR, "tyre_model_validation.png")
 def fit_compound_curve(
     train_df: pd.DataFrame,
     compound: str,
-) -> Tuple[np.ndarray, Dict[str, Any]]:
+) -> tuple[np.ndarray, dict[str, Any]]:
     """
     Fits a quadratic/polynomial degradation curve on training data for a compound.
     Returns polynomial coefficients and estimated cliff parameters.
@@ -79,10 +80,10 @@ def fit_compound_curve(
 def evaluate_and_calibrate(
     csv_path: str = OUTPUT_CSV,
     held_out_circuit: str = "Spa",
-    held_out_season: Optional[int] = None,
+    held_out_season: int | None = None,
     save_artifacts: bool = True,
     allow_synthetic_fallback: bool = False,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """
     Performs train/validation split on real F1 telemetry data:
     - Trains polynomial degradation curve on (N-1) circuits.
@@ -131,8 +132,8 @@ def evaluate_and_calibrate(
         held_out_circuit = "Holdout 20% Sample"
 
     compounds = ["SOFT", "MEDIUM", "HARD"]
-    models_meta: Dict[str, Any] = {}
-    validation_results: Dict[str, Any] = {}
+    models_meta: dict[str, Any] = {}
+    validation_results: dict[str, Any] = {}
 
     all_y_true = []
     all_y_pred = []

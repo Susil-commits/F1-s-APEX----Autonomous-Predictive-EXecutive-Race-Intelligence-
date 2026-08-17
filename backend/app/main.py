@@ -1,6 +1,7 @@
 """FastAPI application entry point for APEX Race Intelligence."""
 import os
 from contextlib import asynccontextmanager
+
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -40,8 +41,8 @@ app.include_router(router)
 # Mount frontend static build if present
 frontend_dist = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")
 if os.path.exists(frontend_dist):
-    from fastapi.staticfiles import StaticFiles
     from fastapi.responses import FileResponse
+    from fastapi.staticfiles import StaticFiles
 
     @app.get("/")
     async def serve_spa_root():
@@ -71,7 +72,7 @@ async def websocket_endpoint(websocket: WebSocket):
                 manager.inject_incident(data.get("event"))
     except WebSocketDisconnect:
         manager.disconnect(websocket)
-    except Exception as e:
+    except Exception:
         manager.disconnect(websocket)
 
 

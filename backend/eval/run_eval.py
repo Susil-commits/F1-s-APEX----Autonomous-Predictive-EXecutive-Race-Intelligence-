@@ -5,13 +5,13 @@ verifies TreeSHAP surrogate fidelity & model weight drift, validates FastF1 tyre
 calibration metrics, and tests grounded RAG retrieval precision against stored baseline thresholds.
 """
 
-import os
-import sys
-import json
 import asyncio
 import datetime
+import json
+import sys
 from pathlib import Path
-from typing import Dict, Any, List, Tuple, Optional
+from typing import Any
+
 import numpy as np
 
 # Ensure project root is in sys.path
@@ -19,16 +19,16 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from backend.app.intelligence.race_qa import answer_race_question
 from backend.app.intelligence.shap_explainer import TreeSHAPExplainer
 from backend.app.intelligence.tyre_model import TyreModel
-from backend.app.intelligence.race_qa import answer_race_question
 from benchmarks.run_benchmarks import BenchmarkSuite
 
 BASELINES_PATH = Path(__file__).resolve().parent / "baseline_scores.json"
 REPORT_OUTPUT_PATH = Path(__file__).resolve().parent / "latest_eval_report.json"
 
 
-def load_baselines() -> Dict[str, Any]:
+def load_baselines() -> dict[str, Any]:
     """Loads baseline target metrics and minimum allowable tolerances from disk."""
     if not BASELINES_PATH.exists():
         raise FileNotFoundError(f"Evaluation baselines file not found at {BASELINES_PATH}")
@@ -36,7 +36,7 @@ def load_baselines() -> Dict[str, Any]:
         return json.load(f)
 
 
-def evaluate_dqn_policy(num_races: int = 3, track_name: str = "silverstone") -> Dict[str, Any]:
+def evaluate_dqn_policy(num_races: int = 3, track_name: str = "silverstone") -> dict[str, Any]:
     """
     Pillar 1: Evaluates trained DQN policy performance in multi-car competitive races.
     Measures win rate, podium rate, gap to leader, and blown tyre laps against benchmark suite.
@@ -63,7 +63,7 @@ def evaluate_dqn_policy(num_races: int = 3, track_name: str = "silverstone") -> 
     }
 
 
-def evaluate_shap_surrogate() -> Dict[str, Any]:
+def evaluate_shap_surrogate() -> dict[str, Any]:
     """
     Pillar 2: Verifies TreeSHAP tree surrogate alignment and SHA-256 model weight hash integrity.
     Detects un-distilled model drift between the DQN policy and explanation surrogates.
@@ -84,7 +84,7 @@ def evaluate_shap_surrogate() -> Dict[str, Any]:
     }
 
 
-def evaluate_tyre_model_calibration() -> Dict[str, Any]:
+def evaluate_tyre_model_calibration() -> dict[str, Any]:
     """
     Pillar 3: Validates the FastF1 tyre degradation model's goodness-of-fit against real historical data.
     """
@@ -112,7 +112,7 @@ def evaluate_tyre_model_calibration() -> Dict[str, Any]:
     }
 
 
-def evaluate_rag_retrieval() -> Dict[str, Any]:
+def evaluate_rag_retrieval() -> dict[str, Any]:
     """
     Pillar 4: Evaluates dense vector semantic retrieval accuracy and honest refusal.
     Tests precision@1 on known tactical queries and refusal on missing/out-of-distribution queries.
@@ -157,8 +157,8 @@ def evaluate_rag_retrieval() -> Dict[str, Any]:
 
 
 def check_thresholds(
-    metrics: Dict[str, Any], baselines_data: Dict[str, Any]
-) -> Tuple[List[Dict[str, Any]], bool]:
+    metrics: dict[str, Any], baselines_data: dict[str, Any]
+) -> tuple[list[dict[str, Any]], bool]:
     """Compares measured evaluation metrics against baseline thresholds and detects regressions."""
     baselines = baselines_data.get("baselines", {})
     results = []
@@ -196,11 +196,11 @@ def check_thresholds(
     return results, has_regressions
 
 
-def run_full_evaluation(verbose: bool = True) -> Tuple[Dict[str, Any], bool]:
+def run_full_evaluation(verbose: bool = True) -> tuple[dict[str, Any], bool]:
     """
     Executes the comprehensive 4-pillar APEX evaluation harness and outputs structured results.
     """
-    start_time = datetime.datetime.now(datetime.timezone.utc)
+    start_time = datetime.datetime.now(datetime.UTC)
     run_id = f"EVAL-APEX-{start_time.strftime('%Y%m%d-%H%M%S')}"
 
     if verbose:
@@ -240,7 +240,7 @@ def run_full_evaluation(verbose: bool = True) -> Tuple[Dict[str, Any], bool]:
     }
 
     eval_items, has_regressions = check_thresholds(all_metrics, baselines_data)
-    end_time = datetime.datetime.now(datetime.timezone.utc)
+    end_time = datetime.datetime.now(datetime.UTC)
     duration_s = round((end_time - start_time).total_seconds(), 2)
 
     summary_report = {
@@ -271,7 +271,7 @@ def run_full_evaluation(verbose: bool = True) -> Tuple[Dict[str, Any], bool]:
         print("-" * 80)
         for item in eval_items:
             thresh_str = f">={item['min_allowable']}" if item['min_allowable'] is not None else f"<={item['max_allowable']}"
-            print(f"{item['metric']:<32} | {str(round(item['value'], 2)):<10} | {str(item['target']):<10} | {thresh_str:<12} | {item['status']:<10}")
+            print(f"{item['metric']:<32} | {round(item['value'], 2)!s:<10} | {item['target']!s:<10} | {thresh_str:<12} | {item['status']:<10}")
         print("-" * 80)
         print(f"Report written to: {REPORT_OUTPUT_PATH}\n")
 

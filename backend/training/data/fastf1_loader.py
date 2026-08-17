@@ -1,11 +1,10 @@
 """FastF1 Data Loader for extracting laps, weather, telemetry, and race control events."""
 from __future__ import annotations
 
-import os
 import logging
-from typing import Dict, Any, Optional, Tuple, List
+import os
+
 import pandas as pd
-import numpy as np
 
 from .raw_storage import RawStorageManager
 
@@ -19,8 +18,8 @@ class FastF1DataLoader:
 
     def __init__(
         self,
-        cache_dir: Optional[str] = None,
-        storage_manager: Optional[RawStorageManager] = None,
+        cache_dir: str | None = None,
+        storage_manager: RawStorageManager | None = None,
         offline_only: bool = False,
     ):
         self.cache_dir = cache_dir or CACHE_DIR
@@ -42,8 +41,8 @@ class FastF1DataLoader:
         year: int,
         circuit: str,
         session_type: str = "R",
-        offline_only: Optional[bool] = None,
-    ) -> Dict[str, pd.DataFrame]:
+        offline_only: bool | None = None,
+    ) -> dict[str, pd.DataFrame]:
         """Loads raw laps, weather, race_control, and driver telemetry from FastF1.
         
         Returns a dictionary with dataframes for 'laps', 'weather', 'results', and 'race_control'.

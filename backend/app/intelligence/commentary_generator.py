@@ -4,13 +4,12 @@ Converts structured DecisionExplanation telemetry attributions into authentic F1
 transmissions using local LLMs (Ollama) with strict zero-hallucination fact constraints
 and persona-based template fallbacks.
 """
-from typing import Optional, Dict, Any, List
+import logging
 import os
 import re
-import logging
 import time
 
-from backend.app.simulator.models import DecisionExplanation, StrategyAction
+from backend.app.simulator.models import DecisionExplanation
 
 logger = logging.getLogger(__name__)
 
@@ -27,10 +26,10 @@ class CommentaryGenerator:
     def __init__(self, model_name: str = DEFAULT_OLLAMA_MODEL, host: str = DEFAULT_OLLAMA_HOST):
         self.model_name = model_name
         self.host = host
-        self._last_recommendation: Optional[str] = None
-        self._last_urgency: Optional[str] = None
+        self._last_recommendation: str | None = None
+        self._last_urgency: str | None = None
         self._last_lap_generated: int = -99
-        self._cached_commentary: Optional[str] = None
+        self._cached_commentary: str | None = None
         self._last_call_time: float = 0.0
 
     def generate(
@@ -97,7 +96,7 @@ class CommentaryGenerator:
         """Invokes Ollama local LLM with timeout protection, falling back to persona template."""
         try:
             import ollama
-            client = ollama.Client(host=self.host)
+            client = ollama.Client(host=self.host, timeout=2.0)
             response = client.chat(
                 model=self.model_name,
                 messages=[{"role": "user", "content": prompt}],
@@ -132,55 +131,55 @@ class CommentaryGenerator:
             if is_pit:
                 return f"Box box, box this lap. {rec.replace('PIT_', '')} tyres ready. Hammer time."
             if rec == "PUSH":
-                return f"Strat mode 2, Lewis. Let's push now."
+                return "Strat mode 2, Lewis. Let's push now."
             if rec == "CONSERVE":
-                return f"Manage the front tyres, Lewis. Pace looks good."
+                return "Manage the front tyres, Lewis. Pace looks good."
             return f"Keep your head down, {factor.lower()} is looking solid."
 
         elif persona == "gp":
             if is_pit:
                 return f"Pit confirm, Max. Box this lap for {rec.replace('PIT_', '')}s."
             if rec == "PUSH":
-                return f"Unleash the pace, Max. Push now."
+                return "Unleash the pace, Max. Push now."
             if rec == "CONSERVE":
-                return f"Watch tyre temps in sector 2, manage the delta."
-            return f"Pace is strong. Maintaining current stint."
+                return "Watch tyre temps in sector 2, manage the delta."
+            return "Pace is strong. Maintaining current stint."
 
         elif persona == "xavi":
             if is_pit:
                 return f"Box this lap for {rec.replace('PIT_', '')}, box now. Confirm."
             if rec == "PUSH":
-                return f"Push now, mode push. We are fighting."
+                return "Push now, mode push. We are fighting."
             if rec == "CONSERVE":
-                return f"We are checking tyre wear. Conserve mode on."
-            return f"Stay out, Plan A is working. We are checking."
+                return "We are checking tyre wear. Conserve mode on."
+            return "Stay out, Plan A is working. We are checking."
 
         elif persona == "guenther":
             if is_pit:
                 return f"Gene, box this lap for {rec.replace('PIT_', '')}s. Let's look like rockstars."
             if rec == "PUSH":
-                return f"Push like hell now. Give it everything."
+                return "Push like hell now. Give it everything."
             if rec == "CONSERVE":
-                return f"Look after the tyres. We cannot afford mistakes."
-            return f"Pace is consistent, keep the car clean."
+                return "Look after the tyres. We cannot afford mistakes."
+            return "Pace is consistent, keep the car clean."
 
         elif persona == "hugh_bird":
             if is_pit:
                 return f"Box this lap, Checo. Fitting {rec.replace('PIT_', '')}s."
             if rec == "PUSH":
-                return f"Mode overtake available, let's close the gap."
+                return "Mode overtake available, let's close the gap."
             if rec == "CONSERVE":
-                return f"Manage the rear tyres on exit, delta is good."
-            return f"Good pace, stint target on track."
+                return "Manage the rear tyres on exit, delta is good."
+            return "Good pace, stint target on track."
 
         elif persona == "ricky":
             if is_pit:
                 return f"Box now, Carlos. Box for {rec.replace('PIT_', '')}s. Push in lap."
             if rec == "PUSH":
-                return f"Smooth operator mode, push now Carlos."
+                return "Smooth operator mode, push now Carlos."
             if rec == "CONSERVE":
-                return f"Conserve the fronts in high speed, manage tyres."
-            return f"Strategy is working, Carlos. Stint looks good."
+                return "Conserve the fronts in high speed, manage tyres."
+            return "Strategy is working, Carlos. Stint looks good."
 
         # Default: apex_core
         if is_pit:
@@ -189,7 +188,7 @@ class CommentaryGenerator:
         if rec == "PUSH":
             return f"Push now. {conf}% confidence on pace advantage."
         if rec == "CONSERVE":
-            return f"Tyre management call: conserve stint to protect cliff margin."
+            return "Tyre management call: conserve stint to protect cliff margin."
         return f"Maintain stint. {factor} is optimal."
 
     @staticmethod

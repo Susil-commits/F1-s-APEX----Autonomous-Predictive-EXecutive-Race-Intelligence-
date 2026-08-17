@@ -1,9 +1,9 @@
 """Unit tests for APEX Gymnasium reinforcement learning environment."""
-import pytest
 import numpy as np
-from backend.app.strategy.gym_env import ApexRaceGymEnv, ACTION_MAP
-from backend.app.simulator.models import StrategyAction, TrackCondition, TyreCompound
+
 from backend.app.intelligence.feature_builder import FEATURE_DIM
+from backend.app.simulator.models import TrackCondition, TyreCompound
+from backend.app.strategy.gym_env import ApexRaceGymEnv
 
 
 def test_gym_env_initialization():

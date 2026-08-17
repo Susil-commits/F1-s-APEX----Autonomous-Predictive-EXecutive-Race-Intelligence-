@@ -1,17 +1,19 @@
 """Unit tests for FastF1 tyre data cleaning, calibration, and prediction."""
-import os
-import pytest
 import pandas as pd
-import numpy as np
+import pytest
 
+from backend.app.intelligence.tyre_model import TyreModel
+from backend.app.simulator.models import (
+    CarState,
+    TrackConfig,
+    TyreCompound,
+    WeatherState,
+)
 from backend.training.fetch_fastf1_data import (
     clean_session_laps,
-    generate_synthetic_fallback_data,
     fetch_all_real_races,
+    generate_synthetic_fallback_data,
 )
-from backend.training.validate_tyre_model import fit_compound_curve, evaluate_and_calibrate
-from backend.app.intelligence.tyre_model import TyreModel
-from backend.app.simulator.models import TyreCompound, DrivingMode, CarState, TrackConfig, WeatherState
 
 
 def test_clean_session_laps_filtering():
@@ -95,23 +97,25 @@ def test_synthetic_fallback_generation():
 
 def test_fetch_all_real_races_fallback_switch(tmp_path):
     """Verifies that allow_synthetic_fallback=False raises RuntimeError when no sessions fetched."""
-    # Pass non-existent session
+    from unittest.mock import patch
     fake_races = [(1950, "NonExistentGrandPrix", "R")]
-    with pytest.raises(RuntimeError, match="No real sessions were fetched"):
-        fetch_all_real_races(
-            races=fake_races,
-            output_path=str(tmp_path / "real_test.csv"),
-            allow_synthetic_fallback=False,
-        )
 
-    # When fallback is explicitly allowed
-    df = fetch_all_real_races(
-        races=fake_races,
-        output_path=str(tmp_path / "fallback_test.csv"),
-        allow_synthetic_fallback=True,
-    )
-    assert not df.empty
-    assert (df["data_source"] == "synthetic_fallback").all()
+    with patch("fastf1.get_session", side_effect=Exception("FastF1 network offline / session not found")):
+        with pytest.raises(RuntimeError, match="No real sessions were fetched"):
+            fetch_all_real_races(
+                races=fake_races,
+                output_path=str(tmp_path / "real_test.csv"),
+                allow_synthetic_fallback=False,
+            )
+
+        # When fallback is explicitly allowed
+        df = fetch_all_real_races(
+            races=fake_races,
+            output_path=str(tmp_path / "fallback_test.csv"),
+            allow_synthetic_fallback=True,
+        )
+        assert not df.empty
+        assert (df["data_source"] == "synthetic_fallback").all()
 
 
 def test_tyre_model_predict_loss_calibrated():

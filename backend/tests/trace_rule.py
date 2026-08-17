@@ -1,7 +1,7 @@
 """Debug trace for rule based policy."""
 from backend.app.simulator.engine import RaceSimulator
-from backend.app.strategy.rule_engine import RuleEngine
 from backend.app.simulator.models import StrategyAction
+from backend.app.strategy.rule_engine import RuleEngine
 
 sim = RaceSimulator(seed=1000, enable_dynamic_weather=True)
 while not sim.is_finished:

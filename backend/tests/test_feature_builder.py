@@ -1,10 +1,11 @@
 """Unit tests for feature builder and predictive models."""
 import numpy as np
-from backend.app.simulator.engine import RaceSimulator
-from backend.app.intelligence.feature_builder import FeatureBuilder, FEATURE_DIM
+
+from backend.app.intelligence.feature_builder import FEATURE_DIM, FeatureBuilder
 from backend.app.intelligence.tyre_model import TyreModel
 from backend.app.intelligence.weather_model import WeatherPredictor
-from backend.app.simulator.models import TyreCompound, DrivingMode, TrackCondition
+from backend.app.simulator.engine import RaceSimulator
+from backend.app.simulator.models import DrivingMode, TrackCondition, TyreCompound
 
 
 def test_feature_vector_dimension_and_bounds():

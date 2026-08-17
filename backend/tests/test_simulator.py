@@ -1,7 +1,6 @@
 """Tests for the deterministic race simulator."""
-import pytest
 from backend.app.simulator.engine import RaceSimulator
-from backend.app.simulator.models import StrategyAction, TyreCompound, TrackCondition
+from backend.app.simulator.models import StrategyAction, TyreCompound
 
 
 def test_simulator_determinism():

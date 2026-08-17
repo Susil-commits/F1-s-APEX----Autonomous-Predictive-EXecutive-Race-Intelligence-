@@ -1,16 +1,15 @@
 """Unit tests for APEX Model Context Protocol (MCP) server and tools."""
 import json
-import pytest
 
 from backend.app.mcp_server.server import (
-    mcp,
-    get_race_state,
-    explain_last_decision,
     ask_race_history,
-    preview_pit_strategy,
     evaluate_monte_carlo,
-    trigger_scenario,
+    explain_last_decision,
     get_agentic_strategy_plan,
+    get_race_state,
+    mcp,
+    preview_pit_strategy,
+    trigger_scenario,
 )
 
 

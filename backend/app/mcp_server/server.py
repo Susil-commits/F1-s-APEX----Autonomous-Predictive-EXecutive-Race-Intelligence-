@@ -6,27 +6,25 @@ and scenario injection as official Model Context Protocol (MCP) tools.
 Usable directly from Claude Desktop, Claude Code, Antigravity, or any MCP client.
 """
 
-import os
-import sys
-import json
 import asyncio
-from typing import Dict, Any, Optional, List
+import json
+
 from mcp.server.mcpserver import MCPServer
 
-from backend.app.simulator.engine import RaceSimulator
-from backend.app.simulator.models import TrackCondition, SafetyCarStatus
 from backend.app.intelligence.feature_builder import FeatureBuilder
-from backend.app.intelligence.shap_explainer import TreeSHAPExplainer
 from backend.app.intelligence.race_qa import answer_race_question
-from backend.app.strategy.dqn_agent import DQNAgent
+from backend.app.intelligence.shap_explainer import TreeSHAPExplainer
+from backend.app.simulator.engine import RaceSimulator
+from backend.app.simulator.models import SafetyCarStatus, TrackCondition
 from backend.app.strategy.counterfactual import CounterfactualChecker
+from backend.app.strategy.dqn_agent import DQNAgent
 from backend.app.strategy.monte_carlo import MonteCarloEngine
 
 # Initialize the MCP Server instance
 mcp = MCPServer("apex-race-intelligence")
 
 # Shared in-memory active simulator reference for MCP calls
-_mcp_sim: Optional[RaceSimulator] = None
+_mcp_sim: RaceSimulator | None = None
 
 
 def get_or_create_sim(track_name: str = "silverstone", seed: int = 42) -> RaceSimulator:
@@ -101,13 +99,12 @@ def get_race_state(track_name: str = "silverstone") -> str:
 
 
 @mcp.tool()
-def explain_last_decision(car_id: Optional[str] = None) -> str:
+def explain_last_decision(car_id: str | None = None) -> str:
     """Computes exact TreeSHAP feature attributions and natural-language explanations for the active decision.
     
     Decomposes the DQN strategy policy into additive Shapley values, highlighting the top factors
     (e.g., tyre degradation rate, weather forecast, gap to leader, pit window timing).
     """
-    from backend.app.strategy.rule_engine import RuleEngine
 
     sim = get_or_create_sim()
     state = sim.get_state()
@@ -158,7 +155,7 @@ def explain_last_decision(car_id: Optional[str] = None) -> str:
 
 
 @mcp.tool()
-def ask_race_history(question: str, race_id: Optional[str] = None, top_k: int = 5) -> str:
+def ask_race_history(question: str, race_id: str | None = None, top_k: int = 5) -> str:
     """Answers natural language questions about historical race strategy decisions grounded in persisted database logs.
     
     Uses dense sentence embeddings (all-MiniLM-L6-v2) and cosine similarity retrieval over
@@ -206,7 +203,7 @@ def preview_pit_strategy(proposed_action: str = "PIT_SOFT", rollout_laps: int = 
 
 
 @mcp.tool()
-def evaluate_monte_carlo(rollouts: int = 500, target_car_id: Optional[str] = None) -> str:
+def evaluate_monte_carlo(rollouts: int = 500, target_car_id: str | None = None) -> str:
     """Executes stochastic Monte Carlo forward simulations across candidate strategy paths.
     
     Models dynamic weather transitions, safety car probability, and opponent tyre degradation over
@@ -269,7 +266,7 @@ def trigger_scenario(scenario_type: str, intensity: float = 0.8, laps: int = 4) 
 
 
 @mcp.tool()
-def get_agentic_strategy_plan(track_name: str = "silverstone", target_car_id: Optional[str] = None) -> str:
+def get_agentic_strategy_plan(track_name: str = "silverstone", target_car_id: str | None = None) -> str:
     """Executes multi-step Agentic Race Strategist reasoning with chain-of-thought and contingencies.
     
     Synthesizes Neural RL (DQN) policy, TreeSHAP force attributions, Monte Carlo 1,000-rollout

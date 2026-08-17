@@ -3,19 +3,23 @@
 Provides single-policy attributions and pairwise multi-action differential explanations
 (e.g., 'Why Action A over Action B?') using distilled tree surrogate models.
 """
-from typing import Dict, List, Any, Optional, Union
-import os
-import json
 import hashlib
+import json
 import logging
+import os
+from typing import Any, Optional
+
 import joblib
 import numpy as np
-from sklearn.ensemble import GradientBoostingRegressor
 import shap
+from sklearn.ensemble import GradientBoostingRegressor
 
-from backend.app.simulator.models import RaceState, StrategyAction
+from backend.app.intelligence.feature_builder import (
+    FEATURE_DIM,
+    FEATURE_NAMES,
+)
+from backend.app.simulator.models import StrategyAction
 from backend.app.strategy.gym_env import ACTION_MAP
-from backend.app.intelligence.feature_builder import FeatureBuilder, FEATURE_NAMES, FEATURE_DIM
 
 logger = logging.getLogger(__name__)
 
@@ -60,10 +64,10 @@ class TreeSHAPExplainer:
 
     def __init__(
         self,
-        model_path: Optional[str] = None,
-        multi_action_path: Optional[str] = None,
-        meta_path: Optional[str] = None,
-        dqn_path: Optional[str] = None,
+        model_path: str | None = None,
+        multi_action_path: str | None = None,
+        meta_path: str | None = None,
+        dqn_path: str | None = None,
     ):
         self.model_path = model_path
         self.multi_action_path = multi_action_path or DEFAULT_MULTI_ACTION_SURROGATE_JOBLIB
@@ -76,14 +80,14 @@ class TreeSHAPExplainer:
 
         # Policy drift detection state
         self.surrogate_drift_detected: bool = False
-        self.distilled_dqn_hash: Optional[str] = None
-        self.active_dqn_hash: Optional[str] = None
-        self.surrogate_meta: Optional[Dict[str, Any]] = None
+        self.distilled_dqn_hash: str | None = None
+        self.active_dqn_hash: str | None = None
+        self.surrogate_meta: dict[str, Any] | None = None
 
         # Multi-action surrogate models and explainers
-        self.action_models: Dict[int, Any] = {}
-        self.action_explainers: Dict[int, Any] = {}
-        self.action_base_values: Dict[int, float] = {}
+        self.action_models: dict[int, Any] = {}
+        self.action_explainers: dict[int, Any] = {}
+        self.action_base_values: dict[int, float] = {}
 
         self._fit_surrogate_model()
         self._load_or_fit_multi_action_models()
@@ -92,10 +96,10 @@ class TreeSHAPExplainer:
     @classmethod
     def get_instance(
         cls,
-        model_path: Optional[str] = None,
-        multi_action_path: Optional[str] = None,
-        meta_path: Optional[str] = None,
-        dqn_path: Optional[str] = None,
+        model_path: str | None = None,
+        multi_action_path: str | None = None,
+        meta_path: str | None = None,
+        dqn_path: str | None = None,
     ) -> "TreeSHAPExplainer":
         if cls._instance is None:
             cls._instance = TreeSHAPExplainer(
@@ -111,7 +115,7 @@ class TreeSHAPExplainer:
         """Resets the singleton instance for testing or model reloading."""
         cls._instance = None
 
-    def _compute_file_sha256(self, path: str) -> Optional[str]:
+    def _compute_file_sha256(self, path: str) -> str | None:
         """Computes SHA-256 hex digest of a file checkpoint."""
         if not os.path.exists(path):
             return None
@@ -162,7 +166,7 @@ class TreeSHAPExplainer:
                 "Run distillation pipeline to guarantee policy alignment."
             )
 
-    def verify_drift(self) -> Dict[str, Any]:
+    def verify_drift(self) -> dict[str, Any]:
         """Returns structured drift verification status between active DQN and surrogate."""
         self._verify_surrogate_alignment()
         fidelity_r2 = 0.88
@@ -181,7 +185,7 @@ class TreeSHAPExplainer:
             "meta_dqn_hash": self.distilled_dqn_hash,
         }
 
-    def _resolve_model_path(self) -> Optional[str]:
+    def _resolve_model_path(self) -> str | None:
         """Resolves available surrogate model artifact path."""
         if self.model_path:
             return self.model_path if os.path.exists(self.model_path) else None
@@ -290,7 +294,7 @@ class TreeSHAPExplainer:
             self.action_explainers[act_idx] = exp
             self.action_base_values[act_idx] = self._extract_scalar_base_value(exp.expected_value)
 
-    def _resolve_action_index(self, action: Union[int, str, StrategyAction]) -> int:
+    def _resolve_action_index(self, action: int | str | StrategyAction) -> int:
         """Helper to convert action representation to integer index [0..7]."""
         if isinstance(action, int):
             return max(0, min(7, action))
@@ -300,7 +304,7 @@ class TreeSHAPExplainer:
             action_str = action.upper().replace("STRATEGYACTION.", "")
         return NAME_TO_ACTION_IDX.get(action_str, 0)
 
-    def explain(self, features: np.ndarray) -> Dict[str, Any]:
+    def explain(self, features: np.ndarray) -> dict[str, Any]:
         """
         Computes exact TreeSHAP additive feature contributions for the chosen/global model.
         Returns:
@@ -329,7 +333,7 @@ class TreeSHAPExplainer:
 
         prediction = float(self.model.predict(feat_matrix)[0])
 
-        contributions: List[Dict[str, Any]] = []
+        contributions: list[dict[str, Any]] = []
         for i, (name, val, phi) in enumerate(zip(FEATURE_NAMES, feat_matrix[0], row_shap)):
             contributions.append({
                 "feature": name,
@@ -359,9 +363,9 @@ class TreeSHAPExplainer:
     def explain_pairwise_actions(
         self,
         features: np.ndarray,
-        action_a: Union[int, str, StrategyAction] = 1, # e.g. PUSH
-        action_b: Union[int, str, StrategyAction] = 2, # e.g. CONSERVE
-    ) -> Dict[str, Any]:
+        action_a: int | str | StrategyAction = 1, # e.g. PUSH
+        action_b: int | str | StrategyAction = 2, # e.g. CONSERVE
+    ) -> dict[str, Any]:
         """
         Computes differential TreeSHAP attributions: 'Why Action A over Action B?'.
         Decomposes Delta Q = Q(s, a_A) - Q(s, a_B) into additive feature diffs:
@@ -405,7 +409,7 @@ class TreeSHAPExplainer:
         delta_q = pred_a - pred_b
         delta_base = base_a - base_b
 
-        differential_contributions: List[Dict[str, Any]] = []
+        differential_contributions: list[dict[str, Any]] = []
         for i, (name, val, phi_a, phi_b) in enumerate(zip(FEATURE_NAMES, feat_matrix[0], row_shap_a, row_shap_b)):
             delta_phi = float(phi_a - phi_b)
             differential_contributions.append({
@@ -435,14 +439,14 @@ class TreeSHAPExplainer:
             "is_distilled": self.is_distilled,
         }
 
-    def explain_all_actions(self, features: np.ndarray) -> Dict[str, Any]:
+    def explain_all_actions(self, features: np.ndarray) -> dict[str, Any]:
         """Computes predicted Q-value ratings across all 8 strategic actions."""
         if features.ndim == 1:
             feat_matrix = features.reshape(1, -1)
         else:
             feat_matrix = features
 
-        action_evaluations: List[Dict[str, Any]] = []
+        action_evaluations: list[dict[str, Any]] = []
         for act_idx in range(8):
             act_name = ACTION_MAP.get(act_idx, StrategyAction.MAINTAIN).value
             mod = self.action_models.get(act_idx, self.model)

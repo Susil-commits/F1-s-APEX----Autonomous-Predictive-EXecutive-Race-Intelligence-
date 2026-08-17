@@ -1,22 +1,22 @@
 """Dataset Builder: End-to-end orchestration of RAW -> CLEAN -> FEATURES -> VALIDATE -> VERSION -> SPLITS."""
 from __future__ import annotations
 
-import os
 import logging
-from typing import Dict, Any, List, Optional, Tuple
+from typing import Any
+
 import pandas as pd
 
-from ..data.session_loader import UnifiedSessionLoader
 from ..data.raw_storage import RawStorageManager
-from ..preprocessing.merge_sessions import SessionDataMerger
-from ..features.tyre_features import compute_tyre_features
-from ..features.weather_features import compute_weather_features
-from ..features.opponent_features import compute_opponent_features
+from ..data.session_loader import UnifiedSessionLoader
 from ..features.driver_features import compute_driver_features
-from ..features.vehicle_features import compute_vehicle_features
+from ..features.opponent_features import compute_opponent_features
 from ..features.strategy_features import compute_strategy_features
+from ..features.tyre_features import compute_tyre_features
+from ..features.vehicle_features import compute_vehicle_features
+from ..features.weather_features import compute_weather_features
+from ..preprocessing.merge_sessions import SessionDataMerger
 from .dataset_validator import DatasetValidator
-from .dataset_version import DatasetVersionRegistry, DatasetVersionMetadata
+from .dataset_version import DatasetVersionRegistry
 
 logger = logging.getLogger(__name__)
 
@@ -34,8 +34,8 @@ class DatasetBuilder:
 
     def __init__(
         self,
-        raw_storage: Optional[RawStorageManager] = None,
-        version_registry: Optional[DatasetVersionRegistry] = None,
+        raw_storage: RawStorageManager | None = None,
+        version_registry: DatasetVersionRegistry | None = None,
     ):
         self.storage = raw_storage or RawStorageManager()
         self.loader = UnifiedSessionLoader(raw_storage=self.storage)
@@ -43,10 +43,10 @@ class DatasetBuilder:
 
     def build_dataset(
         self,
-        sessions: Optional[List[Tuple[int, str]]] = None,
+        sessions: list[tuple[int, str]] | None = None,
         dataset_version: str = "apex_dataset_v1.0",
         source: str = "fastf1_multi_session",
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Executes complete pipeline:
         1. RAW extraction
@@ -56,7 +56,7 @@ class DatasetBuilder:
         5. Version & Split (Train / Val / Test)
         """
         session_list = sessions or DEFAULT_SESSIONS
-        clean_dfs: List[pd.DataFrame] = []
+        clean_dfs: list[pd.DataFrame] = []
 
         for year, circuit in session_list:
             logger.info(f"[DatasetBuilder] Processing session: {year} {circuit}")

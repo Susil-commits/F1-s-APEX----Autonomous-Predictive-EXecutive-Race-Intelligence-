@@ -1,8 +1,8 @@
 """Tyre degradation and thermal wear feature engineering."""
 from __future__ import annotations
 
-import pandas as pd
 import numpy as np
+import pandas as pd
 
 CIRCUIT_ABRASION = {
     "bahrain": 1.35,

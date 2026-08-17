@@ -13,23 +13,23 @@ Also provides systematic Ablation Studies:
 """
 from __future__ import annotations
 
-import os
-import sys
-import json
 import argparse
+import json
+import os
 import time
-from datetime import datetime, timezone
-from typing import Dict, List, Any, Optional
+from datetime import UTC, datetime
+from typing import Any
+
 import numpy as np
 
-from backend.app.simulator.engine import RaceSimulator
-from backend.app.simulator.models import StrategyAction, TyreCompound, TrackCondition
 from backend.app.intelligence.feature_builder import FeatureBuilder
-from backend.app.strategy.rule_engine import RuleEngine
+from backend.app.simulator.engine import RaceSimulator
+from backend.app.simulator.models import StrategyAction
 from backend.app.strategy.dqn_agent import DQNAgent
-from backend.app.strategy.ppo_agent import PPOStrategyAgent
-from backend.app.strategy.monte_carlo import MonteCarloEngine
 from backend.app.strategy.hybrid_decision_engine import hybrid_decision_aggregator
+from backend.app.strategy.monte_carlo import MonteCarloEngine
+from backend.app.strategy.ppo_agent import PPOStrategyAgent
+from backend.app.strategy.rule_engine import RuleEngine
 
 DEFAULT_BENCHMARK_JSON = os.path.join(os.path.dirname(__file__), "latest_benchmark_results.json")
 POLICIES = ["random", "rule_based", "monte_carlo", "dqn", "ppo", "hybrid_apex"]
@@ -44,7 +44,7 @@ class BenchmarkSuite:
         self.dqn_agent = DQNAgent()
         self.ppo_agent = PPOStrategyAgent()
 
-    def run_race_with_policy(self, seed: int, policy_type: str) -> Dict[str, Any]:
+    def run_race_with_policy(self, seed: int, policy_type: str) -> dict[str, Any]:
         """Runs a complete race under a specific policy."""
         sim = RaceSimulator(track_name=self.track_name, seed=seed, enable_dynamic_weather=True)
         blown_tyre_laps = 0
@@ -87,6 +87,7 @@ class BenchmarkSuite:
                 action, _ = self.ppo_agent.select_action(state)
             elif policy_type == "hybrid_apex":
                 dec = hybrid_decision_aggregator.evaluate_decision(state, num_mc_rollouts=45)
+                action = dec.recommendation
             if isinstance(action, str):
                 try:
                     action = StrategyAction(action)
@@ -122,11 +123,11 @@ class BenchmarkSuite:
             "avg_latency_ms": round(float(np.mean(dec_latencies_ms)), 2) if dec_latencies_ms else 0.0,
         }
 
-    def evaluate_track(self, policies: Optional[List[str]] = None) -> Dict[str, Any]:
+    def evaluate_track(self, policies: list[str] | None = None) -> dict[str, Any]:
         """Runs comparative benchmark on this track across selected policies."""
         pol_list = policies if policies is not None else ["random", "rule_based", "dqn"]
         seeds = [1000 + i * 47 for i in range(self.num_races)]
-        results_by_policy: Dict[str, List[Dict[str, Any]]] = {p: [] for p in pol_list}
+        results_by_policy: dict[str, list[dict[str, Any]]] = {p: [] for p in pol_list}
 
         for seed in seeds:
             for policy in pol_list:
@@ -158,7 +159,7 @@ class BenchmarkSuite:
         return {"track_name": self.track_name, "num_races": self.num_races, "policies": summary}
 
 
-def run_ablation_study(num_races: int = 5, track_name: str = "silverstone") -> Dict[str, Any]:
+def run_ablation_study(num_races: int = 5, track_name: str = "silverstone") -> dict[str, Any]:
     """Measures contribution of each intelligence component."""
     ablations = {
         "APEX_Full": ["hybrid_apex"],
@@ -178,10 +179,10 @@ def run_ablation_study(num_races: int = 5, track_name: str = "silverstone") -> D
 
 
 def run_multi_circuit_benchmark(
-    tracks: Optional[List[str]] = None,
+    tracks: list[str] | None = None,
     races_per_track: int = 4,
     save_json: bool = True,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Runs end-to-end evaluation across circuits and computes aggregate totals."""
     track_list = tracks or ["silverstone", "monza", "spa", "monaco", "interlagos"]
     track_results = []
@@ -193,7 +194,7 @@ def run_multi_circuit_benchmark(
 
     # Compute overall aggregate summary across all tracks for each policy
     policies = ["random", "rule_based", "dqn", "ppo", "monte_carlo", "hybrid_apex"]
-    overall_summary: Dict[str, Dict[str, float]] = {}
+    overall_summary: dict[str, dict[str, float]] = {}
 
     for pol in policies:
         pol_positions = []
@@ -229,7 +230,7 @@ def run_multi_circuit_benchmark(
                 "avg_decision_latency_ms": round(float(np.mean(pol_lats)), 2),
             }
 
-    timestamp_str = datetime.now(timezone.utc).isoformat()
+    timestamp_str = datetime.now(UTC).isoformat()
     benchmark_data = {
         "timestamp": timestamp_str,
         "timestamp_utc": timestamp_str,

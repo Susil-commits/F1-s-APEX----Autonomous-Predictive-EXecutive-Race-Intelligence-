@@ -3,9 +3,9 @@
 Utilizes local sentence-transformers (all-MiniLM-L6-v2) for semantic retrieval over
 persisted DecisionLogModel telemetry events and race strategy provenance trails.
 """
-from typing import List, Dict, Any, Optional, Union
-import os
 import logging
+from typing import Any, Optional
+
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -28,8 +28,11 @@ class DecisionEmbedder:
         """Initializes SentenceTransformer encoder with local cache and fallback resilience."""
         try:
             from sentence_transformers import SentenceTransformer
-            # Load model locally
-            self.model = SentenceTransformer(self.model_name)
+            # Load model with local cache preference to prevent network blocks
+            try:
+                self.model = SentenceTransformer(self.model_name, local_files_only=True)
+            except Exception:
+                self.model = SentenceTransformer(self.model_name)
             self._is_transformer_active = True
             logger.info(f"[DecisionEmbedder] Loaded SentenceTransformer '{self.model_name}' successfully.")
         except Exception as e:
@@ -44,7 +47,7 @@ class DecisionEmbedder:
         return cls._instance
 
     @staticmethod
-    def format_log_as_text(entry: Dict[str, Any]) -> str:
+    def format_log_as_text(entry: dict[str, Any]) -> str:
         """Serializes a DecisionLogModel / stored decision record into rich semantic text."""
         lap = entry.get("lap", 1)
         rec = entry.get("recommendation", "MAINTAIN")
@@ -86,7 +89,7 @@ class DecisionEmbedder:
         # Deterministic hashing vectorizer fallback (384-dimensional)
         return self._deterministic_fallback_vector(text)
 
-    def embed_texts(self, texts: List[str]) -> np.ndarray:
+    def embed_texts(self, texts: list[str]) -> np.ndarray:
         """Encodes a list of text strings into a 2D float32 numpy matrix [N, dim]."""
         if not texts:
             return np.empty((0, 384), dtype=np.float32)
@@ -102,7 +105,7 @@ class DecisionEmbedder:
         vectors = [self._deterministic_fallback_vector(t) for t in texts]
         return np.vstack(vectors)
 
-    def embed_decision_log(self, entry: Dict[str, Any]) -> np.ndarray:
+    def embed_decision_log(self, entry: dict[str, Any]) -> np.ndarray:
         """Formats and embeds a single decision log entry."""
         text = self.format_log_as_text(entry)
         return self.embed_text(text)
@@ -139,15 +142,15 @@ def embed_text(text: str) -> np.ndarray:
     return embedder.embed_text(text)
 
 
-def embed_texts(texts: List[str]) -> np.ndarray:
+def embed_texts(texts: list[str]) -> np.ndarray:
     return embedder.embed_texts(texts)
 
 
-def embed_decision_log(entry: Dict[str, Any]) -> np.ndarray:
+def embed_decision_log(entry: dict[str, Any]) -> np.ndarray:
     return embedder.embed_decision_log(entry)
 
 
-def format_decision_log(entry: Dict[str, Any]) -> str:
+def format_decision_log(entry: dict[str, Any]) -> str:
     return DecisionEmbedder.format_log_as_text(entry)
 
 

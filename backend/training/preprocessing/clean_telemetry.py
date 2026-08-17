@@ -2,9 +2,8 @@
 from __future__ import annotations
 
 import logging
-from typing import Optional, Dict, Any
+
 import pandas as pd
-import numpy as np
 
 logger = logging.getLogger(__name__)
 
@@ -43,7 +42,7 @@ def clean_telemetry_dataframe(raw_telemetry: pd.DataFrame) -> pd.DataFrame:
     return df
 
 
-def aggregate_lap_telemetry(clean_tel: pd.DataFrame) -> Dict[str, float]:
+def aggregate_lap_telemetry(clean_tel: pd.DataFrame) -> dict[str, float]:
     """Computes summary lap-level telemetry features from high-frequency telemetry samples."""
     if clean_tel.empty:
         return {

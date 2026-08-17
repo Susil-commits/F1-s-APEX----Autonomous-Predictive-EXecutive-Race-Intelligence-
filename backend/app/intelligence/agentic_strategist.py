@@ -4,32 +4,30 @@ Orchestrates neural reinforcement learning policies (DQN), TreeSHAP feature attr
 stochastic Monte Carlo rollouts, counterfactual timeline forking, and empirical FastF1
 tyre physics into synthesized executive pit-wall strategy plans with chain-of-thought reasoning.
 """
-from typing import Dict, List, Any, Optional
 import datetime
-import numpy as np
+from typing import Any
+
 from pydantic import BaseModel, Field
 
-from backend.app.simulator.models import (
-    RaceState,
-    StrategyAction,
-    TyreCompound,
-    DrivingMode,
-    SafetyCarStatus,
-)
 from backend.app.intelligence.feature_builder import FeatureBuilder
 from backend.app.intelligence.shap_explainer import TreeSHAPExplainer
 from backend.app.intelligence.tyre_model import TyreModel
+from backend.app.simulator.models import (
+    RaceState,
+    SafetyCarStatus,
+    StrategyAction,
+    TyreCompound,
+)
 from backend.app.strategy.dqn_agent import DQNAgent
-from backend.app.strategy.rule_engine import RuleEngine
-from backend.app.strategy.counterfactual import CounterfactualChecker
 from backend.app.strategy.monte_carlo import MonteCarloEngine
+from backend.app.strategy.rule_engine import RuleEngine
 
 
 class TacticalContingency(BaseModel):
     trigger_event: str
     action: StrategyAction
     rationale: str
-    target_compound: Optional[TyreCompound] = None
+    target_compound: TyreCompound | None = None
 
 
 class AgenticStrategyPlan(BaseModel):
@@ -41,10 +39,10 @@ class AgenticStrategyPlan(BaseModel):
     urgency: str  # LOW, MEDIUM, HIGH, CRITICAL
     policy_entropy: float  # Uncertainty metric
     q_value_margin: float
-    chain_of_thought: List[str]
-    shapley_drivers: List[Dict[str, Any]]
-    contingencies: List[TacticalContingency]
-    monte_carlo_metrics: Dict[str, Any]
+    chain_of_thought: list[str]
+    shapley_drivers: list[dict[str, Any]]
+    contingencies: list[TacticalContingency]
+    monte_carlo_metrics: dict[str, Any]
     counterfactual_verdict: str
     tyre_cliff_risk: str
     radio_transmission: str
@@ -53,14 +51,14 @@ class AgenticStrategyPlan(BaseModel):
 class AgenticRaceStrategist:
     """Autonomous Pit Wall AI Strategist coordinating multi-agent tactical analysis."""
 
-    def __init__(self, dqn_agent: Optional[DQNAgent] = None):
+    def __init__(self, dqn_agent: DQNAgent | None = None):
         self.dqn_agent = dqn_agent or DQNAgent()
         self.shap_explainer = TreeSHAPExplainer.get_instance()
 
     def formulate_strategy(
         self,
         state: RaceState,
-        target_car_id: Optional[str] = None,
+        target_car_id: str | None = None,
         num_mc_rollouts: int = 500,
     ) -> AgenticStrategyPlan:
         """
@@ -72,7 +70,7 @@ class AgenticRaceStrategist:
         Step 5: Run stochastic Monte Carlo 1,000 forward rollouts.
         Step 6: Synthesize executive plan with chain-of-thought & contingencies.
         """
-        now_utc = datetime.datetime.now(datetime.timezone.utc).isoformat()
+        now_utc = datetime.datetime.now(datetime.UTC).isoformat()
         player = next((c for c in state.cars if (target_car_id and c.car_id == target_car_id) or c.is_player), state.cars[0] if state.cars else None)
         
         if player is None:
@@ -103,8 +101,10 @@ class AgenticRaceStrategist:
         laps_to_cliff = TyreModel.estimate_remaining_laps(player.tyre_compound, player.tyre_wear_pct, player.driving_mode, track_severity)
 
         # Step 2: Safe RL Action Masking & Neural Policy Evaluation
+        from backend.app.intelligence.pinn_tyre_residual import (
+            PINNTyreResidualCompensator,
+        )
         from backend.app.strategy.safe_rl_guardrail import ActionMaskGuardrail
-        from backend.app.intelligence.pinn_tyre_residual import PINNTyreResidualCompensator
         action_mask = ActionMaskGuardrail.get_action_mask(state, target_car_id=player.car_id)
         dqn_profile = self.dqn_agent.predict_strategic_profile(obs, action_mask=action_mask)
         dqn_action = StrategyAction(dqn_profile["optimal_action"])
@@ -154,7 +154,7 @@ class AgenticRaceStrategist:
 
         # Step 7: Chain-of-Thought Synthesis
         favored_compound = max(suitability.keys(), key=lambda k: suitability.get(k, 0.0)) if suitability else "HARD"
-        cot: List[str] = [
+        cot: list[str] = [
             f"1. Telemetry Audit: Lap {state.current_lap}/{state.total_laps}, P{player.position}, {player.tyre_compound.value} tyres at {player.tyre_wear_pct:.1f}% wear (~{laps_to_cliff} laps to cliff).",
             f"2. Environmental State: Weather is {state.weather.condition.value} with rain intensity {state.weather.rain_intensity:.2f}. Compound suitability favors {favored_compound}.",
             f"3. Neural Policy (DQN): Optimal action {dqn_action.value} (Q-margin: +{q_margin:.2f}, Shannon entropy: {entropy:.3f}).",
@@ -164,7 +164,7 @@ class AgenticRaceStrategist:
         ]
 
         # Step 8: Dynamic Contingency Branching
-        contingencies: List[TacticalContingency] = []
+        contingencies: list[TacticalContingency] = []
         if state.safety_car == SafetyCarStatus.NONE:
             sc_target = TyreCompound.HARD if suitability.get("HARD", 0) > suitability.get("MEDIUM", 0) else TyreCompound.MEDIUM
             contingencies.append(TacticalContingency(
@@ -216,7 +216,7 @@ class AgenticRaceStrategist:
         )
 
 
-_strategist_instance: Optional[AgenticRaceStrategist] = None
+_strategist_instance: AgenticRaceStrategist | None = None
 
 
 def get_agentic_strategist() -> AgenticRaceStrategist:

@@ -1,12 +1,10 @@
 """Unit tests for LLM Race Engineer Commentary Generator and fact verification."""
-from unittest.mock import patch, MagicMock
 import pytest
 
-from backend.app.simulator.models import DecisionExplanation, StrategyAction
 from backend.app.intelligence.commentary_generator import (
     CommentaryGenerator,
-    generate_commentary,
 )
+from backend.app.simulator.models import DecisionExplanation, StrategyAction
 
 
 @pytest.fixture

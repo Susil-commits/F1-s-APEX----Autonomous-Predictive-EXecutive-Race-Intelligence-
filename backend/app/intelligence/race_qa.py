@@ -3,19 +3,23 @@
 Answers natural-language tactical queries grounded strictly in persisted DecisionLogModel
 database records using dense vector retrieval (NumPy cosine similarity) and local Ollama LLMs.
 """
-from typing import Dict, List, Any, Optional, Tuple
 import logging
 import re
+from typing import Any
+
 import numpy as np
 
-from backend.app.twin.store import store
+from backend.app.intelligence.commentary_generator import (
+    DEFAULT_OLLAMA_HOST,
+    DEFAULT_OLLAMA_MODEL,
+)
 from backend.app.intelligence.embeddings import (
     embed_text,
     embed_texts,
     format_decision_log,
     get_embedding_source,
 )
-from backend.app.intelligence.commentary_generator import DEFAULT_OLLAMA_MODEL, DEFAULT_OLLAMA_HOST
+from backend.app.twin.store import store
 
 logger = logging.getLogger(__name__)
 
@@ -30,9 +34,9 @@ class RaceQAEngine:
     async def retrieve_relevant_decisions(
         self,
         query: str,
-        race_id: Optional[str] = None,
+        race_id: str | None = None,
         top_k: int = 5,
-    ) -> List[Tuple[Dict[str, Any], float]]:
+    ) -> list[tuple[dict[str, Any], float]]:
         """
         Fetches decision logs from store, computes cosine similarities against query embedding,
         and returns the top-k highest scoring decisions with their similarity scores.
@@ -72,9 +76,9 @@ class RaceQAEngine:
     async def answer_question(
         self,
         query: str,
-        race_id: Optional[str] = None,
+        race_id: str | None = None,
         top_k: int = 5,
-    ) -> Dict[str, Any]:
+    ) -> dict[str, Any]:
         """
         Main RAG pipeline:
         1. Retrieves top-k matching historical decisions from Postgres/SQLite.
@@ -167,12 +171,12 @@ class RaceQAEngine:
         self,
         prompt: str,
         query: str,
-        sources: List[Dict[str, Any]],
-    ) -> Tuple[str, str]:
+        sources: list[dict[str, Any]],
+    ) -> tuple[str, str]:
         """Attempts Ollama inference first, falling back to grounded rule extraction."""
         try:
             import ollama
-            client = ollama.Client(host=self.host)
+            client = ollama.Client(host=self.host, timeout=2.0)
             response = client.chat(
                 model=self.model_name,
                 messages=[{"role": "user", "content": prompt}],
@@ -213,8 +217,8 @@ race_qa_engine = RaceQAEngine()
 
 async def answer_race_question(
     query: str,
-    race_id: Optional[str] = None,
+    race_id: str | None = None,
     top_k: int = 5,
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Helper to query race decision history via RAG."""
     return await race_qa_engine.answer_question(query=query, race_id=race_id, top_k=top_k)

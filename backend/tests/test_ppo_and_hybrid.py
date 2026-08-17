@@ -1,11 +1,10 @@
 """Unit tests for Phase 6, 7 & 8: PPO, Hybrid Decision Engine, Emergency Brain, and Risk Engine."""
-import pytest
-from backend.app.simulator.engine import RaceSimulator
-from backend.app.simulator.models import TrackCondition, SafetyCarStatus, StrategyAction, TyreCompound
-from backend.app.strategy.ppo_agent import PPOStrategyAgent
-from backend.app.strategy.hybrid_decision_engine import HybridDecisionAggregator
 from backend.app.intelligence.emergency_brain import EmergencyBrain
 from backend.app.intelligence.risk_engine import RiskEngine
+from backend.app.simulator.engine import RaceSimulator
+from backend.app.simulator.models import SafetyCarStatus, StrategyAction, TrackCondition
+from backend.app.strategy.hybrid_decision_engine import HybridDecisionAggregator
+from backend.app.strategy.ppo_agent import PPOStrategyAgent
 
 
 def test_ppo_agent_inference():

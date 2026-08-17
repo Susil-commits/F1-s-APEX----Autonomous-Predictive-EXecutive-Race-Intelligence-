@@ -1,9 +1,14 @@
 """Unit tests for TreeSHAP Explainability Engine and Distilled Surrogate Model."""
 import os
-import pytest
+
 import numpy as np
-from backend.app.intelligence.shap_explainer import TreeSHAPExplainer, DEFAULT_SURROGATE_PATH
-from backend.app.intelligence.feature_builder import FEATURE_DIM, FEATURE_NAMES
+import pytest
+
+from backend.app.intelligence.feature_builder import FEATURE_DIM
+from backend.app.intelligence.shap_explainer import (
+    DEFAULT_SURROGATE_PATH,
+    TreeSHAPExplainer,
+)
 
 
 @pytest.fixture(autouse=True)
