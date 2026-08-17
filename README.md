@@ -248,7 +248,7 @@ flowchart TD
 #### Decision Engine & Modern AI Specifications:
 - **Physics-Informed Neural Network (PINN) Residual Compensator (`backend/app/intelligence/pinn_tyre_residual.py`)**:
   Combines empirical Pacejka tyre wear dynamics with a deep residual neural network that learns non-linear micro-thermal degradation deltas from FastF1 telemetry:
-  $$\Delta t_{\text{lap}} = \text{PhysicsBase}(\text{compound}, \text{wear}) + \text{PINN}_{\theta}(\text{track\_severity}, \text{thermal\_load}, \text{moisture}, \text{mode})$$
+  $$\Delta t_{\text{lap}} = \text{PhysicsBase}(\text{compound}, \text{wear}) + \text{PINN}_{\theta}(S_{\text{track}}, L_{\text{thermal}}, M_{\text{moisture}}, \text{mode})$$
   Supports online zero-shot and batch fine-tuning on live session telemetry streams.
 - **Safe Reinforcement Learning (Safe RL) Action Masking (`backend/app/strategy/safe_rl_guardrail.py`)**:
   Enforces physical and regulatory guardrails through dynamic action masking $M(s) \in \{0, 1\}^8$. Masks illegal actions (e.g., dry slicks during torrential rain, double-pitting in pit lane, or push mode at $\ge 75\%$ tyre wear cliff):
