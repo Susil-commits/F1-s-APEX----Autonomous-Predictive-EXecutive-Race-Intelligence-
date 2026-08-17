@@ -207,6 +207,24 @@ class RaceStore:
         try:
             await self.ensure_db_ready()
             async with get_db_session() as session:
+                now = datetime.now(UTC)
+                # Ensure parent RaceSession exists to satisfy foreign key constraint
+                db_session = await session.get(RaceSessionModel, race_id)
+                if not db_session:
+                    active = self.active_races.get(race_id)
+                    track_name = (active.track.name if hasattr(active.track, "name") else "silverstone") if active else "silverstone"
+                    total_laps = active.total_laps if active else 52
+                    db_session = RaceSessionModel(
+                        race_id=race_id,
+                        track_name=track_name,
+                        total_laps=total_laps,
+                        current_lap=lap,
+                        is_finished=False,
+                        created_at=now,
+                    )
+                    session.add(db_session)
+                    await session.flush()
+
                 rec_val = decision.recommendation.value if hasattr(decision.recommendation, "value") else str(decision.recommendation)
                 rule_val = decision.rule_engine_action.value if hasattr(decision.rule_engine_action, "value") else (str(decision.rule_engine_action) if decision.rule_engine_action else None)
                 dqn_val = decision.dqn_action.value if hasattr(decision.dqn_action, "value") else (str(decision.dqn_action) if decision.dqn_action else None)
@@ -222,7 +240,7 @@ class RaceStore:
                     q_value_margin=decision.q_value_margin,
                     tyre_cliff_risk=str(decision.tyre_cliff_risk),
                     explanation_payload=decision.model_dump(mode="json"),
-                    timestamp=datetime.now(UTC),
+                    timestamp=now,
                 )
                 session.add(log_entry)
         except Exception as e:

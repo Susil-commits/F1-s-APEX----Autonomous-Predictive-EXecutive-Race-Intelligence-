@@ -34,8 +34,8 @@ class RaceSessionModel(Base):
     winner_car_id: Mapped[str | None] = mapped_column(String(32), nullable=True)
     total_race_time_s: Mapped[float | None] = mapped_column(Float, nullable=True)
     seed: Mapped[int | None] = mapped_column(Integer, nullable=True)
-    created_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
-    updated_at: Mapped[datetime] = mapped_column(DateTime, default=utcnow, onupdate=utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow, onupdate=utcnow)
 
     ticks: Mapped[list["TelemetryTickModel"]] = relationship("TelemetryTickModel", back_populates="session", cascade="all, delete-orphan")
     decisions: Mapped[list["DecisionLogModel"]] = relationship("DecisionLogModel", back_populates="session", cascade="all, delete-orphan")
@@ -52,7 +52,7 @@ class TelemetryTickModel(Base):
     track_condition: Mapped[str] = mapped_column(String(32), default="DRY")
     safety_car: Mapped[str] = mapped_column(String(32), default="NONE")
     state_payload: Mapped[dict[str, Any]] = mapped_column(JSON, nullable=False)
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     session: Mapped[Optional["RaceSessionModel"]] = relationship("RaceSessionModel", back_populates="ticks")
 
@@ -72,7 +72,7 @@ class DecisionLogModel(Base):
     q_value_margin: Mapped[float | None] = mapped_column(Float, nullable=True)
     tyre_cliff_risk: Mapped[str | None] = mapped_column(String(32), nullable=True)
     explanation_payload: Mapped[dict[str, Any] | None] = mapped_column(JSON, nullable=True)
-    timestamp: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    timestamp: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
 
     session: Mapped[Optional["RaceSessionModel"]] = relationship("RaceSessionModel", back_populates="decisions")
 
@@ -82,7 +82,7 @@ class BenchmarkRunModel(Base):
     __tablename__ = "benchmark_runs"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
-    run_date: Mapped[datetime] = mapped_column(DateTime, default=utcnow)
+    run_date: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=utcnow)
     track_name: Mapped[str] = mapped_column(String(64), nullable=False)
     num_races: Mapped[int] = mapped_column(Integer, nullable=False)
     policy_name: Mapped[str] = mapped_column(String(64), nullable=False)
