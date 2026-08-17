@@ -297,6 +297,25 @@ def run_distillation(
     print("[Distillation] Distillation pipeline completed successfully!")
 
 
+def run_distillation_pipeline(
+    dqn_model_path: str = "backend/models/apex_dqn.zip",
+    save_path: str = "backend/models/shap_surrogate.joblib",
+    multi_action_save_path: str = "backend/models/shap_multi_action_surrogate.joblib",
+    episodes: int = 40,
+    include_db: bool = False,
+    **kwargs,
+) -> Dict[str, Any]:
+    """Alias entrypoint for autonomous self-healing agent."""
+    run_distillation(
+        dqn_model_path=dqn_model_path,
+        save_path=save_path,
+        multi_action_save_path=multi_action_save_path,
+        episodes=episodes,
+        include_db=include_db,
+    )
+    return {"status": "success"}
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Distill DQN Policy into Tree Surrogate for TreeSHAP")
     parser.add_argument("--dqn-path", type=str, default="backend/models/apex_dqn.zip", help="Path to trained DQN zip checkpoint")

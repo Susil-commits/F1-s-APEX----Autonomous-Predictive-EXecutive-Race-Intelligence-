@@ -153,9 +153,10 @@ class AgenticRaceStrategist:
             primary_action = dqn_action if ActionMaskGuardrail.evaluate_safety(dqn_action, state, target_car_id=player.car_id).is_safe else StrategyAction.MAINTAIN
 
         # Step 7: Chain-of-Thought Synthesis
+        favored_compound = max(suitability.keys(), key=lambda k: suitability.get(k, 0.0)) if suitability else "HARD"
         cot: List[str] = [
             f"1. Telemetry Audit: Lap {state.current_lap}/{state.total_laps}, P{player.position}, {player.tyre_compound.value} tyres at {player.tyre_wear_pct:.1f}% wear (~{laps_to_cliff} laps to cliff).",
-            f"2. Environmental State: Weather is {state.weather.condition.value} with rain intensity {state.weather.rain_intensity:.2f}. Compound suitability favors {max(suitability, key=suitability.get)}.",
+            f"2. Environmental State: Weather is {state.weather.condition.value} with rain intensity {state.weather.rain_intensity:.2f}. Compound suitability favors {favored_compound}.",
             f"3. Neural Policy (DQN): Optimal action {dqn_action.value} (Q-margin: +{q_margin:.2f}, Shannon entropy: {entropy:.3f}).",
             f"4. TreeSHAP Attribution: Primary policy driver is '{top_shap_factors[0]['feature'] if top_shap_factors else 'Wear progression'}' with impact {top_shap_factors[0]['impact'] if top_shap_factors else 'nominal'}.",
             f"5. Monte Carlo Projection: Top path '{best_mc_strat.get('strategy_name', 'Plan A')}' yields {best_mc_strat.get('win_probability_pct', 0.0)}% win / {best_mc_strat.get('podium_probability_pct', 0.0)}% podium probability.",

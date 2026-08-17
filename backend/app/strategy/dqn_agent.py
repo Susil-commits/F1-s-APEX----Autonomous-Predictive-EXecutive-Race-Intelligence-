@@ -94,7 +94,7 @@ class DQNAgent:
         Computes Boltzmann softmax probability distribution pi(a|s) across all 8 actions.
         """
         q_vals = self.get_q_values(obs, action_mask=action_mask)
-        tau = max(0.01, float(temperature))
+        tau = max(0.01, temperature)
         valid_q = q_vals[q_vals > -1e8]
         max_q = np.max(valid_q) if len(valid_q) > 0 else 0.0
         shifted_q = (q_vals - max_q) / tau
@@ -160,7 +160,7 @@ class DQNAgent:
             "optimal_action": action.value,
             "q_value_margin": q_margin,
             "policy_entropy": entropy,
-            "is_confident": bool(entropy < 0.45 and q_margin > 0.5),
+            "is_confident": (entropy < 0.45 and q_margin > 0.5),
             "action_distribution": distribution,
             "action_advantages": advantages,
         }

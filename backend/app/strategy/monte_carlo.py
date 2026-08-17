@@ -91,6 +91,10 @@ class MonteCarloEngine:
             finishing_positions = []
             race_times = []
             pit_window_sc_advantages = []
+            pace_bias = float(strat["pace_bias"])
+            stops = int(strat["stops"])
+            pit_lap = int(strat["pit_lap"])
+            deg_factor = float(strat["deg_factor"])
 
             for _ in range(rollouts_per_strategy):
                 # Autoregressive AR(1) driver pace noise (rho = 0.65)
@@ -106,10 +110,9 @@ class MonteCarloEngine:
                 vsc_occurred = not sc_occurred and sc_prob < 0.35
 
                 # Calculate simulated race time delta
-                total_delta = float(np.sum(pace_noise)) + (strat["pace_bias"] * laps_remaining)
+                total_delta = float(np.sum(pace_noise)) + (pace_bias * laps_remaining)
 
                 # Pit stop loss accounting for SC/VSC window discount
-                stops = strat["stops"]
                 if sc_occurred:
                     effective_pit_loss = sc_pit_loss
                     pit_window_sc_advantages.append(True)
@@ -124,10 +127,10 @@ class MonteCarloEngine:
 
                 # Compound-specific non-linear tyre wear accumulation
                 wear_penalty = 0.0
-                stint_length = max(1, strat["pit_lap"] - state.current_lap)
+                stint_length = max(1, pit_lap - state.current_lap)
                 if current_wear > 65.0 and stint_length > 4:
                     # Non-linear cliff penalty
-                    wear_penalty += (current_wear - 65.0) * 0.25 * strat["deg_factor"]
+                    wear_penalty += (current_wear - 65.0) * 0.25 * deg_factor
 
                 total_delta += wear_penalty
                 simulated_time = (laps_remaining * base_lap_time) + total_delta
@@ -146,14 +149,14 @@ class MonteCarloEngine:
             p_points = int(np.sum(finishing_positions_arr <= 10))
 
             results.append({
-                "strategy_id": strat["id"],
-                "strategy_name": strat["name"],
-                "optimal_pit_lap": strat["pit_lap"],
-                "target_compound": strat["compound"],
-                "stops": strat["stops"],
-                "win_probability_pct": round(float(p1_count / rollouts_per_strategy) * 100.0, 1),
-                "podium_probability_pct": round(float(podium_count / rollouts_per_strategy) * 100.0, 1),
-                "points_probability_pct": round(float(p_points / rollouts_per_strategy) * 100.0, 1),
+                "strategy_id": str(strat["id"]),
+                "strategy_name": str(strat["name"]),
+                "optimal_pit_lap": pit_lap,
+                "target_compound": str(strat["compound"]),
+                "stops": stops,
+                "win_probability_pct": round((p1_count / rollouts_per_strategy) * 100.0, 1),
+                "podium_probability_pct": round((podium_count / rollouts_per_strategy) * 100.0, 1),
+                "points_probability_pct": round((p_points / rollouts_per_strategy) * 100.0, 1),
                 "expected_finish_pos": round(float(np.mean(finishing_positions_arr)), 2),
                 "best_case_pos": int(np.min(finishing_positions_arr)),
                 "worst_case_pos": int(np.max(finishing_positions_arr)),
