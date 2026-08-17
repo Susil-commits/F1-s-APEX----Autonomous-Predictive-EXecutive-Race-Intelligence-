@@ -1,6 +1,7 @@
 # Git & IDE
 .git
 .gitignore
+.github
 .vscode
 .idea
 .agents
@@ -19,6 +20,8 @@ __pycache__
 .coverage
 htmlcov
 *.egg-info
+apex.egg-info
+backend/apex.egg-info
 dist
 build
 
@@ -29,9 +32,19 @@ frontend/.vite
 
 # Logs and databases
 *.log
+*.sqlite
 *.sqlite3
+*.sqlite-journal
+*.sqlite-wal
+*.sqlite-shm
 *.db
 backend/apex_twin.db
+backend/*.db
+backend/data/fastf1_cache
+backend/data/fastf1_cache/**
+**/fastf1_cache/**
+backend/tests
+backend/eval
 
 # OS files
 .DS_Store
