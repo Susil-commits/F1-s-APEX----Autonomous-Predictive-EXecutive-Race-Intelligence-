@@ -191,10 +191,55 @@ def run_multi_circuit_benchmark(
         res = suite.evaluate_track()
         track_results.append(res)
 
+    # Compute overall aggregate summary across all tracks for each policy
+    policies = ["random", "rule_based", "dqn", "ppo", "monte_carlo", "hybrid_apex"]
+    overall_summary: Dict[str, Dict[str, float]] = {}
+
+    for pol in policies:
+        pol_positions = []
+        pol_wins = []
+        pol_podiums = []
+        pol_dnfs = []
+        pol_gaps = []
+        pol_blown = []
+        pol_pits = []
+        pol_lats = []
+
+        for tr in track_results:
+            p_data = tr.get("policies", {}).get(pol)
+            if p_data:
+                pol_positions.append(p_data.get("avg_position", 1.0))
+                pol_wins.append(p_data.get("win_rate_pct", 0.0))
+                pol_podiums.append(p_data.get("podium_rate_pct", 0.0))
+                pol_dnfs.append(p_data.get("dnf_rate_pct", 0.0))
+                pol_gaps.append(p_data.get("avg_gap_to_winner_s", 0.0))
+                pol_blown.append(p_data.get("avg_blown_tyre_laps", 0.0))
+                pol_pits.append(p_data.get("avg_pit_stops", 0.0))
+                pol_lats.append(p_data.get("avg_decision_latency_ms", 0.1))
+
+        if pol_positions:
+            overall_summary[pol] = {
+                "avg_position": round(float(np.mean(pol_positions)), 2),
+                "win_rate_pct": round(float(np.mean(pol_wins)), 1),
+                "podium_rate_pct": round(float(np.mean(pol_podiums)), 1),
+                "dnf_rate_pct": round(float(np.mean(pol_dnfs)), 1),
+                "avg_gap_to_winner_s": round(float(np.mean(pol_gaps)), 2),
+                "avg_blown_tyre_laps": round(float(np.mean(pol_blown)), 2),
+                "avg_pit_stops": round(float(np.mean(pol_pits)), 1),
+                "avg_decision_latency_ms": round(float(np.mean(pol_lats)), 2),
+            }
+
+    timestamp_str = datetime.now(timezone.utc).isoformat()
     benchmark_data = {
-        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "timestamp": timestamp_str,
+        "timestamp_utc": timestamp_str,
+        "total_tracks": len(track_list),
+        "races_per_track": races_per_track,
+        "total_races_evaluated": races_per_track * len(track_list),
         "total_races_simulated": races_per_track * len(track_list),
         "tracks_evaluated": track_list,
+        "overall_summary": overall_summary,
+        "circuit_breakdown": track_results,
         "results_by_track": track_results,
     }
 
@@ -212,3 +257,4 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     run_multi_circuit_benchmark(races_per_track=args.races)
+
