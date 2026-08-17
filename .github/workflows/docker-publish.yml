@@ -10,6 +10,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository_owner }}/apex
 
 jobs:
   build-and-push:
@@ -26,10 +27,11 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Lowercase Repository Name
+      - name: Lowercase Repository & Image Name
         id: repo_name
         run: |
-          echo "image_name=$(echo '${{ github.repository }}' | tr '[:upper:]' '[:lower:]')" >> $GITHUB_OUTPUT
+          OWNER=$(echo '${{ github.repository_owner }}' | tr '[:upper:]' '[:lower:]')
+          echo "image_name=${OWNER}/apex" >> $GITHUB_OUTPUT
 
       - name: Log in to GitHub Container Registry
         if: github.event_name != 'pull_request'
