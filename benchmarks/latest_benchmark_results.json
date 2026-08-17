@@ -1,10 +1,10 @@
 {
-  "timestamp": "2026-08-17T15:05:30.182444+00:00",
-  "timestamp_utc": "2026-08-17T15:05:30.182444+00:00",
+  "timestamp": "2026-08-17T16:29:26.776454+00:00",
+  "timestamp_utc": "2026-08-17T16:29:26.776454+00:00",
   "total_tracks": 5,
-  "races_per_track": 2,
-  "total_races_evaluated": 10,
-  "total_races_simulated": 10,
+  "races_per_track": 4,
+  "total_races_evaluated": 20,
+  "total_races_simulated": 20,
   "tracks_evaluated": [
     "silverstone",
     "monza",
@@ -14,59 +14,59 @@
   ],
   "overall_summary": {
     "random": {
-      "avg_position": 4.8,
-      "win_rate_pct": 40.0,
-      "podium_rate_pct": 50.0,
+      "avg_position": 7.0,
+      "win_rate_pct": 20.0,
+      "podium_rate_pct": 30.0,
       "dnf_rate_pct": 0.0,
-      "avg_gap_to_winner_s": 37.06,
-      "avg_blown_tyre_laps": 19.4,
+      "avg_gap_to_winner_s": 70.24,
+      "avg_blown_tyre_laps": 19.45,
       "avg_pit_stops": 0.0,
       "avg_decision_latency_ms": 0.01
     },
     "rule_based": {
-      "avg_position": 1.4,
-      "win_rate_pct": 80.0,
-      "podium_rate_pct": 90.0,
+      "avg_position": 1.2,
+      "win_rate_pct": 90.0,
+      "podium_rate_pct": 95.0,
       "dnf_rate_pct": 0.0,
-      "avg_gap_to_winner_s": 1.79,
+      "avg_gap_to_winner_s": 0.9,
       "avg_blown_tyre_laps": 0.0,
       "avg_pit_stops": 4.2,
       "avg_decision_latency_ms": 0.03
     },
     "dqn": {
-      "avg_position": 1.0,
-      "win_rate_pct": 100.0,
-      "podium_rate_pct": 100.0,
+      "avg_position": 1.5,
+      "win_rate_pct": 90.0,
+      "podium_rate_pct": 95.0,
       "dnf_rate_pct": 0.0,
-      "avg_gap_to_winner_s": 0.0,
+      "avg_gap_to_winner_s": 10.87,
       "avg_blown_tyre_laps": 0.0,
-      "avg_pit_stops": 4.9,
-      "avg_decision_latency_ms": 0.35
+      "avg_pit_stops": 4.8,
+      "avg_decision_latency_ms": 0.33
     }
   },
   "circuit_breakdown": [
     {
       "track_name": "silverstone",
-      "num_races": 2,
+      "num_races": 4,
       "policies": {
         "random": {
-          "avg_position": 3.5,
-          "win_rate_pct": 50.0,
-          "podium_rate_pct": 50.0,
+          "avg_position": 6.75,
+          "win_rate_pct": 25.0,
+          "podium_rate_pct": 25.0,
           "dnf_rate_pct": 0.0,
-          "avg_gap_to_winner_s": 10.3,
+          "avg_gap_to_winner_s": 35.95,
           "avg_blown_tyre_laps": 19.0,
           "avg_pit_stops": 0.0,
           "avg_decision_latency_ms": 0.01
         },
         "rule_based": {
-          "avg_position": 1.5,
-          "win_rate_pct": 50.0,
+          "avg_position": 1.25,
+          "win_rate_pct": 75.0,
           "podium_rate_pct": 100.0,
           "dnf_rate_pct": 0.0,
-          "avg_gap_to_winner_s": 1.75,
+          "avg_gap_to_winner_s": 0.88,
           "avg_blown_tyre_laps": 0.0,
-          "avg_pit_stops": 4.0,
+          "avg_pit_stops": 3.5,
           "avg_decision_latency_ms": 0.03
         },
         "dqn": {
@@ -76,22 +76,22 @@
           "dnf_rate_pct": 0.0,
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
-          "avg_pit_stops": 4.5,
-          "avg_decision_latency_ms": 0.36
+          "avg_pit_stops": 4.0,
+          "avg_decision_latency_ms": 0.33
         }
       }
     },
     {
       "track_name": "monza",
-      "num_races": 2,
+      "num_races": 4,
       "policies": {
         "random": {
-          "avg_position": 1.0,
-          "win_rate_pct": 100.0,
-          "podium_rate_pct": 100.0,
+          "avg_position": 3.5,
+          "win_rate_pct": 50.0,
+          "podium_rate_pct": 75.0,
           "dnf_rate_pct": 0.0,
-          "avg_gap_to_winner_s": 0.0,
-          "avg_blown_tyre_laps": 8.0,
+          "avg_gap_to_winner_s": 12.43,
+          "avg_blown_tyre_laps": 8.25,
           "avg_pit_stops": 0.0,
           "avg_decision_latency_ms": 0.01
         },
@@ -102,7 +102,7 @@
           "dnf_rate_pct": 0.0,
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
-          "avg_pit_stops": 3.0,
+          "avg_pit_stops": 2.8,
           "avg_decision_latency_ms": 0.03
         },
         "dqn": {
@@ -112,34 +112,34 @@
           "dnf_rate_pct": 0.0,
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
-          "avg_pit_stops": 3.5,
+          "avg_pit_stops": 2.8,
           "avg_decision_latency_ms": 0.34
         }
       }
     },
     {
       "track_name": "spa",
-      "num_races": 2,
+      "num_races": 4,
       "policies": {
         "random": {
-          "avg_position": 1.5,
-          "win_rate_pct": 50.0,
-          "podium_rate_pct": 100.0,
+          "avg_position": 5.75,
+          "win_rate_pct": 25.0,
+          "podium_rate_pct": 50.0,
           "dnf_rate_pct": 0.0,
-          "avg_gap_to_winner_s": 0.69,
+          "avg_gap_to_winner_s": 32.65,
           "avg_blown_tyre_laps": 13.5,
           "avg_pit_stops": 0.0,
           "avg_decision_latency_ms": 0.01
         },
         "rule_based": {
-          "avg_position": 2.5,
-          "win_rate_pct": 50.0,
-          "podium_rate_pct": 50.0,
+          "avg_position": 1.75,
+          "win_rate_pct": 75.0,
+          "podium_rate_pct": 75.0,
           "dnf_rate_pct": 0.0,
-          "avg_gap_to_winner_s": 7.19,
+          "avg_gap_to_winner_s": 3.6,
           "avg_blown_tyre_laps": 0.0,
-          "avg_pit_stops": 4.0,
-          "avg_decision_latency_ms": 0.04
+          "avg_pit_stops": 4.5,
+          "avg_decision_latency_ms": 0.03
         },
         "dqn": {
           "avg_position": 1.0,
@@ -148,21 +148,21 @@
           "dnf_rate_pct": 0.0,
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
-          "avg_pit_stops": 4.0,
-          "avg_decision_latency_ms": 0.37
+          "avg_pit_stops": 3.8,
+          "avg_decision_latency_ms": 0.33
         }
       }
     },
     {
       "track_name": "monaco",
-      "num_races": 2,
+      "num_races": 4,
       "policies": {
         "random": {
-          "avg_position": 8.0,
+          "avg_position": 9.0,
           "win_rate_pct": 0.0,
           "podium_rate_pct": 0.0,
           "dnf_rate_pct": 0.0,
-          "avg_gap_to_winner_s": 25.3,
+          "avg_gap_to_winner_s": 68.97,
           "avg_blown_tyre_laps": 20.0,
           "avg_pit_stops": 0.0,
           "avg_decision_latency_ms": 0.01
@@ -174,7 +174,7 @@
           "dnf_rate_pct": 0.0,
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
-          "avg_pit_stops": 4.0,
+          "avg_pit_stops": 3.8,
           "avg_decision_latency_ms": 0.03
         },
         "dqn": {
@@ -184,21 +184,21 @@
           "dnf_rate_pct": 0.0,
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
-          "avg_pit_stops": 5.0,
-          "avg_decision_latency_ms": 0.33
+          "avg_pit_stops": 3.5,
+          "avg_decision_latency_ms": 0.31
         }
       }
     },
     {
       "track_name": "interlagos",
-      "num_races": 2,
+      "num_races": 4,
       "policies": {
         "random": {
           "avg_position": 10.0,
           "win_rate_pct": 0.0,
           "podium_rate_pct": 0.0,
           "dnf_rate_pct": 0.0,
-          "avg_gap_to_winner_s": 149.0,
+          "avg_gap_to_winner_s": 201.21,
           "avg_blown_tyre_laps": 36.5,
           "avg_pit_stops": 0.0,
           "avg_decision_latency_ms": 0.01
@@ -210,17 +210,17 @@
           "dnf_rate_pct": 0.0,
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
-          "avg_pit_stops": 6.0,
+          "avg_pit_stops": 6.5,
           "avg_decision_latency_ms": 0.03
         },
         "dqn": {
-          "avg_position": 1.0,
-          "win_rate_pct": 100.0,
-          "podium_rate_pct": 100.0,
+          "avg_position": 3.5,
+          "win_rate_pct": 50.0,
+          "podium_rate_pct": 75.0,
           "dnf_rate_pct": 0.0,
-          "avg_gap_to_winner_s": 0.0,
+          "avg_gap_to_winner_s": 54.35,
           "avg_blown_tyre_laps": 0.0,
-          "avg_pit_stops": 7.5,
+          "avg_pit_stops": 9.8,
           "avg_decision_latency_ms": 0.33
         }
       }
@@ -229,26 +229,26 @@
   "results_by_track": [
     {
       "track_name": "silverstone",
-      "num_races": 2,
+      "num_races": 4,
       "policies": {
         "random": {
-          "avg_position": 3.5,
-          "win_rate_pct": 50.0,
-          "podium_rate_pct": 50.0,
+          "avg_position": 6.75,
+          "win_rate_pct": 25.0,
+          "podium_rate_pct": 25.0,
           "dnf_rate_pct": 0.0,
-          "avg_gap_to_winner_s": 10.3,
+          "avg_gap_to_winner_s": 35.95,
           "avg_blown_tyre_laps": 19.0,
           "avg_pit_stops": 0.0,
           "avg_decision_latency_ms": 0.01
         },
         "rule_based": {
-          "avg_position": 1.5,
-          "win_rate_pct": 50.0,
+          "avg_position": 1.25,
+          "win_rate_pct": 75.0,
           "podium_rate_pct": 100.0,
           "dnf_rate_pct": 0.0,
-          "avg_gap_to_winner_s": 1.75,
+          "avg_gap_to_winner_s": 0.88,
           "avg_blown_tyre_laps": 0.0,
-          "avg_pit_stops": 4.0,
+          "avg_pit_stops": 3.5,
           "avg_decision_latency_ms": 0.03
         },
         "dqn": {
@@ -258,22 +258,22 @@
           "dnf_rate_pct": 0.0,
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
-          "avg_pit_stops": 4.5,
-          "avg_decision_latency_ms": 0.36
+          "avg_pit_stops": 4.0,
+          "avg_decision_latency_ms": 0.33
         }
       }
     },
     {
       "track_name": "monza",
-      "num_races": 2,
+      "num_races": 4,
       "policies": {
         "random": {
-          "avg_position": 1.0,
-          "win_rate_pct": 100.0,
-          "podium_rate_pct": 100.0,
+          "avg_position": 3.5,
+          "win_rate_pct": 50.0,
+          "podium_rate_pct": 75.0,
           "dnf_rate_pct": 0.0,
-          "avg_gap_to_winner_s": 0.0,
-          "avg_blown_tyre_laps": 8.0,
+          "avg_gap_to_winner_s": 12.43,
+          "avg_blown_tyre_laps": 8.25,
           "avg_pit_stops": 0.0,
           "avg_decision_latency_ms": 0.01
         },
@@ -284,7 +284,7 @@
           "dnf_rate_pct": 0.0,
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
-          "avg_pit_stops": 3.0,
+          "avg_pit_stops": 2.8,
           "avg_decision_latency_ms": 0.03
         },
         "dqn": {
@@ -294,34 +294,34 @@
           "dnf_rate_pct": 0.0,
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
-          "avg_pit_stops": 3.5,
+          "avg_pit_stops": 2.8,
           "avg_decision_latency_ms": 0.34
         }
       }
     },
     {
       "track_name": "spa",
-      "num_races": 2,
+      "num_races": 4,
       "policies": {
         "random": {
-          "avg_position": 1.5,
-          "win_rate_pct": 50.0,
-          "podium_rate_pct": 100.0,
+          "avg_position": 5.75,
+          "win_rate_pct": 25.0,
+          "podium_rate_pct": 50.0,
           "dnf_rate_pct": 0.0,
-          "avg_gap_to_winner_s": 0.69,
+          "avg_gap_to_winner_s": 32.65,
           "avg_blown_tyre_laps": 13.5,
           "avg_pit_stops": 0.0,
           "avg_decision_latency_ms": 0.01
         },
         "rule_based": {
-          "avg_position": 2.5,
-          "win_rate_pct": 50.0,
-          "podium_rate_pct": 50.0,
+          "avg_position": 1.75,
+          "win_rate_pct": 75.0,
+          "podium_rate_pct": 75.0,
           "dnf_rate_pct": 0.0,
-          "avg_gap_to_winner_s": 7.19,
+          "avg_gap_to_winner_s": 3.6,
           "avg_blown_tyre_laps": 0.0,
-          "avg_pit_stops": 4.0,
-          "avg_decision_latency_ms": 0.04
+          "avg_pit_stops": 4.5,
+          "avg_decision_latency_ms": 0.03
         },
         "dqn": {
           "avg_position": 1.0,
@@ -330,21 +330,21 @@
           "dnf_rate_pct": 0.0,
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
-          "avg_pit_stops": 4.0,
-          "avg_decision_latency_ms": 0.37
+          "avg_pit_stops": 3.8,
+          "avg_decision_latency_ms": 0.33
         }
       }
     },
     {
       "track_name": "monaco",
-      "num_races": 2,
+      "num_races": 4,
       "policies": {
         "random": {
-          "avg_position": 8.0,
+          "avg_position": 9.0,
           "win_rate_pct": 0.0,
           "podium_rate_pct": 0.0,
           "dnf_rate_pct": 0.0,
-          "avg_gap_to_winner_s": 25.3,
+          "avg_gap_to_winner_s": 68.97,
           "avg_blown_tyre_laps": 20.0,
           "avg_pit_stops": 0.0,
           "avg_decision_latency_ms": 0.01
@@ -356,7 +356,7 @@
           "dnf_rate_pct": 0.0,
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
-          "avg_pit_stops": 4.0,
+          "avg_pit_stops": 3.8,
           "avg_decision_latency_ms": 0.03
         },
         "dqn": {
@@ -366,21 +366,21 @@
           "dnf_rate_pct": 0.0,
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
-          "avg_pit_stops": 5.0,
-          "avg_decision_latency_ms": 0.33
+          "avg_pit_stops": 3.5,
+          "avg_decision_latency_ms": 0.31
         }
       }
     },
     {
       "track_name": "interlagos",
-      "num_races": 2,
+      "num_races": 4,
       "policies": {
         "random": {
           "avg_position": 10.0,
           "win_rate_pct": 0.0,
           "podium_rate_pct": 0.0,
           "dnf_rate_pct": 0.0,
-          "avg_gap_to_winner_s": 149.0,
+          "avg_gap_to_winner_s": 201.21,
           "avg_blown_tyre_laps": 36.5,
           "avg_pit_stops": 0.0,
           "avg_decision_latency_ms": 0.01
@@ -392,17 +392,17 @@
           "dnf_rate_pct": 0.0,
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
-          "avg_pit_stops": 6.0,
+          "avg_pit_stops": 6.5,
           "avg_decision_latency_ms": 0.03
         },
         "dqn": {
-          "avg_position": 1.0,
-          "win_rate_pct": 100.0,
-          "podium_rate_pct": 100.0,
+          "avg_position": 3.5,
+          "win_rate_pct": 50.0,
+          "podium_rate_pct": 75.0,
           "dnf_rate_pct": 0.0,
-          "avg_gap_to_winner_s": 0.0,
+          "avg_gap_to_winner_s": 54.35,
           "avg_blown_tyre_laps": 0.0,
-          "avg_pit_stops": 7.5,
+          "avg_pit_stops": 9.8,
           "avg_decision_latency_ms": 0.33
         }
       }
