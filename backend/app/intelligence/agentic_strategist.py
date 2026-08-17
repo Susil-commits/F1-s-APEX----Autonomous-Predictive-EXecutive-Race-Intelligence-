@@ -102,24 +102,38 @@ class AgenticRaceStrategist:
         track_severity = TyreModel.get_circuit_degradation_factor(track_name)
         laps_to_cliff = TyreModel.estimate_remaining_laps(player.tyre_compound, player.tyre_wear_pct, player.driving_mode, track_severity)
 
-        # Step 2: Neural Policy & Epistemic Uncertainty
-        dqn_profile = self.dqn_agent.predict_strategic_profile(obs)
+        # Step 2: Safe RL Action Masking & Neural Policy Evaluation
+        from backend.app.strategy.safe_rl_guardrail import ActionMaskGuardrail
+        from backend.app.intelligence.pinn_tyre_residual import PINNTyreResidualCompensator
+        action_mask = ActionMaskGuardrail.get_action_mask(state, target_car_id=player.car_id)
+        dqn_profile = self.dqn_agent.predict_strategic_profile(obs, action_mask=action_mask)
         dqn_action = StrategyAction(dqn_profile["optimal_action"])
         q_margin = dqn_profile["q_value_margin"]
         entropy = dqn_profile["policy_entropy"]
 
-        # Step 3: Expert Rule Engine Consensus
+        # Step 3: PINN Non-Linear Tyre Degradation Residual
+        pinn = PINNTyreResidualCompensator.get_instance()
+        pinn_residual_s = pinn.predict_residual_delta_s(
+            compound=player.tyre_compound,
+            current_wear_pct=player.tyre_wear_pct,
+            mode=player.driving_mode,
+            track_name=track_name,
+            track_temp_c=getattr(state.weather, "track_temp_c", 35.0),
+            rain_intensity=state.weather.rain_intensity,
+        )
+
+        # Step 4: Expert Rule Engine Consensus
         rule_action, rule_factors, urgency = RuleEngine.evaluate(state, player.car_id)
 
-        # Step 4: TreeSHAP Explainability
+        # Step 5: TreeSHAP Explainability
         shap_explanation = self.shap_explainer.explain(obs)
         top_shap_factors = shap_explanation.get("top_features", [])[:4]
 
-        # Step 5: Monte Carlo Stochastic Simulation
+        # Step 6: Monte Carlo Stochastic Simulation
         mc_results = MonteCarloEngine.run_simulation(state, num_rollouts=num_mc_rollouts, target_car_id=player.car_id)
         best_mc_strat = mc_results.get("strategies", [{}])[0]
 
-        # Step 6: Multi-Criteria Action Consensus
+        # Step 7: Multi-Criteria Action Consensus & Safety Guardrail Filter
         if urgency == "CRITICAL":
             primary_action = rule_action
             confidence = 0.98
@@ -132,6 +146,11 @@ class AgenticRaceStrategist:
         else:
             primary_action = rule_action
             confidence = 0.85
+
+        # Ensure selected action complies with Safe RL Guardrail
+        safety_check = ActionMaskGuardrail.evaluate_safety(primary_action, state, target_car_id=player.car_id)
+        if not safety_check.is_safe:
+            primary_action = dqn_action if ActionMaskGuardrail.evaluate_safety(dqn_action, state, target_car_id=player.car_id).is_safe else StrategyAction.MAINTAIN
 
         # Step 7: Chain-of-Thought Synthesis
         cot: List[str] = [

@@ -143,6 +143,37 @@ class TyreModel:
 
         return round(linear_loss + cliff_loss, 3)
 
+    @classmethod
+    def predict_lap_time_loss_pinn(
+        cls,
+        compound: TyreCompound,
+        wear_pct: float,
+        mode: DrivingMode = DrivingMode.NORMAL,
+        track_name: str = "silverstone",
+        track_temp_c: float = 35.0,
+        rain_intensity: float = 0.0,
+        tyre_age_laps: Optional[int] = None,
+    ) -> float:
+        """
+        Physics-Informed Neural Network (PINN) hybrid lap time degradation prediction.
+        Combines empirical Pacejka base loss with deep thermal-wear residual compensator.
+        """
+        base_loss = cls.predict_lap_time_loss(compound, wear_pct, tyre_age_laps)
+        try:
+            from backend.app.intelligence.pinn_tyre_residual import PINNTyreResidualCompensator
+            pinn = PINNTyreResidualCompensator.get_instance()
+            pinn_residual = pinn.predict_residual_delta_s(
+                compound=compound,
+                current_wear_pct=wear_pct,
+                mode=mode,
+                track_name=track_name,
+                track_temp_c=track_temp_c,
+                rain_intensity=rain_intensity,
+            )
+            return round(base_loss + pinn_residual, 3)
+        except Exception:
+            return base_loss
+
     @staticmethod
     def calculate_pit_window(
         car: CarState,

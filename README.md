@@ -4,11 +4,12 @@
   <img src="https://img.shields.io/badge/Python-3.12-blue.svg" alt="Python 3.12" />
   <img src="https://img.shields.io/badge/FastAPI-0.115-009688.svg" alt="FastAPI" />
   <img src="https://img.shields.io/badge/MCP-2.0.0-purple.svg" alt="MCP Server" />
+  <img src="https://img.shields.io/badge/PyTorch-2.0-EE4C2C.svg" alt="PyTorch" />
   <img src="https://img.shields.io/badge/FastF1-Real_Telemetry-E10600.svg" alt="FastF1" />
   <img src="https://img.shields.io/badge/Ollama-Radio_LLM-000000.svg" alt="Ollama" />
   <img src="https://img.shields.io/badge/RAG-Decision_Provenance-10b981.svg" alt="RAG" />
   <img src="https://img.shields.io/badge/TreeSHAP-XAI-8b5cf6.svg" alt="TreeSHAP" />
-  <img src="https://img.shields.io/badge/Tests-87%2F87_Passed-brightgreen.svg" alt="Tests" />
+  <img src="https://img.shields.io/badge/Tests-100%2F100_Passed-brightgreen.svg" alt="Tests" />
   <img src="https://img.shields.io/badge/Eval_Harness-8%2F8_Passed-brightgreen.svg" alt="Eval Harness" />
   <img src="https://img.shields.io/badge/React-18-61DAFB.svg" alt="React 18" />
   <img src="https://img.shields.io/badge/Vite-6.0-646CFF.svg" alt="Vite 6" />
@@ -16,7 +17,7 @@
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License" />
 </p>
 
-**APEX** is an autonomous Formula 1 race strategy intelligence and pit-wall mission control platform. Grounded in real-world F1 timing telemetry (`fastf1`), APEX couples a high-fidelity stochastic digital twin with deep reinforcement learning (DQN), multi-action TreeSHAP explainability, native Model Context Protocol (MCP) tool interfaces, a 4-pillar automated evaluation harness, an autonomous self-healing agent loop, dense-vector race history RAG (`sentence-transformers`), local team radio LLM commentary (`ollama`), and a real-time React 18 cockpit dashboard.
+**APEX** is an autonomous Formula 1 race strategy intelligence and pit-wall mission control platform. Grounded in real-world F1 timing telemetry (`fastf1`), APEX couples a high-fidelity stochastic digital twin with deep reinforcement learning (DQN), Physics-Informed Neural Network (PINN) tyre residual compensators, Safe RL action masking guardrails, multi-action TreeSHAP explainability, an Autonomous Multi-Step Agentic Race Strategist, native Model Context Protocol (MCP) tool interfaces, a 4-pillar automated evaluation harness, an autonomous self-healing agent loop, dense-vector race history RAG (`sentence-transformers`), local team radio LLM commentary (`ollama`), and a real-time React 18 cockpit dashboard.
 
 ---
 
@@ -31,22 +32,30 @@ flowchart TD
         Physics["Vehicle Dynamics & 4-Corner Thermals"]
         WeatherModel["Markov Chain Dynamic Weather Engine"]
         FastF1Data["FastF1 Empirical Polynomial Degradation"]
+        PINNComp["PINN Thermal-Wear Residual Compensator"]
         
         Track --> Physics
         WeatherModel --> Physics
         FastF1Data --> Physics
+        PINNComp --> Physics
     end
 
-    subgraph Layer2 ["🧠 Layer 2: Strategy AI, Explainability & RAG"]
+    subgraph Layer2 ["🧠 Layer 2: Strategy AI, Safe RL & Explainability (XAI)"]
         Feat["28-D Normalized State Tensor"]
-        DQNNet["DQN Reinforcement Learning Policy"]
+        SafeRL["Safe RL Action Masking Guardrail M(s)"]
+        DQNNet["DQN Neural Policy + Boltzmann Softmax + Shannon Entropy"]
+        AgenticStrat["Autonomous Agentic Strategist (CoT + Contingencies)"]
         SHAPEngine["Multi-Action TreeSHAP Surrogate (XAI)"]
-        MonteEngine["1,000-Rollout Monte Carlo Sim"]
-        Counterfactual["Counterfactual Timeline Simulator"]
+        MonteEngine["1,000-Rollout Monte Carlo Sim (AR(1) Noise)"]
+        Counterfactual["Counterfactual Timeline Simulator (Undercut Pct)"]
         RAGEngine["Dense Vector RAG (all-MiniLM-L6-v2)"]
         
         Physics --> Feat
+        Feat --> SafeRL
+        SafeRL --> DQNNet
         Feat --> DQNNet
+        DQNNet --> AgenticStrat
+        Feat --> AgenticStrat
         Feat --> SHAPEngine
         Feat --> MonteEngine
         Feat --> Counterfactual
@@ -191,21 +200,45 @@ flowchart TD
     end
 ```
 
-#### Decision Engine Specifications:
+#### Decision Engine & Modern AI Specifications:
+- **Physics-Informed Neural Network (PINN) Residual Compensator (`backend/app/intelligence/pinn_tyre_residual.py`)**:
+  Combines empirical Pacejka tyre wear dynamics with a deep residual neural network that learns non-linear micro-thermal degradation deltas from FastF1 telemetry:
+  $$\Delta t_{\text{lap}} = \text{PhysicsBase}(\text{compound}, \text{wear}) + \text{PINN}_{\theta}(\text{track\_severity}, \text{thermal\_load}, \text{moisture}, \text{mode})$$
+  Supports online zero-shot and batch fine-tuning on live session telemetry streams.
+- **Safe Reinforcement Learning (Safe RL) Action Masking (`backend/app/strategy/safe_rl_guardrail.py`)**:
+  Enforces physical and regulatory guardrails through dynamic action masking $M(s) \in \{0, 1\}^8$. Masks illegal actions (e.g., dry slicks during torrential rain, double-pitting in pit lane, or push mode at $\ge 75\%$ tyre wear cliff):
+  $$\pi_{\text{safe}}(a|s) = \frac{\exp(Q(s, a) / \tau) \cdot M(s, a)}{\sum_{a'} \exp(Q(s, a') / \tau) \cdot M(s, a')}$$
+- **Boltzmann Softmax Policy & Shannon Entropy Epistemic Uncertainty**:
+  Normalized Shannon entropy $\mathcal{H}(\pi) = -\frac{1}{\log_2(8)} \sum \pi_i \log_2 \pi_i$ provides real-time uncertainty quantification ($[0.0, 1.0]$) to guard against overconfident policy hallucinations.
 - **28-D State Tensor**: Normalizes position, laps remaining, relative gaps (ahead/behind/leader), one-hot tyre compound, tyre wear %, tyre age, cliff flag, fuel %, driving mode, weather state, rain intensity, 5-lap rain probability, safety car status, and pit stop counts.
-- **Discrete Action Space (8 Strategic Modes)**:
-  - `0: MAINTAIN` — Preserve current baseline race pace and tyre life.
-  - `1: PUSH` — Deploy maximum engine mapping and aggressive cornering ($-0.4\text{ s/lap}$, $+2.5\times$ wear rate).
-  - `2: CONSERVE` — Lift-and-coast fuel/tyre preservation mode ($+0.3\text{ s/lap}$, $-40\%$ wear rate).
-  - `3: PIT_SOFT`, `4: PIT_MEDIUM`, `5: PIT_HARD`, `6: PIT_INTER`, `7: PIT_WET` — Execute box call for designated compound.
 - **Explainable AI (TreeSHAP on Distilled Surrogate)**: Decomposes strategic policy confidence via model distillation: a tree-based surrogate model (`backend/models/shap_surrogate.joblib`) is distilled from the trained DQN's actual $Q(s, a)$ decision surface. `shap.TreeExplainer` computes exact Shapley attributions $f(x) = \phi_0 + \sum_{i=1}^{28} \phi_i(x)$ via `/api/strategy/shap`.
-- **1,000-Rollout Monte Carlo Engine**: Projects 1,000 parallel stochastic forward trajectories with Gaussian pace variance ($\sigma = 0.38\text{ s}$) and dynamic safety car transition probabilities.
+- **1,000-Rollout Monte Carlo Engine with AR(1) Temporal Pace Noise**:
+  Projects 1,000 parallel stochastic forward trajectories with Autoregressive AR(1) pace variance ($\rho = 0.65$), circuit severity scaling, and conditional Safety Car pit loss discounts.
 
 ---
 
-### 3. Model Context Protocol (MCP) Server (Part B1)
+### 3. Autonomous Multi-Step Agentic Race Strategist
 
-APEX exposes its digital twin telemetry, TreeSHAP explainer, grounded RAG QA, counterfactual simulator, Monte Carlo engine, and scenario injector as an official **Model Context Protocol (MCP)** server built on the standard `mcp` 2.0.0 SDK.
+APEX features an autonomous multi-step reasoning agent (`backend/app/intelligence/agentic_strategist.py`) that operates a structured **Chain-of-Thought (CoT)** tactical loop:
+
+```mermaid
+flowchart TD
+    Start(["Lap Telemetry Arrives"]) --> S1["Step 1: 28-D Feature Extraction & Tyre Life Estimation"]
+    S1 --> S2["Step 2: Safe RL Masking & DQN Boltzmann Evaluation"]
+    S2 --> S3["Step 3: PINN Thermal-Wear Residual Delta Calculation"]
+    S3 --> S4["Step 4: Deterministic Expert Rule Engine Consensus"]
+    S4 --> S5["Step 5: TreeSHAP Attribution Force Direction"]
+    S5 --> S6["Step 6: Monte Carlo 1,000-Rollout Stochastic Simulation"]
+    S6 --> S7["Step 7: Multi-Criteria Synthesis & CoT Dossier Formulation"]
+    S7 --> Branch["Dynamic Contingency Branches (Safety Car, Rain Onset, Tyre Cliff)"]
+    Branch --> Output(["Executive Pit-Wall Plan & Synthesized Radio Comms"])
+```
+
+---
+
+### 4. Model Context Protocol (MCP) Server (Part B1)
+
+APEX exposes its digital twin telemetry, TreeSHAP explainer, grounded RAG QA, counterfactual simulator, Monte Carlo engine, scenario injector, and autonomous agentic strategist as an official **Model Context Protocol (MCP)** server built on the standard `mcp` 2.0.0 SDK.
 
 ```mermaid
 flowchart TD
@@ -225,6 +258,7 @@ flowchart TD
             T4["preview_pit_strategy<br/>(Counterfactual Timeline Forking)"]
             T5["evaluate_monte_carlo<br/>(1,000-Rollout Stochastic Simulation)"]
             T6["trigger_scenario<br/>(Inject Rain, Safety Car, Puncture)"]
+            T7["get_agentic_strategy_plan<br/>(Multi-Step CoT & Contingency Dossier)"]
         end
         
         StdioTransport --> MCPServerCore
@@ -234,6 +268,7 @@ flowchart TD
         MCPServerCore --> T4
         MCPServerCore --> T5
         MCPServerCore --> T6
+        MCPServerCore --> T7
     end
 
     subgraph APEXCore ["🏎️ APEX Core Backend Engines"]
@@ -241,6 +276,7 @@ flowchart TD
         SHAPSurrogate["TreeSHAP Surrogate Explainer"]
         VectorStore["RAG Vector Engine & SQL Store"]
         MonteEngine2["Monte Carlo & Counterfactual Engines"]
+        AgenticCore["Agentic Race Strategist & Safe RL"]
         
         T1 --> SimEngine
         T2 --> SHAPSurrogate
@@ -248,6 +284,7 @@ flowchart TD
         T4 --> MonteEngine2
         T5 --> MonteEngine2
         T6 --> SimEngine
+        T7 --> AgenticCore
     end
 
     ClaudeDesktop <==>|JSON-RPC via stdio| StdioTransport
@@ -263,6 +300,7 @@ flowchart TD
 | `preview_pit_strategy` | `proposed_action: str, rollout_laps: int` | `CounterfactualResult` | Forks counterfactual timeline simulation to evaluate proposed action vs baseline over $N$ laps. |
 | `evaluate_monte_carlo` | `rollouts: int, target_car_id: str` | `MonteCarloDistribution` | Executes stochastic Monte Carlo forward rollouts across candidate strategy paths. |
 | `trigger_scenario` | `scenario_type: str, intensity: float, laps: int` | `ScenarioEventStatus` | Injects live hazards (`TORRENTIAL_RAIN`, `SAFETY_CAR`, `VSC`, `PUNCTURE`, `CLEAR_HAZARDS`). |
+| `get_agentic_strategy_plan` | `track_name: str, target_car_id: str` | `AgenticStrategyPlan` | Executes autonomous multi-step reasoning with Chain-of-Thought (CoT) and dynamic contingencies. |
 
 #### Claude Desktop Configuration (`claude_desktop_config.json`):
 ```json
