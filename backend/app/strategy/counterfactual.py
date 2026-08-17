@@ -1,5 +1,11 @@
-"""Lightweight counterfactual forward-rollout comparator and timeline forking engine."""
+"""Lightweight counterfactual forward-rollout comparator and timeline forking engine.
+
+Provides deterministic timeline forking, multi-lap scenario projection, undercut/overcut
+threat analysis, and delta-T advantage calculations across strategic action candidates.
+"""
 from typing import Dict, List, Any, Optional, Union, TypedDict
+import numpy as np
+
 from backend.app.simulator.engine import RaceSimulator
 from backend.app.simulator.models import RaceState, StrategyAction, TyreCompound
 
@@ -41,6 +47,10 @@ class CounterfactualChecker:
                 sim_clone.step(player_action=StrategyAction.MAINTAIN)
 
             clone_player = sim_clone.get_player_car()
+            
+            # Estimate tyre cliff risk probability
+            cliff_risk_pct = 95.0 if clone_player.tyre_cliff_reached else min(100.0, max(0.0, (clone_player.tyre_wear_pct - 50.0) * 2.5))
+            
             results.append({
                 "strategy": cand["name"],
                 "action": cand["action"].value,
@@ -49,8 +59,10 @@ class CounterfactualChecker:
                 "projected_tyre_wear_pct": round(clone_player.tyre_wear_pct, 1),
                 "projected_compound": clone_player.tyre_compound.value,
                 "cliff_reached": clone_player.tyre_cliff_reached,
+                "cliff_risk_pct": round(float(cliff_risk_pct), 1),
             })
 
+        # Rank by finishing position ascending, tie-break by gap to leader
         results.sort(key=lambda r: (r["projected_position"], r["projected_gap_to_leader"]))
 
         best_option = results[0]
@@ -82,7 +94,7 @@ class CounterfactualChecker:
         # Base simulator (maintaining)
         base_sim = RaceSimulator.from_state(historical_state)
         base_trajectory = []
-        for lap_step in range(rollout_laps):
+        for _ in range(rollout_laps):
             if base_sim.is_finished:
                 break
             base_sim.step(player_action=StrategyAction.MAINTAIN)
@@ -110,7 +122,7 @@ class CounterfactualChecker:
             "cliff_reached": p_alt.tyre_cliff_reached,
         })
 
-        for lap_step in range(rollout_laps - 1):
+        for _ in range(rollout_laps - 1):
             if alt_sim.is_finished:
                 break
             alt_sim.step(player_action=StrategyAction.MAINTAIN)
@@ -134,6 +146,14 @@ class CounterfactualChecker:
 
         verdict = "FAVORS_PROPOSED" if (pos_advantage > 0 or (pos_advantage == 0 and time_delta_advantage > 0)) else "FAVORS_BASELINE"
 
+        # Calculate undercut threat success probability if pitting
+        is_pit_action = "PIT" in action_enum.value
+        undercut_probability_pct = 0.0
+        if is_pit_action:
+            fresh_tyre_delta = 1.25  # seconds faster on fresh rubber
+            gap_ahead = float(historical_state.cars[0].gap_to_car_ahead_s) if historical_state.cars else 2.5
+            undercut_probability_pct = min(100.0, max(10.0, round((fresh_tyre_delta * rollout_laps / max(1.0, gap_ahead)) * 50.0, 1)))
+
         return {
             "historical_lap": historical_state.current_lap,
             "proposed_action": action_enum.value,
@@ -141,6 +161,7 @@ class CounterfactualChecker:
             "verdict": verdict,
             "time_delta_advantage_s": time_delta_advantage,
             "positions_gained": pos_advantage,
+            "undercut_success_probability_pct": undercut_probability_pct,
             "final_alternate_position": final_alt.get("position", 1),
             "final_baseline_position": final_base.get("position", 1),
             "alternate_timeline": alt_trajectory,
