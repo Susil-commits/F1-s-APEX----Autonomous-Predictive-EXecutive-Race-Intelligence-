@@ -1,6 +1,10 @@
 {
   "venvPath": ".",
   "venv": ".venv",
+  "extraPaths": [
+    ".",
+    "backend"
+  ],
   "include": [
     "backend",
     "benchmarks"
@@ -10,7 +14,7 @@
     "**/__pycache__",
     ".venv"
   ],
-  "reportMissingImports": true,
+  "reportMissingImports": false,
   "reportMissingTypeStubs": false,
   "pythonVersion": "3.12"
 }

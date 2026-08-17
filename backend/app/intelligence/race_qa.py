@@ -4,7 +4,6 @@ Answers natural-language tactical queries grounded strictly in persisted Decisio
 database records using dense vector retrieval (NumPy cosine similarity) and local Ollama LLMs.
 """
 from typing import Dict, List, Any, Optional, Tuple
-import os
 import logging
 import re
 import numpy as np

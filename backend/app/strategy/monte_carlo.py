@@ -2,8 +2,7 @@
 from typing import Dict, List, Any, Optional
 import numpy as np
 
-from backend.app.simulator.engine import RaceSimulator
-from backend.app.simulator.models import RaceState, StrategyAction, TyreCompound
+from backend.app.simulator.models import RaceState
 
 
 class MonteCarloEngine:
@@ -25,8 +24,8 @@ class MonteCarloEngine:
 
         # Strategy candidates to compare
         strategies = [
-            {"id": "plan_a_med_hard", "name": "Plan A: Medium ➔ Hard (1-Stop)", "pit_lap": min(state.total_laps, state.current_lap + max(3, 24 - player.tyre_age_laps)), "compound": "HARD", "pace_bias": 0.0},
-            {"id": "plan_b_soft_med", "name": "Plan B: Soft ➔ Medium ➔ Soft (2-Stop)", "pit_lap": min(state.total_laps, state.current_lap + max(2, 14 - player.tyre_age_laps)), "compound": "MEDIUM", "pace_bias": -0.35},
+            {"id": "plan_a_med_hard", "name": "Plan A: Medium -> Hard (1-Stop)", "pit_lap": min(state.total_laps, state.current_lap + max(3, 24 - player.tyre_age_laps)), "compound": "HARD", "pace_bias": 0.0},
+            {"id": "plan_b_soft_med", "name": "Plan B: Soft -> Medium -> Soft (2-Stop)", "pit_lap": min(state.total_laps, state.current_lap + max(2, 14 - player.tyre_age_laps)), "compound": "MEDIUM", "pace_bias": -0.35},
             {"id": "plan_c_hard_one_stop", "name": "Plan C: Overcut Hard Extended", "pit_lap": min(state.total_laps, state.current_lap + max(5, 32 - player.tyre_age_laps)), "compound": "HARD", "pace_bias": 0.15},
             {"id": "plan_d_aggressive_push", "name": "Plan D: Maximum Attack 2-Stop Softs", "pit_lap": min(state.total_laps, state.current_lap + max(2, 11 - player.tyre_age_laps)), "compound": "SOFT", "pace_bias": -0.65},
         ]

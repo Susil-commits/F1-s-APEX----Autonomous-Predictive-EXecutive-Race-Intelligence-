@@ -61,6 +61,9 @@ jobs:
       - name: Verify Benchmark Evaluation
         run: uv run python benchmarks/run_benchmarks.py
 
+      - name: Run Automated Evaluation & Regression Scoring Harness
+        run: uv run python backend/eval/run_eval.py
+
   frontend-build:
     name: Frontend TypeScript & Vite Build
     runs-on: ubuntu-latest

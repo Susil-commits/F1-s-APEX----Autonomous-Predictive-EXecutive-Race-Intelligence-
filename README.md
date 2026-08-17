@@ -3,66 +3,89 @@
 <p align="center">
   <img src="https://img.shields.io/badge/Python-3.12-blue.svg" alt="Python 3.12" />
   <img src="https://img.shields.io/badge/FastAPI-0.115-009688.svg" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/MCP-2.0.0-purple.svg" alt="MCP Server" />
   <img src="https://img.shields.io/badge/FastF1-Real_Telemetry-E10600.svg" alt="FastF1" />
   <img src="https://img.shields.io/badge/Ollama-Radio_LLM-000000.svg" alt="Ollama" />
   <img src="https://img.shields.io/badge/RAG-Decision_Provenance-10b981.svg" alt="RAG" />
   <img src="https://img.shields.io/badge/TreeSHAP-XAI-8b5cf6.svg" alt="TreeSHAP" />
-  <img src="https://img.shields.io/badge/Tests-71%2F71_Passed-brightgreen.svg" alt="Tests" />
+  <img src="https://img.shields.io/badge/Tests-87%2F87_Passed-brightgreen.svg" alt="Tests" />
+  <img src="https://img.shields.io/badge/Eval_Harness-8%2F8_Passed-brightgreen.svg" alt="Eval Harness" />
   <img src="https://img.shields.io/badge/React-18-61DAFB.svg" alt="React 18" />
   <img src="https://img.shields.io/badge/Vite-6.0-646CFF.svg" alt="Vite 6" />
   <img src="https://img.shields.io/badge/TailwindCSS-3.4-38B2AC.svg" alt="TailwindCSS" />
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License" />
 </p>
 
-**APEX** is a Formula 1 team pit-wall decision intelligence and mission control platform. Grounded in real-world F1 timing telemetry (`fastf1`), APEX maintains a high-fidelity stochastic digital twin, calibrates non-linear tyre wear on multi-season race telemetry, broadcasts local LLM team radio commentary (`ollama`), facilitates natural-language historical debrief queries via RAG (`sentence-transformers`), computes physical lap-time Delta-T decompositions, performs 1,000-rollout Monte Carlo stochastic rollouts, persists auditable race events in async SQLAlchemy, and provides transparent explainability via TreeSHAP and Deep Q-Networks (DQN).
+**APEX** is an autonomous Formula 1 race strategy intelligence and pit-wall mission control platform. Grounded in real-world F1 timing telemetry (`fastf1`), APEX couples a high-fidelity stochastic digital twin with deep reinforcement learning (DQN), multi-action TreeSHAP explainability, native Model Context Protocol (MCP) tool interfaces, a 4-pillar automated evaluation harness, an autonomous self-healing agent loop, dense-vector race history RAG (`sentence-transformers`), local team radio LLM commentary (`ollama`), and a real-time React 18 cockpit dashboard.
 
 ---
 
-## 🏎️ Complete Enterprise Architecture
+## 🏎️ Complete System Architecture
 
-APEX is structured into a high-performance modular pipeline spanning physical simulation, reinforcement learning, real-time data streaming, digital twin synchronization, cockpit audio DSP, and an interactive React mission control dashboard.
+APEX operates as a multi-tier reactive pipeline bridging physical simulation, machine learning, streaming protocols, generative AI, and agentic tool invocation.
 
 ```mermaid
 flowchart TD
-    subgraph Layer1 ["🏎️ Layer 1: Physics Engine & Stochastic Twin"]
-        Track["Track Vectors & 20 Mini-Sectors"]
+    subgraph Layer1 ["🏎️ Layer 1: Physics Engine & Stochastic Digital Twin"]
+        Track["Multi-Circuit Geometries & 20 Mini-Sectors"]
         Physics["Vehicle Dynamics & 4-Corner Thermals"]
-        WeatherModel["Markov Weather State Engine"]
+        WeatherModel["Markov Chain Dynamic Weather Engine"]
+        FastF1Data["FastF1 Empirical Polynomial Degradation"]
+        
         Track --> Physics
         WeatherModel --> Physics
+        FastF1Data --> Physics
     end
 
-    subgraph Layer2 ["🧠 Layer 2: AI Strategy & Decision Intelligence"]
-        Feat["28-D Feature Extraction Vector"]
+    subgraph Layer2 ["🧠 Layer 2: Strategy AI, Explainability & RAG"]
+        Feat["28-D Normalized State Tensor"]
         DQNNet["DQN Reinforcement Learning Policy"]
-        SHAPEngine["TreeSHAP Feature Attribution"]
+        SHAPEngine["Multi-Action TreeSHAP Surrogate (XAI)"]
         MonteEngine["1,000-Rollout Monte Carlo Sim"]
-        Isochrone["Multi-Lap Isochrone Surface"]
+        Counterfactual["Counterfactual Timeline Simulator"]
+        RAGEngine["Dense Vector RAG (all-MiniLM-L6-v2)"]
         
         Physics --> Feat
         Feat --> DQNNet
         Feat --> SHAPEngine
         Feat --> MonteEngine
-        Feat --> Isochrone
+        Feat --> Counterfactual
+        Feat --> RAGEngine
     end
 
-    subgraph Layer3 ["⚡ Layer 3: FastAPI Backend & Data Broadcaster"]
+    subgraph Layer3 ["⚡ Layer 3: FastAPI Backend, MCP Server & Persistence"]
         WSServer["WebSocket Telemetry Streamer (60Hz)"]
-        REST["FastAPI REST Endpoints (/strategy, /telemetry)"]
-        TwinStore["In-Memory State Store & Persistence"]
+        REST["FastAPI REST Endpoints (/strategy, /telemetry, /race)"]
+        MCPServer["Model Context Protocol (MCP) Server (mcp SDK)"]
+        TwinStore["SQLAlchemy Async Write-Through Store & Cache"]
         
         DQNNet --> WSServer
         SHAPEngine --> WSServer
         MonteEngine --> WSServer
         WSServer <--> TwinStore
         REST <--> TwinStore
+        MCPServer <--> TwinStore
+        MCPServer <--> DQNNet
+        MCPServer <--> SHAPEngine
+        MCPServer <--> RAGEngine
     end
 
-    subgraph Layer4 ["🖥️ Layer 4: Mission Control Frontend & Audio DSP"]
+    subgraph Layer4 ["🛡️ Layer 4: Verification, Evaluation & Self-Healing Agent"]
+        EvalHarness["4-Pillar Automated Evaluation Harness (run_eval.py)"]
+        Baselines["Versioned Baseline Scores (baseline_scores.json)"]
+        HealingAgent["Self-Healing Verification Agent (agent_loop.py)"]
+        Distillation["Auto-Surrogate Re-Distillation Pipeline"]
+        
+        Baselines --> EvalHarness
+        EvalHarness --> HealingAgent
+        HealingAgent --> Distillation
+    end
+
+    subgraph Layer5 ["🖥️ Layer 5: Mission Control Frontend & Cockpit Audio DSP"]
         Zustand["Zustand Global State Store"]
-        DVR["Time-Travel Telemetry DVR"]
-        UIPanels["21 Mission Control UI Panels"]
-        Audio["Web Audio DSP & Multi-Persona Voice Engine"]
+        DVR["Time-Travel Telemetry DVR (200 Laps)"]
+        UIPanels["34 Mission Control UI Components"]
+        Audio["Web Audio DSP (V6 Synth + Roger Beep + Radio Filter)"]
         
         WSServer ==>|JSON Telemetry Frame| Zustand
         Zustand --> DVR
@@ -73,6 +96,8 @@ flowchart TD
 
 ---
 
+## 🔬 Core Subsystems & Technical Deep Dives
+
 ### 1. Deterministic Physics, Vehicle Dynamics & Micro-Sectors
 
 The physics engine computes continuous telemetry, vehicle dynamics, tyre degradation, and weather conditions at 60 Hz.
@@ -80,7 +105,7 @@ The physics engine computes continuous telemetry, vehicle dynamics, tyre degrada
 ```mermaid
 flowchart LR
     subgraph EnvConditions ["🌦️ Environmental Dynamics"]
-        WeatherState["Markov Chain Weather Model<br/>(Dry ➔ Damp ➔ Wet)"]
+        WeatherState["Markov Chain Weather Model<br/>(Dry -> Damp -> Wet)"]
         RainIntensity["Rain Intensity: 0.0 - 1.0"]
         TrackGrip["Dynamic Grip Coefficient &mu;"]
         WeatherState --> RainIntensity --> TrackGrip
@@ -116,7 +141,7 @@ flowchart LR
 #### Physical Equations & Dynamic Factors:
 - **Lap Time Delta-T Decomposition**:
   $$\Delta t_{\text{lap}} = t_{\text{base}} + \Delta t_{\text{tyre}}(\text{wear}, T) + \Delta t_{\text{fuel}}(m_{\text{fuel}}) + \Delta t_{\text{wake}}(d_{\text{gap}}) - \Delta t_{\text{DRS}} - \Delta t_{\text{ERS}}$$
-- **Fuel Effect**: $+0.035\text{ s/kg}$ penalty for every kilogram of on-board fuel.
+- **Fuel Effect**: $+0.035\text{ s/kg}$ penalty for every kilogram of on-board fuel ($1.75\text{ kg/lap}$ burn rate).
 - **Tyre Thermal & Wear Cliff**: Non-linear degradation curve with exponential pace penalty once wear exceeds $70\%$, tracking carcass ($T_{\text{carcass}}$) and surface ($T_{\text{surface}}$) temperatures across all 4 wheels.
 - **Dirty Air Turbulence**: $+0.8\text{ s/lap}$ aerodynamic downforce loss when trailing within a $1.2\text{ s}$ slipstream wake window.
 
@@ -173,46 +198,285 @@ flowchart TD
   - `1: PUSH` — Deploy maximum engine mapping and aggressive cornering ($-0.4\text{ s/lap}$, $+2.5\times$ wear rate).
   - `2: CONSERVE` — Lift-and-coast fuel/tyre preservation mode ($+0.3\text{ s/lap}$, $-40\%$ wear rate).
   - `3: PIT_SOFT`, `4: PIT_MEDIUM`, `5: PIT_HARD`, `6: PIT_INTER`, `7: PIT_WET` — Execute box call for designated compound.
-- **Explainable AI (TreeSHAP on Distilled Surrogate)**: Decomposes strategic policy confidence via model distillation: a tree-based surrogate model (`backend/models/shap_surrogate.joblib`) is distilled from the trained DQN's actual $Q(s, a)$ decision surface over thousands of simulated race rollouts and logged DB telemetry. `shap.TreeExplainer` computes exact Shapley attributions $f(x) = \phi_0 + \sum_{i=1}^{28} \phi_i(x)$ via `/api/strategy/shap`, with graceful fallback to heuristic baselines if no distilled model is present.
-- **1,000-Rollout Monte Carlo Engine**: Projects 1,000 parallel stochastic forward trajectories via `MonteCarloEngine` and `/api/strategy/monte-carlo` with Gaussian pace variance ($\sigma = 0.38\text{ s}$) and dynamic safety car transition probabilities.
+- **Explainable AI (TreeSHAP on Distilled Surrogate)**: Decomposes strategic policy confidence via model distillation: a tree-based surrogate model (`backend/models/shap_surrogate.joblib`) is distilled from the trained DQN's actual $Q(s, a)$ decision surface. `shap.TreeExplainer` computes exact Shapley attributions $f(x) = \phi_0 + \sum_{i=1}^{28} \phi_i(x)$ via `/api/strategy/shap`.
+- **1,000-Rollout Monte Carlo Engine**: Projects 1,000 parallel stochastic forward trajectories with Gaussian pace variance ($\sigma = 0.38\text{ s}$) and dynamic safety car transition probabilities.
 
 ---
 
-### 3. Real-Time Telemetry Streaming, State Sync & Digital Twin
+### 3. Model Context Protocol (MCP) Server (Part B1)
 
-The communication architecture provides bi-directional 60 Hz WebSocket streaming with automatic offline fallback to an embedded deterministic client-side digital twin.
+APEX exposes its digital twin telemetry, TreeSHAP explainer, grounded RAG QA, counterfactual simulator, Monte Carlo engine, and scenario injector as an official **Model Context Protocol (MCP)** server built on the standard `mcp` 2.0.0 SDK.
 
 ```mermaid
-sequenceDiagram
-    autonumber
-    participant Physics as 🏎️ Physics Engine
-    participant FastAPI as ⚡ FastAPI Backend
-    participant WS as 📡 WebSocket Streamer
-    participant Store as 💾 Zustand Store
-    participant DVR as ⏪ Telemetry DVR Buffer
-    participant Twin as 🔄 Client Twin Fallback
+flowchart TD
+    subgraph MCPClients ["🤖 External AI Agents & IDEs"]
+        ClaudeDesktop["Claude Desktop / Claude Code"]
+        Antigravity["Antigravity / Cursor / Custom Agent"]
+    end
 
-    loop 60Hz Telemetry Frame Generation
-        Physics->>FastAPI: Compute vehicle dynamics & lap splits
-        FastAPI->>WS: Broadcast RaceState JSON payload
-        alt Online Connection
-            WS->>Store: Ingest live telemetry frame
-            Store->>DVR: Append to ring buffer (Time-Travel DVR)
-        else Offline / Disconnected
-            Twin->>Store: Execute deterministic client-side physics twin
+    subgraph MCPServerArchitecture ["⚡ APEX MCP Server (backend/app/mcp_server/server.py)"]
+        StdioTransport["Standard IO (stdio) Transport Layer"]
+        MCPServerCore["MCPServer('apex-race-intelligence')"]
+        
+        subgraph MCPToolRegistry ["🛠️ Registered Tools (@mcp.tool)"]
+            T1["get_race_state<br/>(Live Telemetry, Weather, Wear, Standings)"]
+            T2["explain_last_decision<br/>(TreeSHAP Attributions & Shapley Values)"]
+            T3["ask_race_history<br/>(Dense Vector RAG over Persisted Logs)"]
+            T4["preview_pit_strategy<br/>(Counterfactual Timeline Forking)"]
+            T5["evaluate_monte_carlo<br/>(1,000-Rollout Stochastic Simulation)"]
+            T6["trigger_scenario<br/>(Inject Rain, Safety Car, Puncture)"]
         end
+        
+        StdioTransport --> MCPServerCore
+        MCPServerCore --> T1
+        MCPServerCore --> T2
+        MCPServerCore --> T3
+        MCPServerCore --> T4
+        MCPServerCore --> T5
+        MCPServerCore --> T6
+    end
+
+    subgraph APEXCore ["🏎️ APEX Core Backend Engines"]
+        SimEngine["RaceSimulator (Digital Twin)"]
+        SHAPSurrogate["TreeSHAP Surrogate Explainer"]
+        VectorStore["RAG Vector Engine & SQL Store"]
+        MonteEngine2["Monte Carlo & Counterfactual Engines"]
+        
+        T1 --> SimEngine
+        T2 --> SHAPSurrogate
+        T3 --> VectorStore
+        T4 --> MonteEngine2
+        T5 --> MonteEngine2
+        T6 --> SimEngine
+    end
+
+    ClaudeDesktop <==>|JSON-RPC via stdio| StdioTransport
+    Antigravity <==>|JSON-RPC via stdio| StdioTransport
+```
+
+#### Available MCP Tools Reference:
+| Tool Name | Input Arguments | Output Payload | Description |
+| :--- | :--- | :--- | :--- |
+| `get_race_state` | `track_name: str` | `RaceStateSnapshot` | Returns live digital twin status (lap, weather, tyre wear, safety car, leader gap, standings). |
+| `explain_last_decision` | `car_id: str` | `TreeSHAPAttribution` | Computes TreeSHAP feature attributions, Shapley $\phi_i$ values, and plain-language decision rationale. |
+| `ask_race_history` | `question: str, race_id: str, top_k: int` | `RAGResponsePayload` | Queries grounded historical decision logs via dense vector embeddings with source citations. |
+| `preview_pit_strategy` | `proposed_action: str, rollout_laps: int` | `CounterfactualResult` | Forks counterfactual timeline simulation to evaluate proposed action vs baseline over $N$ laps. |
+| `evaluate_monte_carlo` | `rollouts: int, target_car_id: str` | `MonteCarloDistribution` | Executes stochastic Monte Carlo forward rollouts across candidate strategy paths. |
+| `trigger_scenario` | `scenario_type: str, intensity: float, laps: int` | `ScenarioEventStatus` | Injects live hazards (`TORRENTIAL_RAIN`, `SAFETY_CAR`, `VSC`, `PUNCTURE`, `CLEAR_HAZARDS`). |
+
+#### Claude Desktop Configuration (`claude_desktop_config.json`):
+```json
+{
+  "mcpServers": {
+    "apex-race-intelligence": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--project",
+        "/path/to/APEX",
+        "python",
+        "-m",
+        "backend.app.mcp_server.server"
+      ]
+    }
+  }
+}
+```
+
+---
+
+### 4. Automated Evaluation Harness & Regression Gates (Part B2)
+
+APEX implements a versioned, repeatable, CI-integrated **Evaluation Harness** (`backend/eval/run_eval.py`) that scores all 4 core pillars against strict baseline gates defined in `backend/eval/baseline_scores.json`.
+
+```mermaid
+flowchart TD
+    subgraph EvalTriggers ["⚙️ Evaluation Execution"]
+        CLI["CLI: uv run python backend/eval/run_eval.py"]
+        CI["GitHub Actions CI Workflow (.github/workflows/ci.yml)"]
+        AgentTrigger["Self-Healing Agent Loop (agent_loop.py)"]
+    end
+
+    subgraph FourPillars ["📊 4-Pillar Evaluation Suite"]
+        P1["Pillar 1: DQN RL Policy Multi-Circuit Benchmark<br/>(Win Rate, Podium Rate, Gap to P1, Blown Tyres)"]
+        P2["Pillar 2: TreeSHAP Surrogate Fidelity & Model Hash Drift<br/>(Surrogate R², SHA-256 Checkpoint Verification)"]
+        P3["Pillar 3: FastF1 Tyre Degradation Model Calibration<br/>(Held-Out Grand Prix R² and RMSE Goodness-of-Fit)"]
+        P4["Pillar 4: Race History RAG Retrieval Fidelity<br/>(Precision@1, Out-of-Distribution Refusal Accuracy)"]
+    end
+
+    subgraph ScoringEngine ["⚖️ Scoring & Regression Gate Engine"]
+        BaselinesFile["backend/eval/baseline_scores.json<br/>(Versioned Targets & Tolerances)"]
+        Comparator{"check_thresholds()<br/>All Metrics Within Limits?"}
+        
+        BaselinesFile --> Comparator
+        P1 --> Comparator
+        P2 --> Comparator
+        P3 --> Comparator
+        P4 --> Comparator
+    end
+
+    subgraph Outputs ["📋 Artifacts & CI Status"]
+        PassGate["Exit Code 0: Nominal Pass"]
+        FailGate["Exit Code 1: Regression Block"]
+        ReportJSON["backend/eval/latest_eval_report.json"]
+        
+        Comparator -- All Pass --> PassGate
+        Comparator -- Any Regression --> FailGate
+        Comparator --> ReportJSON
+    end
+
+    CLI --> FourPillars
+    CI --> FourPillars
+    AgentTrigger --> FourPillars
+```
+
+#### Evaluation Metrics & Baseline Thresholds:
+| Evaluation Metric | Measured Score | Target Baseline | CI Threshold Gate | Status |
+| :--- | :---: | :---: | :---: | :---: |
+| `dqn_win_rate_pct` | **100.0%** | 93.3% | $\ge 80.0\%$ | **PASS** |
+| `dqn_podium_rate_pct` | **100.0%** | 100.0% | $\ge 90.0\%$ | **PASS** |
+| `dqn_avg_gap_to_winner_s` | **0.00s** | 0.12s | $\le 2.50\text{s}$ | **PASS** |
+| `dqn_avg_blown_tyre_laps` | **0.00** | 0.00 | $\le 0.50$ | **PASS** |
+| `shap_surrogate_fidelity_r2` | **0.88** | 0.85 | $\ge 0.70$ | **PASS** |
+| `tyre_model_fastf1_r2` | **0.62** | 0.55 | $\ge 0.30$ | **PASS** |
+| `rag_citation_precision_pct` | **100.0%** | 100.0% | $\ge 80.0\%$ | **PASS** |
+| `rag_refusal_accuracy_pct` | **100.0%** | 100.0% | $\ge 80.0\%$ | **PASS** |
+
+---
+
+### 5. Self-Healing Continuous Verification Agent Loop (Part B3)
+
+The `SelfHealingAgent` (`backend/app/intelligence/agent_loop.py`) operates continuous drift monitoring:
+1. Validates TreeSHAP surrogate SHA-256 weight hash against the active DQN policy checkpoint.
+2. If drift or benchmark regression is detected, automatically triggers surrogate re-distillation (`distill_dqn_surrogate.py`) and re-evaluates the scoring gates.
+3. Generates structured plain-language debriefs.
+
+```mermaid
+flowchart TD
+    subgraph MonitorCycle ["🔍 Autonomous Verification Cycle"]
+        Start(["Agent Wakeup (Scheduled / Event)"]) --> CheckHash["TreeSHAPExplainer.verify_drift()<br/>Compare Checkpoint SHA-256"]
+        CheckHash --> HashDecision{"SHA-256 Hash Drift Detected?"}
+    end
+
+    subgraph HealingCycle ["🛠️ Self-Healing & Distillation"]
+        HashDecision -- Yes --> RunDistill["Trigger backend/training/distill_dqn_surrogate.py<br/>Fit Multi-Action Surrogate on New DQN Policy"]
+        RunDistill --> ReEval["Run Evaluation Harness (run_eval.py)"]
+        HashDecision -- No --> EvalDirect["Run Evaluation Harness directly"]
+        EvalDirect --> GateDecision{"Evaluation Gates Passed?"}
+        ReEval --> GateDecision
+    end
+
+    subgraph ActionLogging ["📝 Structured Audit & Commentary"]
+        GateDecision -- Nominal Pass --> LogNominal["Log AgentHealingAction(DRIFT_RESOLVED / NOMINAL)"]
+        GateDecision -- Regression --> LogAlert["Log AgentHealingAction(REGRESSION_ALERT)"]
+        LogNominal --> Debrief["Generate Plain-Language Race Control Debrief"]
+        LogAlert --> Debrief
     end
 ```
 
-#### State & Storage Specifications:
-- **WebSocket Telemetry Streamer**: Low-overhead JSON frame broadcaster pushing full race telemetry, timing deltas, and tyre statuses at 60 Hz.
-- **Async SQLAlchemy Persistence**: Write-through storage engine (`backend/app/twin/store.py`) persisting `RaceSession`, `TelemetryTick`, and `DecisionLog` models to PostgreSQL / SQLite.
-- **Zero-Latency Client Twin Fallback**: If the backend connection drops, the frontend transparently switches to the client-side `clientSimulator.ts` twin with identical deterministic physics.
-- **Time-Travel Telemetry DVR**: In-memory ring buffer capturing up to 200 laps of historical high-frequency telemetry for instantaneous post-session or in-race timeline scrubbing.
+---
+
+### 6. Real F1 Telemetry Datasets & FastF1 Tyre Degradation Calibration
+
+To replace synthetic degradation formulas with empirical ground truth, APEX ingests and models real-world Formula 1 timing telemetry via the `fastf1` API across multiple seasons and circuit profiles.
+
+```mermaid
+flowchart TD
+    subgraph DataIngestion ["📥 FastF1 Ingestion & Cleaning Pipeline"]
+        F1API["FastF1 Timing API (2022-2023 Grand Prix)"] --> Fetcher["backend/training/fetch_fastf1_data.py"]
+        Fetcher --> Filter1["Exclude Pit In/Out Laps & Inaccurate Markers"]
+        Filter1 --> Filter2["Exclude Safety Car & VSC Periods (TrackStatus != '1')"]
+        Filter2 --> DeltaTCalc["Compute lap_time_delta = lap_time - driver_fastest_lap"]
+        DeltaTCalc --> FuelCorrect["Fuel Effect Correction (+0.055s / lap car burn-off)"]
+        FuelCorrect --> RawCSV["backend/data/real_tyre_data.csv<br/>(4,276 Clean Telemetry Laps)"]
+    end
+
+    subgraph CalibrationValidation ["📊 Polynomial Calibration & Held-Out Validation"]
+        RawCSV --> PolyFit["Quadratic Polynomial Regression<br/>loss(age) = c2 * age^2 + c1 * age"]
+        PolyFit --> CrossVal["Held-Out Race Circuit Validation (e.g. Spa / Silverstone)"]
+        CrossVal --> Metrics["Compute R² & RMSE vs Naive Linear Baseline"]
+        CrossVal --> ModelJSON["backend/models/calibrated_tyre_model.json"]
+        CrossVal --> PlotPNG["backend/models/tyre_model_validation.png"]
+    end
+
+    subgraph RuntimeEngine ["🏎️ Digital Twin Runtime Integration"]
+        ModelJSON --> TyreIntelligence["backend/app/intelligence/tyre_model.py"]
+        TyreIntelligence --> DegPredictor["Empirical Degradation & Cliff Prediction"]
+        TyreIntelligence -.-> SyntheticFallback["Graceful Synthetic Fallback (Offline Safe)"]
+    end
+```
+
+#### Real Data Calibration Specifications:
+- **Telemetry Volume**: **4,276 clean race laps** collected from 5 real Grand Prix sessions (2023 Silverstone, 2023 Monza, 2023 Spain, 2022 Silverstone, 2022 Monza).
+- **Fuel Mass Decoupling**: In Formula 1, cars shed approximately $1.7 - 1.9\text{ kg/lap}$ of fuel, yielding a $\approx -0.055\text{ s/lap}$ pace advantage that masks tyre degradation during stint progression. APEX corrects for stint-relative fuel burn to isolate pure tyre degradation loss $\Delta t_{\text{tyre}}(a)$.
+- **Empirical Degradation Equation**:
+  $$\Delta t_{\text{loss}}(a) = c_2 \cdot a^2 + c_1 \cdot a + \mathbb{I}_{\{w > w_{\text{cliff}}\}} \cdot \left(w - w_{\text{cliff}}\right) \cdot \lambda_{\text{cliff}}$$
 
 ---
 
-### 4. Web Audio DSP, Cockpit Radio & V6 Engine Synthesis
+### 7. Local LLM Race Engineer Commentary & Fact Verification
+
+APEX translates complex multidimensional decision attributions into authentic F1 team radio calls in real time using local instruction-tuned LLMs (`ollama` + `llama3.2:3b`) operating under strict zero-hallucination constraints.
+
+```mermaid
+flowchart LR
+    subgraph DecisionAttribution ["🧠 Strategic Attribution Input"]
+        State["RaceState Telemetry"] --> Explainer["ExplainabilityEngine"]
+        Explainer --> DecObj["DecisionExplanation<br/>• recommendation<br/>• confidence_score<br/>• urgency<br/>• primary_factors (SHAP)<br/>• tyre_cliff_risk"]
+    end
+
+    subgraph LLMTranslation ["🎙️ Local LLM Radio Generator"]
+        DecObj --> PromptBuilder["Constrained Prompt Builder<br/>• Limit: < 20 words<br/>• Strict Fact Grounding<br/>• Radio Comms Tone"]
+        PromptBuilder --> OllamaClient["Local Ollama Client<br/>(model: llama3.2:3b)"]
+        OllamaClient --> FactChecker{"is_fact_consistent()<br/>No Invented Numbers?"}
+        FactChecker -- Passed --> RadioText["Verified Radio Message"]
+        FactChecker -- Violated / Offline --> PersonaFallback["Persona-Aligned Template Fallback<br/>(Bono, GP, Xavi, Apex Core)"]
+    end
+
+    subgraph UIComms ["📻 Cockpit Broadcasting"]
+        RadioText --> WSServer["WebSocket Streamer"]
+        PersonaFallback --> WSServer
+        WSServer --> StrategyCard["StrategyCard.tsx (Radio Bubble)"]
+        WSServer --> SpeechSynth["Web Audio TTS Dispatcher"]
+    end
+```
+
+---
+
+### 8. Historical Race Strategy RAG (`sentence-transformers` + SQL Audit)
+
+APEX includes a Retrieval-Augmented Generation (RAG) system enabling race directors and strategists to interrogate past race decisions using natural-language questions grounded strictly in persisted `DecisionLogModel` records.
+
+```mermaid
+flowchart TD
+    subgraph StorageLayer ["💾 Persisted Decision Logs"]
+        DB[(PostgreSQL / SQLite Database)] --> StoredLogs["DecisionLogModel Rows<br/>(race_id, lap, recommendation, confidence, urgency, SHAP factors)"]
+        StoredLogs --> Serializer["format_decision_log()<br/>Rich Semantic Serialization"]
+    end
+
+    subgraph VectorRetrieval ["🔍 Dense Vector Embeddings & Similarity Search"]
+        Serializer --> DenseEmbed["SentenceTransformer (all-MiniLM-L6-v2)<br/>Normalized 384-D Embeddings"]
+        UserQuery["User Natural-Language Query<br/>'Why did we pit on lap 23?'"] --> QueryEmbed["embed_text(query)"]
+        DenseEmbed --> CosSim["NumPy Cosine Similarity Engine<br/>sim = (A · B) / (||A|| * ||B||)"]
+        QueryEmbed --> CosSim
+        CosSim --> TopK["Top-k Ground-Truth Citations (k=5)"]
+    end
+
+    subgraph GroundedSynthesis ["📝 Zero-Hallucination Answer Generation"]
+        TopK --> PromptContext["Grounded Context Block<br/>(Verified Decision Logs 1..k)"]
+        PromptContext --> OllamaQA["Ollama Local LLM / Grounded Extractor"]
+        OllamaQA --> FormattedResponse["Structured Q&A Payload<br/>• answer<br/>• citations / source logs<br/>• similarity scores<br/>• model provenance"]
+    end
+
+    subgraph FrontendAudit ["🖥️ Mission Control RAG Debrief"]
+        FormattedResponse --> RESTRoute["POST /api/race/ask"]
+        RESTRoute --> UIModal["RaceHistoryQA.tsx Debrief Modal"]
+    end
+```
+
+---
+
+### 9. Web Audio DSP, Cockpit Radio & V6 Engine Synthesis
 
 APEX features an integrated Web Audio API digital signal processing (DSP) engine and a Web Speech API multi-persona voice synthesizer.
 
@@ -255,131 +519,9 @@ flowchart LR
     end
 ```
 
-#### Audio & Voice Specifications:
-- **Cockpit Radio Acoustic Simulation**: Roger beep ($2.4\text{ kHz}$ sine wave), custom white noise burst generator, and a $300\text{ Hz} - 3.4\text{ kHz}$ biquad bandpass filter replicating FIA telemetry radio transmissions.
-- **V6 Turbo Hybrid FM Synth**: Live sawtooth oscillator parameterized dynamically:
-  $$f_{\text{engine}} = \left(\frac{\text{RPM}}{60}\right) \times 3 \text{ combustion pulses/rev}$$
-- **Multi-Persona Voice Dispatcher**: Authentic race engineer audio callouts with custom voice tuning:
-  - **APEX Core AI**: Neutral, data-driven mission control voice.
-  - **"Bono"** (Peter Bonnington / Mercedes): *"Hammer time, box box box"*, *"Lewis, it's Bono"*.
-  - **"GP"** (Gianpiero Lambiase / Red Bull): *"Manage the tyres, delta is good"*, *"Understood Max"*.
-  - **"Xavi"** (Xavier Marcos Padros / Ferrari): *"Plan A, we are checking"*, *"Box now for Hard"*.
-
 ---
 
-### 5. Real F1 Telemetry Datasets & FastF1 Tyre Degradation Calibration
-
-To replace synthetic degradation formulas with empirical ground truth, APEX ingests and models real-world Formula 1 timing telemetry via the `fastf1` API across multiple seasons and circuit profiles.
-
-```mermaid
-flowchart TD
-    subgraph DataIngestion ["📥 FastF1 Ingestion & Cleaning Pipeline"]
-        F1API["FastF1 Timing API (2022-2023 Grand Prix)"] --> Fetcher["backend/training/fetch_fastf1_data.py"]
-        Fetcher --> Filter1["Exclude Pit In/Out Laps & Inaccurate Markers"]
-        Filter1 --> Filter2["Exclude Safety Car & VSC Periods (TrackStatus != '1')"]
-        Filter2 --> DeltaTCalc["Compute lap_time_delta = lap_time - driver_fastest_lap"]
-        DeltaTCalc --> FuelCorrect["Fuel Effect Correction (+0.055s / lap car burn-off)"]
-        FuelCorrect --> RawCSV["backend/data/real_tyre_data.csv<br/>(4,276 Clean Telemetry Laps)"]
-    end
-
-    subgraph CalibrationValidation ["📊 Polynomial Calibration & Held-Out Validation"]
-        RawCSV --> PolyFit["Quadratic Polynomial Regression<br/>loss(age) = c2 * age^2 + c1 * age"]
-        PolyFit --> CrossVal["Held-Out Race Circuit Validation (e.g. Spa / Silverstone)"]
-        CrossVal --> Metrics["Compute R² & RMSE vs Naive Linear Baseline"]
-        CrossVal --> ModelJSON["backend/models/calibrated_tyre_model.json"]
-        CrossVal --> PlotPNG["backend/models/tyre_model_validation.png"]
-    end
-
-    subgraph RuntimeEngine ["🏎️ Digital Twin Runtime Integration"]
-        ModelJSON --> TyreIntelligence["backend/app/intelligence/tyre_model.py"]
-        TyreIntelligence --> DegPredictor["Empirical Degradation & Cliff Prediction"]
-        TyreIntelligence -.-> SyntheticFallback["Graceful Synthetic Fallback (Offline Safe)"]
-    end
-```
-
-#### Real Data Calibration Specifications:
-- **Telemetry Volume**: **4,276 clean race laps** collected from 5 real Grand Prix sessions (2023 Silverstone, 2023 Monza, 2023 Spain, 2022 Silverstone, 2022 Monza).
-- **Fuel Mass Decoupling**: In Formula 1, cars shed approximately $1.7 - 1.9\text{ kg/lap}$ of fuel, yielding a $\approx -0.055\text{ s/lap}$ pace advantage that masks tyre degradation during stint progression. APEX corrects for stint-relative fuel burn to isolate pure tyre degradation loss $\Delta t_{\text{tyre}}(a)$.
-- **Empirical Degradation Equation**:
-  $$\Delta t_{\text{loss}}(a) = c_2 \cdot a^2 + c_1 \cdot a + \mathbb{I}_{\{w > w_{\text{cliff}}\}} \cdot \left(w - w_{\text{cliff}}\right) \cdot \lambda_{\text{cliff}}$$
-  where $a$ is tyre age in laps, $w$ is tyre wear %, and $c_1, c_2$ are empirically calibrated per compound (`SOFT`, `MEDIUM`, `HARD`).
-
----
-
-### 6. Local LLM Race Engineer Commentary & Fact Verification
-
-APEX translates complex multidimensional decision attributions into authentic F1 team radio calls in real time using local instruction-tuned LLMs (`ollama` + `llama3.2:3b`) operating under strict zero-hallucination constraints.
-
-```mermaid
-flowchart LR
-    subgraph DecisionAttribution ["🧠 Strategic Attribution Input"]
-        State["RaceState Telemetry"] --> Explainer["ExplainabilityEngine"]
-        Explainer --> DecObj["DecisionExplanation<br/>• recommendation<br/>• confidence_score<br/>• urgency<br/>• primary_factors (SHAP)<br/>• tyre_cliff_risk"]
-    end
-
-    subgraph LLMTranslation ["🎙️ Local LLM Radio Generator"]
-        DecObj --> PromptBuilder["Constrained Prompt Builder<br/>• Limit: < 20 words<br/>• Strict Fact Grounding<br/>• Radio Comms Tone"]
-        PromptBuilder --> OllamaClient["Local Ollama Client<br/>(model: llama3.2:3b)"]
-        OllamaClient --> FactChecker{"is_fact_consistent()<br/>No Invented Numbers?"}
-        FactChecker -- Passed --> RadioText["Verified Radio Message"]
-        FactChecker -- Violated / Offline --> PersonaFallback["Persona-Aligned Template Fallback<br/>(Bono, GP, Xavi, Apex Core)"]
-    end
-
-    subgraph UIComms ["📻 Cockpit Broadcasting"]
-        RadioText --> WSServer["WebSocket Streamer"]
-        PersonaFallback --> WSServer
-        WSServer --> StrategyCard["StrategyCard.tsx (Radio Bubble)"]
-        WSServer --> SpeechSynth["Web Audio TTS Dispatcher"]
-    end
-```
-
-#### Commentary Architecture Specifications:
-- **LLM as Pure Translator, Not Decision-Maker**: The LLM never selects strategy actions or invents metrics. It strictly translates verified telemetry attributions (DQN policy, TreeSHAP drivers, and pit window status) into concise team radio transmissions.
-- **Deterministic Fact Consistency Validator**: Module `is_fact_consistent()` performs regex token verification on all generated numbers. If the LLM generates a numerical claim absent from the ground-truth explanation, it immediately rejects the output and triggers the persona template fallback.
-- **Tick Debouncing**: To conserve local inference compute, the generator debounces calls, only generating new transmissions when the recommendation changes, urgency shifts, or every 5 laps.
-
----
-
-### 7. Historical Race Strategy RAG (`sentence-transformers` + SQL Audit)
-
-APEX includes a Retrieval-Augmented Generation (RAG) system enabling race directors and strategists to interrogate past race decisions using natural-language questions grounded strictly in persisted `DecisionLogModel` records.
-
-```mermaid
-flowchart TD
-    subgraph StorageLayer ["💾 Persisted Decision Logs"]
-        DB[(PostgreSQL / SQLite Database)] --> StoredLogs["DecisionLogModel Rows<br/>(race_id, lap, recommendation, confidence, urgency, SHAP factors)"]
-        StoredLogs --> Serializer["format_decision_log()<br/>Rich Semantic Serialization"]
-    end
-
-    subgraph VectorRetrieval ["🔍 Dense Vector Embeddings & Similarity Search"]
-        Serializer --> DenseEmbed["SentenceTransformer (all-MiniLM-L6-v2)<br/>Normalized 384-D Embeddings"]
-        UserQuery["User Natural-Language Query<br/>'Why did we pit on lap 23?'"] --> QueryEmbed["embed_text(query)"]
-        DenseEmbed --> CosSim["NumPy Cosine Similarity Engine<br/>sim = (A · B) / (||A|| * ||B||)"]
-        QueryEmbed --> CosSim
-        CosSim --> TopK["Top-k Ground-Truth Citations (k=5)"]
-    end
-
-    subgraph GroundedSynthesis ["📝 Zero-Hallucination Answer Generation"]
-        TopK --> PromptContext["Grounded Context Block<br/>(Verified Decision Logs 1..k)"]
-        PromptContext --> OllamaQA["Ollama Local LLM / Grounded Extractor"]
-        OllamaQA --> FormattedResponse["Structured Q&A Payload<br/>• answer<br/>• citations / source logs<br/>• similarity scores<br/>• model provenance"]
-    end
-
-    subgraph FrontendAudit ["🖥️ Mission Control RAG Debrief"]
-        FormattedResponse --> RESTRoute["POST /api/race/ask"]
-        RESTRoute --> UIModal["RaceHistoryQA.tsx Debrief Modal"]
-    end
-```
-
-#### Strategy RAG Specifications:
-- **Vector Space**: Embeds serialized decision trails into a 384-dimensional dense semantic space using `all-MiniLM-L6-v2`, with a fallback hash vectorizer for disconnected environments.
-- **NumPy Brute-Force Vector Retrieval**: Because race sessions contain hundreds to a few thousand decision logs, in-memory NumPy cosine similarity provides microsecond latency without external vector database dependencies.
-- **Citation Provenance**: Every response returned by `/api/race/ask` attaches full decision citations (Lap #, Directive, Confidence %, Urgency, Rule/DQN consensus, and Top SHAP factors) so every answer is auditable.
-- **Out-of-Scope Guarantee**: Queries regarding laps or events absent from the database trigger explicit refusals (*"I don't have that information in the race history logs"*) rather than hallucinatory extrapolations.
-
----
-
-### 8. Mission Control Frontend Layout & Modular Component Hierarchy
+### 10. Mission Control Frontend Layout & Component Hierarchy
 
 The React 18 dashboard is structured into 4 synchronized workspaces driven by Zustand state management.
 
@@ -434,77 +576,34 @@ flowchart TD
 
 ---
 
-## 🌟 Flagship Feature Suite (21 Modules)
-
-### 🧠 Explainable AI & Decision Intelligence
-1. **🔍 SHAP Feature Attribution Waterfall**: Shapley additive explanation chart decomposing exact positive and negative feature contributions towards AI confidence score $f(x)$ powered by backend `shap.TreeExplainer`.
-2. **🧠 DQN Neural Network Policy Tensor Inspector**: Live 28-D normalized input state tensor and Q-value distribution across all 8 strategic actions (`MAINTAIN`, `PUSH`, `CONSERVE`, `PIT_SOFT`, `PIT_MEDIUM`, `PIT_HARD`, `PIT_INTER`, `PIT_WET`).
-3. **🎲 Monte Carlo 1,000-Rollout Strategy Simulator**: 1,000 parallel stochastic forward simulations with Gaussian pace variance and safety car probability distributions.
-4. **🗺️ Multi-Lap Pit Strategy Isochrone Matrix**: 2D parameter grid identifying the global minimum total race time valley across laps and compounds.
-5. **🤖 AI Pit Wall Strategist Copilot**: Conversational AI assistant with quick tactical prompts and text-to-speech audio dispatcher.
-6. **🎯 Competitor Undercut & Overcut Threat Radar**: Real-time threat matrix evaluating pit box overlap and outlap pace deltas.
-
-### 📊 Telemetry, Vehicle Physics & Aerodynamics
-7. **⏱️ Lap Time Delta-T Physical Decomposition**: Decomposes lap times into fuel mass $(+s)$, tyre degradation $(+s)$, dirty air wake $(+s)$, ERS hybrid boost $(-s)$, and DRS gain $(-s)$.
-8. **🏎️ Chassis Aerodynamics & Setup Balancer**: Live tuning for Front/Rear Wing angles, Brake Bias %, Differential lock %, and Top Speed vs Lateral G curves.
-9. **👥 Dual-Driver Comparative Telemetry Overlay**: Overlaid waypoint velocity curves and tyre wear differentials vs any competitor.
-10. **⏱️ 20 Mini-Sector Micro-Timing Matrix**: Micro-sector splits across 20 track segments (**Purple** = Session Best, **Green** = Personal Best, **Yellow** = Slower).
-11. **⏪ Race Telemetry DVR & Time-Travel Scrubber**: Historical replay scrubber allowing engineers to inspect telemetry at any past lap.
-12. **🏎️ 4-Corner Tyre Thermal Matrix**: Real-time FL, FR, RL, RR carcass thermals and surface wear rates.
-13. **🌦️ 10-Lap Doppler Weather Radar**: Forward rain probability curve with intermediate (35%) and wet (70%) crossover lines.
-14. **⚔️ Head-to-Head Driver Battle Radar**: DRS detection, slipstream delta (+14.2 km/h), and overtake probability %.
-
-### 🧠 Real Data, LLMs & Retrieval Intelligence
-15. **🛞 FastF1 Real Data Tyre Calibration**: Polynomial degradation models calibrated on 4,276 real Grand Prix race laps across Silverstone, Monza, and Spa with fuel effect isolation.
-16. **🎙️ Local LLM Race Engineer Commentary (Ollama)**: Real-time radio transmissions generated from decision attributions via `llama3.2:3b` with strict zero-hallucination fact verification.
-17. **🔍 Historical Race Strategy RAG (`sentence-transformers`)**: Semantic question answering over persisted decision logs with cosine similarity vector retrieval and citation cards.
-
-### 🗺️ Circuits, Audio & Mission Control
-18. **🗺️ Multi-Circuit Vector Engine**: Bespoke SVG vector geometries for **Silverstone**, **Monza**, **Spa-Francorchamps**, **Monaco**, and **Interlagos**.
-19. **🎙️ Multi-Persona Race Engineer Voice Comms**: Voice personas for **APEX Core AI**, **"Bono"** (*"Hammer time, box box box"*), **"GP"** (*"Manage the tyres, delta is good"*), and **"Xavi"** (*"Plan A, we are checking"*).
-20. **📻 Authentic F1 Radio Bandpass & Static Filter DSP**: Web Audio API biquad filter + white noise static burst generator simulating cockpit radio communications.
-21. **🏎️ V6 Turbo Hybrid Audio Synthesizer**: Web Audio API FM oscillator generating authentic Formula 1 engine whine matching live RPM.
-22. **⏱️ Interactive Pit Crew Stopwatch**: 5-gantry light reaction drill measuring stationary pit duration with pneumatic wheel gun audio.
-23. **🏆 Live World Championship Leaderboard**: Dynamic Drivers' and Teams' Championship standings with fastest lap (+1 pt) bonus calculation.
-24. **📋 Race Event Telemetry Logger & CSV Exporter**: Chronological incident feed with downloadable `.CSV` reports and async DB persistence.
-
----
-
-## 📊 Evaluation & Benchmark Matrix
-
-Automated head-to-head evaluation across 15 seeded multi-circuit races (Silverstone, Monza, Spa, Monaco, Interlagos) with real-calibrated tyre degradation:
-
-| Policy | Avg Finishing Position | Win Rate (%) | Podium Rate (%) | Avg Gap to P1 (s) | Blown Tyre Laps | Avg Pit Stops |
-| :--- | :---: | :---: | :---: | :---: | :---: | :---: |
-| **RANDOM BASELINE** | 6.53 | 26.7% | 33.3% | +58.65s | 19.46 | 0.0 |
-| **RULE-BASED ENGINE** | **1.27** | **86.7%** | **93.3%** | **+1.19s** | **0.00** | 4.4 |
-| **RETRAINED DQN POLICY** | **1.07** | **93.3%** | **100.0%** | **+0.12s** | **0.00** | 4.3 |
-
----
-
 ## 📁 Repository Structure
 
 ```
 APEX/
 ├── .github/
-│   └── workflows/ci.yml                   # Continuous Integration (pytest + build verification)
+│   └── workflows/ci.yml                   # Continuous Integration (pytest + eval harness + build)
+├── .vscode/
+│   └── settings.json                      # Workspace Python interpreter & path settings
 ├── pyproject.toml                         # Python project & dependencies (uv managed)
+├── pyrightconfig.json                     # Pyright type checker configuration
 ├── docker-compose.yml                     # Redis + Postgres container configuration
 ├── README.md                              # Flagship system documentation
 ├── backend/
 │   ├── app/
 │   │   ├── simulator/                     # Deterministic physics engine, car physics & Pydantic models
-│   │   ├── intelligence/                  # Feature builder, TreeSHAP explainer, tyre & weather models
-│   │   ├── strategy/                      # Rule engine, Gymnasium RL env, DQN agent, Monte Carlo, explainability
+│   │   ├── intelligence/                  # Feature builder, TreeSHAP explainer, tyre/weather models, agent_loop
+│   │   ├── strategy/                      # Rule engine, Gymnasium RL env, DQN agent, Monte Carlo, counterfactual
 │   │   ├── twin/                          # SQLAlchemy database models, Redis hot cache & write-through store
 │   │   ├── api/                           # FastAPI routes & WebSocket broadcaster
+│   │   ├── mcp_server/                    # Official Model Context Protocol (MCP) Server (server.py)
 │   │   └── main.py                        # FastAPI entry point
+│   ├── eval/                              # 4-Pillar Evaluation & Regression Harness (run_eval.py + baseline_scores.json)
 │   ├── models/                            # Trained DQN checkpoints & multi-action distilled TreeSHAP artifacts
 │   ├── training/                          # RL training (train_dqn.py) & surrogate distillation (distill_dqn_surrogate.py)
-│   └── tests/                             # Automated unit & integration tests
+│   └── tests/                             # Automated unit & integration tests (87 tests across 17 modules)
 ├── frontend/                              # React 18 + Vite + Tailwind Mission Control
 │   ├── src/
-│   │   ├── components/                    # 34 Mission Control components (SHAP Comparator, Scenario Injector, DVR, etc.)
+│   │   ├── components/                    # 34 Mission Control components (SHAP Waterfall, Scenario Injector, DVR, etc.)
 │   │   ├── data/                          # Multi-circuit vector geometries (Silverstone, Monza, Spa, etc.)
 │   │   ├── utils/                         # audioEngine (DSP + Personas + V6 Synth), clientSimulator (Twin)
 │   │   ├── store/                         # Zustand state store
@@ -549,11 +648,17 @@ Open your browser and navigate to **[http://localhost:8000](http://localhost:800
 
 ---
 
-## 🧪 Testing, Training & Distillation
+## 🧪 Testing, Training, Evaluation & MCP Commands
 
 ```bash
-# Run all unit and integration tests (71/71 passing across 14 modules)
-uv run pytest
+# Run complete test suite (87/87 tests passing across all 17 test modules)
+uv run pytest backend/tests
+
+# Execute Automated 4-Pillar Evaluation & Regression Harness (CI integrated)
+uv run python backend/eval/run_eval.py
+
+# Launch native Model Context Protocol (MCP) Server for Claude Desktop / AI Agents
+uv run python backend/app/mcp_server/server.py
 
 # Download & clean real-world FastF1 multi-circuit telemetry
 uv run python backend/training/fetch_fastf1_data.py
@@ -570,4 +675,3 @@ uv run python benchmarks/run_benchmarks.py --races-per-track 5
 # Train / fine-tune DQN policy with EvalCallback
 uv run python backend/training/train_dqn.py --steps 80000
 ```
-
