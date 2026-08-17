@@ -10,6 +10,7 @@ from backend.app.mcp_server.server import (
     preview_pit_strategy,
     evaluate_monte_carlo,
     trigger_scenario,
+    get_agentic_strategy_plan,
 )
 
 
@@ -113,3 +114,20 @@ def test_mcp_ask_race_history():
     assert len(data["answer"]) > 0
     assert "sources" in data
     assert "model_used" in data
+
+
+def test_mcp_get_agentic_strategy_plan():
+    """Validates agentic multi-step reasoning plan execution."""
+    res_str = get_agentic_strategy_plan(track_name="silverstone")
+    data = json.loads(res_str)
+    
+    assert "executive_summary" in data
+    assert "primary_action" in data
+    assert "chain_of_thought" in data
+    assert len(data["chain_of_thought"]) >= 4
+    assert "confidence_score" in data
+    assert "policy_entropy" in data
+    assert "shapley_drivers" in data
+    assert "contingencies" in data
+    assert "monte_carlo_metrics" in data
+

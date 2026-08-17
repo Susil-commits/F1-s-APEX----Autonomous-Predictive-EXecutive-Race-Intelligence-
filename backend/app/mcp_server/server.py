@@ -268,6 +268,22 @@ def trigger_scenario(scenario_type: str, intensity: float = 0.8, laps: int = 4) 
     }, indent=2)
 
 
+@mcp.tool()
+def get_agentic_strategy_plan(track_name: str = "silverstone", target_car_id: Optional[str] = None) -> str:
+    """Executes multi-step Agentic Race Strategist reasoning with chain-of-thought and contingencies.
+    
+    Synthesizes Neural RL (DQN) policy, TreeSHAP force attributions, Monte Carlo 1,000-rollout
+    probabilities, FastF1 tyre degradation curves, and tactical contingency plans into an
+    actionable executive pit-wall strategy dossier.
+    """
+    sim = get_or_create_sim(track_name=track_name)
+    state = sim.get_state()
+    from backend.app.intelligence.agentic_strategist import get_agentic_strategist
+    strategist = get_agentic_strategist()
+    plan = strategist.formulate_strategy(state=state, target_car_id=target_car_id)
+    return plan.model_dump_json(indent=2)
+
+
 if __name__ == "__main__":
     # Standard stdio MCP server execution
     mcp.run()
