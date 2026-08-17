@@ -1,6 +1,6 @@
 export type TyreCompound = 'SOFT' | 'MEDIUM' | 'HARD' | 'INTERMEDIATE' | 'WET';
 export type DrivingMode = 'PUSH' | 'NORMAL' | 'CONSERVE';
-export type StrategyAction = 'MAINTAIN' | 'PUSH' | 'CONSERVE' | 'PIT_SOFT' | 'PIT_MEDIUM' | 'PIT_HARD' | 'PIT_INTER' | 'PIT_WET';
+export type StrategyAction = 'MAINTAIN' | 'PUSH' | 'CONSERVE' | 'PIT_SOFT' | 'PIT_MEDIUM' | 'PIT_HARD' | 'PIT_INTER' | 'PIT_WET' | 'ENERGY_DEPLOY' | 'ENERGY_HARVEST' | 'ATTACK' | 'DEFEND';
 export type TrackCondition = 'DRY' | 'DAMP' | 'WET';
 export type SafetyCarStatus = 'NONE' | 'VSC' | 'SAFETY_CAR';
 
@@ -15,6 +15,50 @@ export interface TrackConfig {
   sc_pit_advantage_s: number;
   tyre_wear_factor: number;
   rain_probability_base: number;
+}
+
+export interface DriverState {
+  driver_name: string;
+  team_name: string;
+  pace_bias_s: number;
+  consistency: number;
+  tyre_management: number;
+  aggression: number;
+  defence_strength: number;
+  mistake_probability: number;
+}
+
+export interface TyreState {
+  compound: TyreCompound;
+  age_laps: number;
+  wear_pct: number;
+  cliff_reached: boolean;
+  cliff_probability: number;
+  remaining_useful_laps: number;
+  predicted_lap_loss_s: number;
+}
+
+export interface VehicleHealthState {
+  overall_health_score: number;
+  engine_temp_c: number;
+  oil_temp_c: number;
+  coolant_temp_c: number;
+  brake_temp_c: number;
+  battery_temp_c: number;
+  cooling_efficiency: number;
+  anomaly_detected: boolean;
+  failure_probability: number;
+}
+
+export interface OpponentState {
+  car_id: string;
+  driver_name: string;
+  position: number;
+  pit_next_2_laps_prob: number;
+  attack_probability: number;
+  defence_probability: number;
+  expected_pace_delta_s: number;
+  strategy_intent: string;
 }
 
 export interface CarState {
@@ -44,6 +88,9 @@ export interface CarState {
   laps_since_last_pit: number;
   is_dnf: boolean;
   dnf_reason: string | null;
+  driver_state?: DriverState | null;
+  tyre_state?: TyreState | null;
+  health_state?: VehicleHealthState | null;
 }
 
 export interface WeatherState {
@@ -51,8 +98,12 @@ export interface WeatherState {
   rain_intensity: number;
   track_temp_c: number;
   air_temp_c: number;
+  track_temperature_c?: number;
+  air_temperature_c?: number;
   rain_probability_next_5_laps: number;
   drying_rate_per_lap: number;
+  track_wetness?: number;
+  grip_multiplier?: number;
 }
 
 export interface RaceEvent {
@@ -87,11 +138,14 @@ export interface DecisionExplanation {
   primary_factors: string[];
   rule_engine_action: StrategyAction;
   dqn_action: StrategyAction | null;
+  ppo_action?: StrategyAction | null;
   q_value_margin: number | null;
   tyre_cliff_risk: string;
   pit_window_status: string;
   expected_time_delta_s: number;
-  counterfactual_summary: CounterfactualSummary;
+  counterfactual_summary: any;
+  risk_score?: number;
+  alternative_actions?: any[];
   commentary?: string;
 }
 
@@ -111,4 +165,6 @@ export interface RaceState {
   active_decision: DecisionExplanation | null;
   is_finished: boolean;
   winner_car_id: string | null;
+  opponents?: OpponentState[];
+  global_risk?: any;
 }

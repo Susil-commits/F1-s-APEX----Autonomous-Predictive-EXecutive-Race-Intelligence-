@@ -1,0 +1,369 @@
+# APEX System Architecture & Subsystem Micro-Architectures
+
+APEX (Autonomous Predictive & EXecutive Race Intelligence) is composed of modular, decoupled sub-architectures that work together to provide real-time race simulation, predictive machine learning, risk modeling, and tactical decision execution.
+
+---
+
+## 1. Master System Architecture
+
+```
+REAL F1 TELEMETRY / DATA (FastF1 & Jolpica API)
+                  │
+                  ▼
+   DATA ENGINEERING PIPELINE (Raw Storage -> Cleaning -> Session Merging)
+                  │
+                  ▼
+           FEATURE STORE (Tyre, Weather, Opponent, Driver, Vehicle, Strategy Features)
+                  │
+                  ▼
+         PREDICTIVE AI MODELS
+ ┌────────────────┼────────────────┬────────────────┬────────────────┐
+ │ Tyre RF & Cliff│ Weather Wetness│ Opponent Intent│ Driver Fatigue │ Vehicle Health
+ └────────────────┴────────────────┴────────────────┴────────────────┘
+                  │
+                  ▼
+          RACE DIGITAL TWIN (L1 Hot Memory, L2 Redis Async, L3 SQLite / DB)
+                  │
+                  ▼
+   HIGH-PERFORMANCE VECTORIZED MONTE CARLO (9 Actions x 1,000 Stochastic Rollouts)
+                  │
+                  ▼
+     REINFORCEMENT LEARNING POLICIES (Gymnasium Env + DQN + PPO)
+                  │
+                  ▼
+   AUTONOMOUS EMERGENCY BRAIN & MULTI-FACTOR RISK ENGINE
+                  │
+                  ▼
+   HYBRID DECISION AGGREGATOR (Rules + ML + Monte Carlo + RL + Safe RL Action Masking)
+                  │
+                  ▼
+   INTERACTIVE 14-PAGE PIT WALL DASHBOARD & WEBSOCKET REAL-TIME TWIN
+```
+
+---
+
+## 2. Dedicated Subsystem Micro-Architectures
+
+---
+
+### 🏎️ Sub-Architecture 1: Data Engineering & Feature Store Pipeline
+
+```mermaid
+flowchart TD
+    subgraph Ingestion ["1. Data Ingestion"]
+        FF1["FastF1 API (Laps, Telemetry, Weather, Race Control)"]
+        Jolpica["Jolpica / Ergast API (Calendar, Results, Pit Stops)"]
+        RawDisk[("Persistent Raw Storage (JSON/Parquet/CSV)")]
+        
+        FF1 --> RawDisk
+        Jolpica --> RawDisk
+    end
+
+    subgraph Cleaning ["2. Preprocessing & Cleansing"]
+        CleanLaps["clean_laps.py (In/Out Laps, Non-Green Flags, Fuel Delta)"]
+        CleanTel["clean_telemetry.py (Throttle, Brake, RPM, Gear, Speed Norm)"]
+        CleanWeather["clean_weather.py (Air/Track Temp, Humidity, Rain Intensity)"]
+        CleanRC["clean_race_control.py (SC, VSC, Red Flag Event Intervals)"]
+        MergeSessions["merge_sessions.py (Multi-Source Stream Alignment)"]
+        
+        RawDisk --> CleanLaps
+        RawDisk --> CleanTel
+        RawDisk --> CleanWeather
+        RawDisk --> CleanRC
+        CleanLaps & CleanTel & CleanWeather & CleanRC --> MergeSessions
+    end
+
+    subgraph Features ["3. Feature Engineering Store"]
+        TyreFeats["tyre_features.py (Compound 1-Hot, Age, Thermal Stress)"]
+        WeatherFeats["weather_features.py (Track Wetness Index, Drying Rate)"]
+        OpponentFeats["opponent_features.py (DRS Gaps, Undercut Threat Score)"]
+        DriverFeats["driver_features.py (Pace Bias, Consistency, Aggression)"]
+        VehicleFeats["vehicle_features.py (Fuel Burn, ERS Pack, Thermal Margin)"]
+        StrategyFeats["strategy_features.py (Stint Progression, Pit Windows)"]
+        
+        MergeSessions --> TyreFeats & WeatherFeats & OpponentFeats & DriverFeats & VehicleFeats & StrategyFeats
+    end
+
+    subgraph Validation ["4. Validation & Split Registry"]
+        Validator["dataset_validator.py (Nulls & Range Integrity)"]
+        VersionSplitter["dataset_version.py (Leak-Free Season/Race Splits)"]
+        DatasetStore[("Versioned Feature Datasets")]
+        
+        TyreFeats & WeatherFeats & OpponentFeats & DriverFeats & VehicleFeats & StrategyFeats --> Validator
+        Validator --> VersionSplitter --> DatasetStore
+    end
+```
+
+---
+
+### 🧠 Sub-Architecture 2: Predictive Intelligence Model Hierarchy
+
+```mermaid
+flowchart LR
+    subgraph Inputs ["Input State Vectors"]
+        RawTel["Raw Vehicle Telemetry"]
+        FieldState["Field Gaps & Positions"]
+        EnvState["Atmospheric Weather"]
+    end
+
+    subgraph Models ["Specialized Predictive ML Suite"]
+        TyreModel["TyreMLSuite (Random Forest Regressor + 90% CIs + Sigmoid Cliff)"]
+        WeatherModel["WeatherPredictor (Wetness Index 0-1 + Grip Multiplier 0.40-1.05 + 5m Rain)"]
+        OpponentModel["OpponentIntelligenceEngine (1-2 Lap Pit Prob + Attack/Defence Likelihood)"]
+        DriverModel["DriverIntelligenceEngine (Fatigue Curves + Mistake Prob Under Pressure)"]
+        HealthModel["VehicleHealthIntelligence (Isolation Forest Anomaly + Failure Horizon)"]
+    end
+
+    subgraph Outputs ["Structured Sub-States"]
+        TyreOut["TyreState (RUL, Wear, Cliff Prob)"]
+        WeatherOut["WeatherState (Wetness, Grip, Rain Prob)"]
+        OppOut["OpponentState (Intent, Undercut Risk)"]
+        DriverOut["DriverState (Fatigue, Consistency)"]
+        HealthOut["VehicleHealthState (Health %, Anomaly Flag)"]
+    end
+
+    RawTel --> TyreModel --> TyreOut
+    RawTel --> HealthModel --> HealthOut
+    FieldState --> OpponentModel --> OppOut
+    FieldState --> DriverModel --> DriverOut
+    EnvState --> WeatherModel --> WeatherOut
+```
+
+---
+
+### 💾 Sub-Architecture 3: Digital Twin 3-Tier Memory & Persistence
+
+```mermaid
+flowchart TD
+    Simulator["RaceSimulator (60 Hz Deterministic Physics Tick)"]
+    
+    subgraph TwinStore ["Three-Tier Digital Twin Store (store.py)"]
+        L1["L1 Hot Cache (In-Memory Dictionary, Sub-ms Read/Write)"]
+        L2["L2 Write-Behind Queue (Async Redis Buffer)"]
+        L3["L3 Relational Persistence (SQLite / PostgreSQL)"]
+        
+        L1 -- "Async Flush Queue" --> L2
+        L2 -- "Periodic Commit" --> L3
+    end
+
+    Snapshots["Snapshot Serialization & Rolling Window Querying (10-35 Laps)"]
+    
+    Simulator <--> L1
+    L1 <--> Snapshots
+```
+
+---
+
+### 🎲 Sub-Architecture 4: Vectorized Monte Carlo & Counterfactual Engine
+
+```mermaid
+flowchart TD
+    CurrentState["Current RaceState (Lap, Position, Tyres, Weather, Safety Car)"]
+    
+    subgraph CandidateActions ["9 Candidate Actions Evaluated in Parallel"]
+        A1["PIT_NOW"]
+        A2["PIT_NEXT_LAP"]
+        A3["PIT_PLUS_2"]
+        A4["STAY_OUT"]
+        A5["PUSH"]
+        A6["NORMAL"]
+        A7["CONSERVE"]
+        A8["ATTACK"]
+        A9["DEFEND"]
+    end
+
+    CurrentState --> CandidateActions
+
+    subgraph VectorizedEngine ["NumPy Vectorized Batch Rollout Engine (<15ms)"]
+        AR1Noise["AR(1) Autoregressive Pace Noise: pace(t) = 0.65*pace(t-1) + noise"]
+        ScMarkov["Poisson / Markov Safety Car Transition Matrix (SC / VSC Windows)"]
+        TyreDegCliff["Non-Linear Stint Degradation & Thermal Cliff Penalty"]
+        DNFSim["Stochastic Field Collision & Mechanical DNF Sim"]
+        
+        AR1Noise & ScMarkov & TyreDegCliff & DNFSim --> BatchSim["Matrix Array: (N_Rollouts, Laps_Remaining)"]
+    end
+
+    CandidateActions --> VectorizedEngine
+
+    subgraph OutputDistributions ["Outcome Probability Metrics"]
+        PWin["Win Probability (%)"]
+        PPod["Podium Probability (%)"]
+        PDNF["DNF Risk (%)"]
+        ExpPos["Expected Finish Position"]
+        PosHist["P1 - P10 Histogram Distribution"]
+    end
+
+    VectorizedEngine --> OutputDistributions
+```
+
+---
+
+### 🤖 Sub-Architecture 5: Reinforcement Learning & Safe RL Guardrail
+
+```mermaid
+flowchart TD
+    subgraph Env ["APEX Gymnasium Environment (gym_env.py)"]
+        Obs["28-D Continuous Normalized State Tensor s_t"]
+        Reward["Dense Intermediate Reward Function:
+        R(s, a) = pos_gain*3.0 + clean_air_delta - cliff_pen - mismatch_pen + finish_bonus"]
+    end
+
+    subgraph Policies ["Neural Decision Policies"]
+        DQN["Deep Q-Network (DQN) + Boltzmann Softmax Distribution"]
+        PPO["Proximal Policy Optimization (PPO) + Value Critic"]
+    end
+
+    subgraph Guardrail ["Safe RL Action Masking Guardrail (safe_rl_guardrail.py)"]
+        Mask["Dynamic 8-D Boolean Mask M(s) ∈ {0, 1}^8:
+        • Pit Lane Double-Pit Invalidation
+        • Torrential Rain Slick Invalidation
+        • Dry Bone Wet-Tyre Invalidation
+        • 80% Cliff Push Invalidation"]
+    end
+
+    Obs --> DQN & PPO
+    Obs --> Mask
+    DQN & PPO --> MaskedQ["Masked Action Selection: a* = argmax (Q(s, a) · M(s))"]
+    MaskedQ --> ActionExec["Execute Strategic Action a_t"]
+    ActionExec --> Reward
+```
+
+---
+
+### 🚨 Sub-Architecture 6: Autonomous Emergency Brain Pipeline
+
+```mermaid
+stateDiagram-v2
+    [*] --> MONITORING : Ingest RaceState Every Tick
+    
+    MONITORING --> DETECT : Incident Trigger Detected
+    
+    state DETECT {
+        [*] --> CheckWeather : Rain Intensity > 0.50 on Slicks?
+        [*] --> CheckSafetyCar : Physical SC / VSC Deployed?
+        [*] --> CheckTyres : Wear > 85% or Puncture Cliff?
+        [*] --> CheckPowertrain : Health < 45% or Thermal Alarm?
+    }
+
+    DETECT --> CLASSIFY : Event Type Assigned
+    
+    state CLASSIFY {
+        SUDDEN_RAIN : Severity = CRITICAL
+        SAFETY_CAR_DEPLOYED : Severity = HIGH
+        PUNCTURE_DEBRIS : Severity = CRITICAL
+        MECHANICAL_ALARM : Severity = HIGH
+    }
+
+    CLASSIFY --> ESTIMATE_IMPACT : Compute Time Delta (e.g. +22s/lap or -12s SC gain)
+    ESTIMATE_IMPACT --> GENERATE_ACTIONS : Generate Candidates (PIT_WET, PIT_HARD, CONSERVE)
+    GENERATE_ACTIONS --> RANK_AND_SELECT : Verify Safe RL Mask & Select Optimal Action
+    RANK_AND_SELECT --> EXECUTE : Direct Pit Wall Box Order
+    EXECUTE --> LOG_AND_DEBRIEF : Append to Incident Journal & Radio DSP Audio
+    LOG_AND_DEBRIEF --> MONITORING : Resume Green-Flag Monitoring
+```
+
+---
+
+### ⚖️ Sub-Architecture 7: Multi-Factor Risk Engine & Decision Aggregator
+
+```mermaid
+flowchart TD
+    subgraph RiskInputs ["Multi-Dimensional Risk Inputs"]
+        R1["Tyre Blowout Risk (Wear > 75%, Cliff Flag)"]
+        R2["Weather Transition Risk (Wetness > 0.35 on Slicks)"]
+        R3["Traffic / Undercut Risk (Gap Behind < 1.5s)"]
+        R4["Mechanical Failure Risk (Isolation Forest Anomaly)"]
+        R5["Strategy Vulnerability Risk (Mandatory Compound Regulation)"]
+    end
+
+    subgraph RiskEngine ["Risk Engine (risk_engine.py)"]
+        RiskScore["Composite Risk Score: R_overall ∈ [0.0, 1.0]"]
+        R1 & R2 & R3 & R4 & R5 --> RiskScore
+    end
+
+    subgraph DecisionAggregator ["Hybrid Decision Aggregator (hybrid_decision_engine.py)"]
+        RuleBase["Expert Rules Baseline"]
+        PredictiveML["Predictive ML Predictions"]
+        MCOutputs["Monte Carlo Candidate Outcomes"]
+        RLPolicy["DQN / PPO Policy Actions"]
+        EmergBrain["Emergency Brain Interrupts"]
+        
+        RuleBase & PredictiveML & MCOutputs & RLPolicy & EmergBrain & RiskScore --> Aggregator["Unified Decision Arbitrator"]
+    end
+
+    subgraph FinalDecision ["Explainable Decision Output"]
+        Recommendation["Recommended StrategyAction"]
+        Confidence["Confidence Score (0-100%)"]
+        Urgency["Urgency: LOW | MEDIUM | HIGH | CRITICAL"]
+        PrimaryFactors["Primary Physical Drivers"]
+        AlternativesTable["Ranked Alternative Actions Table"]
+    end
+
+    Aggregator --> FinalDecision
+```
+
+---
+
+### 🏆 Sub-Architecture 8: Historical Race Replay & Championship Tournament
+
+```mermaid
+flowchart LR
+    subgraph Historical ["Historical Replay Engine (historical_replay.py)"]
+        RealGP["Real F1 Sessions (Silverstone 2023, Monaco 2023, Zandvoort 2023)"]
+        DecisionPoints["Key Decision Points (Rain Onset, Safety Cars, Undercuts)"]
+        APEXAudit["APEX Multi-Model Evaluation vs Real Pit Wall Action"]
+        CounterfactualAdv["Counterfactual Time Delta & Audit Debrief"]
+        
+        RealGP --> DecisionPoints --> APEXAudit --> CounterfactualAdv
+    end
+
+    subgraph Tournament ["AI-vs-AI Championship (championship.py)"]
+        Teams["5 AI Teams:
+        • Team Alpha (Aggressive Attack)
+        • Team Beta (Conservative Safe)
+        • Team Gamma (Tyre Preserver)
+        • Team Delta (Risk Defensive)
+        • Team APEX (Hybrid Autonomous AI)"]
+        SeasonSim["100+ Race Multi-Circuit Simulation"]
+        Leaderboard["Championship Standings, Points (25-18-15...), Wins & Podiums"]
+        
+        Teams --> SeasonSim --> Leaderboard
+    end
+```
+
+---
+
+### 🖥️ Sub-Architecture 9: Frontend 14-Workspace React/Zustand & Web Audio DSP
+
+```mermaid
+flowchart TD
+    BackendWS["FastAPI WebSocket Streamer (/ws/race @ 60Hz)"]
+    
+    subgraph FrontendCore ["Frontend Architecture (React 18 + Zustand)"]
+        SocketHook["useRaceSocket.ts (Auto-Reconnect + Local Twin Fallback)"]
+        ZustandStore["raceStore.ts (Global State + Telemetry History + Audio Queue)"]
+        AudioDSP["audioEngine.ts (Web Audio Oscillator Synth + Voice Personas)"]
+        
+        BackendWS <--> SocketHook --> ZustandStore
+        ZustandStore --> AudioDSP
+    end
+
+    subgraph Workspaces ["14 Specialized Mission Control Workspaces"]
+        W1["1. Live Tactical Pit Wall"]
+        W2["2. Strategy Center & Stints"]
+        W3["3. Tyre ML & RUL"]
+        W4["4. Weather Doppler Radar"]
+        W5["5. Opponent Undercut Tactics"]
+        W6["6. Driver Analytics & Radar"]
+        W7["7. Powertrain Vehicle Health"]
+        W8["8. Counterfactual Lab"]
+        W9["9. RL Policy Visualizer"]
+        W10["10. Deep Telemetry Lab"]
+        W11["11. Historical Race Replay"]
+        W12["12. TreeSHAP AI Reasoner"]
+        W13["13. AI Championship"]
+        W14["14. System Observability"]
+        
+        ZustandStore --> W1 & W2 & W3 & W4 & W5 & W6 & W7 & W8 & W9 & W10 & W11 & W12 & W13 & W14
+    end
+```

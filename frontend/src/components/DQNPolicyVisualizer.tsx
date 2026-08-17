@@ -21,6 +21,10 @@ const ACTION_LABELS: Record<StrategyAction, string> = {
   PIT_HARD: 'Box Hard',
   PIT_INTER: 'Box Inter',
   PIT_WET: 'Box Wet',
+  ENERGY_DEPLOY: 'Deploy ERS',
+  ENERGY_HARVEST: 'Harvest ERS',
+  ATTACK: 'Attack',
+  DEFEND: 'Defend',
 };
 
 export const DQNPolicyVisualizer: React.FC = () => {

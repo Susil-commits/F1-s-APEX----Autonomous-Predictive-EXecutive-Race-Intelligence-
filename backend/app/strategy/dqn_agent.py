@@ -32,6 +32,9 @@ class DQNAgent:
         else:
             self.model = None
 
+    def is_loaded(self) -> bool:
+        return self.model is not None
+
     def get_q_values(self, obs: np.ndarray, action_mask: Optional[np.ndarray] = None) -> np.ndarray:
         """
         Extracts raw or masked Q-value vector Q(s, a) across all 8 strategic actions.

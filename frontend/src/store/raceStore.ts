@@ -2,7 +2,21 @@ import { create } from 'zustand';
 import { RaceState, CarState, StrategyAction } from '../types/race';
 import { audioEngine } from '../utils/audioEngine';
 
-export type WorkspaceTab = 'tactical' | 'telemetry' | 'explainability' | 'sandbox';
+export type WorkspaceTab =
+  | 'tactical'
+  | 'strategy_center'
+  | 'tyre_intel'
+  | 'weather_intel'
+  | 'opponent_intel'
+  | 'driver_intel'
+  | 'vehicle_health'
+  | 'counterfactual'
+  | 'rl_training'
+  | 'telemetry'
+  | 'replays'
+  | 'explainability'
+  | 'championship'
+  | 'system_health';
 
 export interface TelemetryPoint {
   lap: number;

@@ -33,6 +33,14 @@ import { UndercutThreatMatrix } from './components/UndercutThreatMatrix';
 import { LiveScenarioInjector } from './components/LiveScenarioInjector';
 import { BenchmarkComparisonModal } from './components/BenchmarkComparisonModal';
 import { RaceHistoryQA } from './components/RaceHistoryQA';
+import { TyreIntelligenceView } from './components/TyreIntelligenceView';
+import { WeatherIntelligenceView } from './components/WeatherIntelligenceView';
+import { OpponentIntelligenceView } from './components/OpponentIntelligenceView';
+import { DriverIntelligenceView } from './components/DriverIntelligenceView';
+import { VehicleHealthView } from './components/VehicleHealthView';
+import { HistoricalReplayView } from './components/HistoricalReplayView';
+import { ChampionshipTournamentView } from './components/ChampionshipTournamentView';
+import { SystemHealthView } from './components/SystemHealthView';
 import { useRaceStore } from './store/raceStore';
 import { audioEngine } from './utils/audioEngine';
 import {
@@ -207,7 +215,78 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* Tab 2: Telemetry & Degradation Lab */}
+        {/* Tab 2: Strategy Center & Stint Planner */}
+        {activeTab === 'strategy_center' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <StintStrategyPlanner />
+            <MonteCarloStrategySim />
+            <PitStrategyIsochroneMatrix />
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
+              <div className="lg:col-span-6">
+                <StrategyCard />
+              </div>
+              <div className="lg:col-span-6">
+                <PitStopReactionSim />
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Tab 3: Tyre Intelligence & RUL */}
+        {activeTab === 'tyre_intel' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <TyreIntelligenceView />
+          </div>
+        )}
+
+        {/* Tab 4: Weather Doppler & Grip Crossover */}
+        {activeTab === 'weather_intel' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <WeatherIntelligenceView />
+          </div>
+        )}
+
+        {/* Tab 5: Opponent Tactics & Undercut Matrix */}
+        {activeTab === 'opponent_intel' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <OpponentIntelligenceView />
+          </div>
+        )}
+
+        {/* Tab 6: Driver Behavioral Analytics */}
+        {activeTab === 'driver_intel' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <DriverIntelligenceView />
+          </div>
+        )}
+
+        {/* Tab 7: Powertrain & Vehicle Health */}
+        {activeTab === 'vehicle_health' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <VehicleHealthView />
+          </div>
+        )}
+
+        {/* Tab 8: Counterfactual Simulation Lab */}
+        {activeTab === 'counterfactual' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <LiveScenarioInjector />
+            <StrategySandbox />
+            <CounterfactualView />
+            <MonteCarloStrategySim />
+          </div>
+        )}
+
+        {/* Tab 9: RL Training & Action Masking */}
+        {activeTab === 'rl_training' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <DQNPolicyVisualizer />
+            <SHAPFeatureWaterfall />
+            <ExplainabilityPanel />
+          </div>
+        )}
+
+        {/* Tab 10: Deep Telemetry Lab */}
         {activeTab === 'telemetry' && (
           <div className="flex flex-col gap-4 flex-1">
             <TelemetryLab />
@@ -224,41 +303,41 @@ export const App: React.FC = () => {
           </div>
         )}
 
-        {/* Tab 3: AI Reasoning & Policy Center */}
+        {/* Tab 11: Historical Race Replay */}
+        {activeTab === 'replays' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <HistoricalReplayView />
+          </div>
+        )}
+
+        {/* Tab 12: TreeSHAP AI Reasoner */}
         {activeTab === 'explainability' && (
           <div className="flex flex-col gap-4 flex-1">
             <SHAPFeatureWaterfall />
-            <DQNPolicyVisualizer />
-            <MonteCarloStrategySim />
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               <div className="lg:col-span-6 flex flex-col gap-4">
                 <StrategyCard />
                 <ExplainabilityPanel />
-                <StintStrategyPlanner />
               </div>
               <div className="lg:col-span-6 flex flex-col gap-4">
-                <CounterfactualView />
                 <AIPitWallCopilot />
               </div>
             </div>
           </div>
         )}
 
-        {/* Tab 4: Strategy Sandbox */}
-        {activeTab === 'sandbox' && (
+        {/* Tab 13: AI-vs-AI Championship */}
+        {activeTab === 'championship' && (
           <div className="flex flex-col gap-4 flex-1">
-            <LiveScenarioInjector />
-            <StrategySandbox />
-            <PitStrategyIsochroneMatrix />
-            <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-              <div className="lg:col-span-6">
-                <ChassisSetupTuner />
-              </div>
-              <div className="lg:col-span-6">
-                <PitStopReactionSim />
-              </div>
-            </div>
-            <MonteCarloStrategySim />
+            <ChampionshipTournamentView />
+            <ChampionshipStandings />
+          </div>
+        )}
+
+        {/* Tab 14: System Observability & Diagnostics */}
+        {activeTab === 'system_health' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <SystemHealthView />
           </div>
         )}
       </main>

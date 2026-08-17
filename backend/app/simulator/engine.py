@@ -380,7 +380,68 @@ class RaceSimulator:
         )
 
     def get_state(self) -> RaceState:
-        """Returns the full, validated Pydantic snapshot of the current state."""
+        """Returns the full, validated Pydantic snapshot of the current state with hierarchical intelligence sub-states."""
+        # Ensure track wetness and grip are synchronized
+        from backend.app.intelligence.weather_model import WeatherPredictor
+        from backend.app.intelligence.driver_model import DriverIntelligenceEngine
+        from backend.app.intelligence.tyre_model import TyreModel
+        from backend.app.intelligence.opponent_model import OpponentIntelligenceEngine
+        from backend.app.simulator.models import DriverState, TyreState, VehicleHealthState, RiskState, OpponentState
+
+        self.weather.track_wetness = WeatherPredictor.calculate_track_wetness(self.weather)
+        player_car = self.get_player_car()
+        if player_car:
+            self.weather.grip_multiplier = WeatherPredictor.calculate_grip_factor(self.weather, player_car.tyre_compound)
+
+        # Attach sub-states to cars
+        for car in self.cars:
+            drv_prof = DriverIntelligenceEngine.get_profile(car.driver_name)
+            car.driver_state = DriverState(
+                driver_name=car.driver_name,
+                team_name=car.team_name,
+                pace_bias_s=drv_prof.pace_bias_s,
+                consistency=drv_prof.consistency_score,
+                tyre_management=drv_prof.tyre_management_skill,
+                aggression=drv_prof.aggression,
+                defence_strength=drv_prof.defence_strength,
+                mistake_probability=drv_prof.mistake_base_prob,
+            )
+            rul = TyreModel.predict_remaining_useful_life(car.tyre_compound, car.tyre_wear_pct, car.tyre_age_laps, car.driving_mode)
+            car.tyre_state = TyreState(
+                compound=car.tyre_compound,
+                age_laps=car.tyre_age_laps,
+                wear_pct=car.tyre_wear_pct,
+                cliff_reached=car.tyre_cliff_reached,
+                cliff_probability=rul["cliff_probability"],
+                remaining_useful_laps=rul["remaining_useful_laps"],
+                predicted_lap_loss_s=TyreModel.predict_lap_time_loss(car.tyre_compound, car.tyre_wear_pct, car.tyre_age_laps),
+            )
+            # Default normal vehicle health
+            eng_temp = 105.0 + (10.0 if car.driving_mode == DrivingMode.PUSH else 0.0)
+            car.health_state = VehicleHealthState(
+                overall_health_score=max(0.0, 100.0 - (0.15 * car.current_lap)),
+                engine_temp_c=eng_temp,
+                cooling_efficiency=0.92,
+            )
+
+        # Compute opponent tactical predictions
+        opponents: List[OpponentState] = []
+        try:
+            opp_preds = OpponentIntelligenceEngine.predict_all_opponents(self.cars, player_car.car_id if player_car else None, self.track, self.weather, self.current_lap)
+            for op in opp_preds:
+                opponents.append(OpponentState(
+                    car_id=op.car_id,
+                    driver_name=op.driver_name,
+                    position=op.position,
+                    pit_next_2_laps_prob=op.pit_next_2_laps_prob,
+                    attack_probability=op.attack_probability,
+                    defence_probability=op.defence_probability,
+                    expected_pace_delta_s=op.expected_pace_delta,
+                    strategy_intent=op.strategy_intent,
+                ))
+        except Exception:
+            pass
+
         return RaceState(
             race_id=self.race_id,
             seed=self.seed,
@@ -396,6 +457,8 @@ class RaceSimulator:
             events_log=self.events_log[-20:], # Keep recent 20 events in hot state
             is_finished=self.is_finished,
             winner_car_id=self.winner_car_id,
+            opponents=opponents,
+            global_risk=RiskState(overall_risk_score=0.15),
         )
 
     @classmethod

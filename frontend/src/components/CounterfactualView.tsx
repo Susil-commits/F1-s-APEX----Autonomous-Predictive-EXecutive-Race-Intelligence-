@@ -73,7 +73,7 @@ export const CounterfactualView: React.FC = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800/60">
-            {cf.alternatives.map((alt, idx) => {
+            {cf.alternatives.map((alt: any, idx: number) => {
               const isWinner = alt.strategy === cf.best_strategy;
               return (
                 <tr

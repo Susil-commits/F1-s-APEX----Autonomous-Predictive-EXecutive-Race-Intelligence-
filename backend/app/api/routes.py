@@ -483,3 +483,140 @@ async def export_race_debrief(race_id: str):
         "decisions": decisions,
         "markdown_report": md_report,
     }
+
+
+# =========================================================================
+# Enhanced Autonomous Decision Intelligence Endpoints
+# =========================================================================
+
+@router.get("/intelligence/weather")
+async def get_weather_intelligence():
+    """Returns predictive weather state, track wetness index, drying rate, and crossover metrics."""
+    from backend.app.intelligence.weather_model import WeatherPredictor
+    from backend.app.simulator.models import WeatherState, TyreCompound
+    weather = manager.sim.weather if (manager.sim and manager.sim.weather) else WeatherState()
+    probs = WeatherPredictor.predict_rain_probabilities(weather)
+    risk = WeatherPredictor.evaluate_weather_risk(weather, TyreCompound.MEDIUM)
+    return {
+        "weather": weather.model_dump(),
+        "predictions": probs,
+        "risk_evaluation": risk,
+    }
+
+
+@router.get("/intelligence/opponents")
+async def get_opponent_intelligence():
+    """Returns tactical opponent state predictions, pit probabilities, and strategic intent."""
+    from backend.app.intelligence.opponent_model import OpponentIntelligenceEngine
+    if manager.sim and manager.sim.cars:
+        preds = OpponentIntelligenceEngine.predict_all_opponents(
+            manager.sim.cars,
+            manager.sim.get_player_car().car_id if manager.sim.get_player_car() else None,
+            manager.sim.track,
+            manager.sim.weather,
+            manager.sim.current_lap,
+        )
+        return {"opponents": [p.model_dump() for p in preds]}
+    return {"opponents": []}
+
+
+@router.get("/intelligence/drivers")
+async def get_driver_intelligence():
+    """Returns driver behavioral profiles and dynamic pressure/fatigue states."""
+    from backend.app.intelligence.driver_model import DriverIntelligenceEngine
+    if manager.sim and manager.sim.cars:
+        profiles = [
+            DriverIntelligenceEngine.evaluate_driver_state(c, manager.sim.current_lap, manager.sim.track.total_laps)
+            for c in manager.sim.cars
+        ]
+        return {"drivers": profiles}
+    return {"drivers": []}
+
+
+@router.get("/intelligence/health")
+async def get_vehicle_health_intelligence():
+    """Returns powertrain/chassis multi-sensor health telemetry and anomaly detection status."""
+    from backend.app.intelligence.vehicle_health_model import VehicleHealthIntelligence, VehicleTelemetrySample
+    # If active player car has telemetry
+    player = manager.sim.get_player_car() if manager.sim else None
+    push_mode = (player.driving_mode.value == "PUSH") if (player and hasattr(player.driving_mode, "value")) else False
+    sample = VehicleTelemetrySample(
+        engine_temp_c=105.0 + (12.0 if push_mode else 0.0),
+        oil_temp_c=110.0 + (8.0 if push_mode else 0.0),
+        coolant_temp_c=92.0,
+        brake_temp_c=620.0 + (70.0 if push_mode else 0.0),
+        battery_temp_c=52.0,
+        battery_voltage_v=780.0,
+        ers_output_kw=115.0 if push_mode else 95.0,
+        brake_pressure_bar=95.0,
+        power_output_kw=720.0,
+        cooling_efficiency=0.92,
+    )
+    report = VehicleHealthIntelligence.evaluate_health(sample)
+    return {
+        "telemetry_sample": sample.model_dump(),
+        "health_report": report.model_dump(),
+    }
+
+
+@router.get("/strategy/hybrid-decision")
+async def get_hybrid_decision():
+    """Returns real-time Hybrid Decision Aggregator recommendation and alternative action rankings."""
+    from backend.app.strategy.hybrid_decision_engine import hybrid_decision_aggregator
+    if manager.sim:
+        state = manager.sim.get_state()
+        decision = hybrid_decision_aggregator.evaluate_decision(state)
+        return {"decision": decision.model_dump()}
+    return {"error": "No active simulation"}
+
+
+@router.get("/replays")
+async def list_historical_replays():
+    """Lists available historical race replays."""
+    from backend.app.simulator.historical_replay import HistoricalRaceReplay
+    return {"replays": HistoricalRaceReplay.list_available_replays()}
+
+
+@router.get("/replays/{race_key}")
+async def run_historical_replay(race_key: str):
+    """Executes historical race replay comparing APEX vs real pit wall choices."""
+    from backend.app.simulator.historical_replay import HistoricalRaceReplay
+    try:
+        return HistoricalRaceReplay.run_historical_replay(race_key)
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
+
+@router.get("/championship/run")
+async def run_ai_championship(races: int = 10):
+    """Executes multi-agent AI tournament championship simulation."""
+    from backend.eval.championship import ChampionshipSimulator
+    clamped_races = min(100, max(1, races))
+    return ChampionshipSimulator.run_championship(total_races=clamped_races)
+
+
+@router.get("/observability/metrics")
+async def get_system_observability():
+    """Returns latency profiling, model load status, and store memory metrics."""
+    from backend.app.twin.store import store
+    from backend.app.intelligence.tyre_model import TyreModel
+    from backend.app.strategy.ppo_agent import PPOStrategyAgent
+    from backend.app.strategy.dqn_agent import DQNAgent
+
+    ppo_agent = PPOStrategyAgent()
+    dqn_agent = DQNAgent()
+
+    return {
+        "system_status": "ONLINE",
+        "timestamp_utc": datetime.now(timezone.utc).isoformat(),
+        "models": {
+            "tyre_model_calibrated": TyreModel.is_calibrated(),
+            "dqn_policy_loaded": dqn_agent.is_loaded(),
+            "ppo_policy_loaded": ppo_agent.is_loaded(),
+        },
+        "store": {
+            "active_races_count": len(store.active_races),
+            "benchmark_runs_count": len(store.benchmark_runs),
+        },
+    }
+

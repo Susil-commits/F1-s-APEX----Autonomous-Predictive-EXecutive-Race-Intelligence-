@@ -324,6 +324,35 @@ class RaceStore:
             logger.debug(f"[RaceStore] List persisted sessions DB query note: {e}")
         return [{"race_id": r_id, "track_name": "silverstone", "total_laps": 52} for r_id in self.active_races.keys()]
 
+    def get_rolling_window(self, race_id: str, window_size: int = 10) -> List[Dict[str, Any]]:
+        """Returns the last N tick snapshots for rolling telemetry analysis."""
+        history = self.tick_history.get(race_id, [])
+        return history[-window_size:] if history else []
+
+    def snapshot_race(self, race_id: str) -> Optional[str]:
+        """Exports a full serialized JSON snapshot of current race state and history."""
+        state = self.get_state(race_id)
+        if state is None:
+            return None
+        snapshot = {
+            "state": state.model_dump(mode="json"),
+            "tick_history_count": len(self.tick_history.get(race_id, [])),
+            "decisions_count": len(self.decision_history.get(race_id, [])),
+        }
+        return json.dumps(snapshot)
+
+    def restore_snapshot(self, snapshot_json: str) -> Optional[RaceState]:
+        """Restores a RaceState from a serialized JSON snapshot."""
+        try:
+            data = json.loads(snapshot_json)
+            state_dict = data.get("state", data)
+            state = RaceState.model_validate(state_dict)
+            self.active_races[state.race_id] = state
+            return state
+        except Exception as e:
+            logger.warning(f"[RaceStore] Restore snapshot failed: {e}")
+            return None
+
     def record_benchmark(self, result: Dict[str, Any]):
         """Saves a benchmark evaluation result."""
         self.benchmark_runs.append(result)
@@ -331,3 +360,4 @@ class RaceStore:
 
 # Singleton store instance
 store = RaceStore()
+

@@ -14,6 +14,10 @@ const ACTION_TITLES: Record<StrategyAction, string> = {
   PIT_HARD: 'BOX THIS LAP ➔ HARD TYRES',
   PIT_INTER: 'BOX THIS LAP ➔ INTERMEDIATES',
   PIT_WET: 'BOX THIS LAP ➔ FULL WETS',
+  ENERGY_DEPLOY: 'ERS OVERTAKE: FULL DEPLOY',
+  ENERGY_HARVEST: 'ERS RECHARGE: HARVEST MODE',
+  ATTACK: 'ATTACK: OVERTAKE DELTA ACTIVE',
+  DEFEND: 'DEFEND: DEFENSIVE TRACK POSITION',
 };
 
 const URGENCY_BADGES: Record<string, { bg: string; text: string; border: string; icon: React.ReactNode }> = {

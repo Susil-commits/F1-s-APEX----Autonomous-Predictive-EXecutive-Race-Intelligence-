@@ -98,11 +98,32 @@ export const Header: React.FC = () => {
       track.name.toLowerCase().includes(c.id) || track.name.toLowerCase().includes(c.name.toLowerCase())
     )?.id || 'silverstone';
 
-  const TABS: { id: WorkspaceTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'tactical', label: 'Tactical Pit Wall', icon: <Activity className="w-3.5 h-3.5" /> },
-    { id: 'telemetry', label: 'Telemetry Lab', icon: <Gauge className="w-3.5 h-3.5" /> },
-    { id: 'explainability', label: 'AI Reasoning & Policy', icon: <Brain className="w-3.5 h-3.5" /> },
-    { id: 'sandbox', label: 'Strategy Sandbox', icon: <Sliders className="w-3.5 h-3.5" /> },
+  const PRIMARY_TABS: { id: WorkspaceTab; label: string; icon: React.ReactNode }[] = [
+    { id: 'tactical', label: 'Pit Wall', icon: <Activity className="w-3.5 h-3.5" /> },
+    { id: 'strategy_center', label: 'Strategy Center', icon: <Sliders className="w-3.5 h-3.5" /> },
+    { id: 'tyre_intel', label: 'Tyre ML', icon: <Gauge className="w-3.5 h-3.5" /> },
+    { id: 'weather_intel', label: 'Weather Radar', icon: <CloudRain className="w-3.5 h-3.5" /> },
+    { id: 'opponent_intel', label: 'Opponent Tactics', icon: <ShieldAlert className="w-3.5 h-3.5" /> },
+    { id: 'vehicle_health', label: 'Vehicle Health', icon: <Cpu className="w-3.5 h-3.5" /> },
+    { id: 'replays', label: 'Replay Lab', icon: <Flag className="w-3.5 h-3.5" /> },
+    { id: 'explainability', label: 'AI Explainability', icon: <Brain className="w-3.5 h-3.5" /> },
+  ];
+
+  const ALL_WORKSPACES: { id: WorkspaceTab; label: string }[] = [
+    { id: 'tactical', label: '1. Live Tactical Pit Wall' },
+    { id: 'strategy_center', label: '2. Strategy Center & Stint Planner' },
+    { id: 'tyre_intel', label: '3. Tyre ML & RUL Intelligence' },
+    { id: 'weather_intel', label: '4. Weather Doppler & Grip Crossover' },
+    { id: 'opponent_intel', label: '5. Opponent Tactics & Undercut Matrix' },
+    { id: 'driver_intel', label: '6. Driver Behavioral Analytics' },
+    { id: 'vehicle_health', label: '7. Powertrain & Vehicle Health' },
+    { id: 'counterfactual', label: '8. Counterfactual Simulation Lab' },
+    { id: 'rl_training', label: '9. RL Policy & Action Masking' },
+    { id: 'telemetry', label: '10. Deep Telemetry Lab' },
+    { id: 'replays', label: '11. Historical Race Replay' },
+    { id: 'explainability', label: '12. TreeSHAP AI Reasoner' },
+    { id: 'championship', label: '13. AI-vs-AI Championship' },
+    { id: 'system_health', label: '14. System Observability & Diagnostics' },
   ];
 
   return (
@@ -146,13 +167,13 @@ export const Header: React.FC = () => {
         </div>
       </div>
 
-      {/* Center Navigation Tabs */}
-      <div className="flex items-center bg-slate-950/80 p-1 rounded-lg border border-slate-800/80 text-xs font-mono order-3 lg:order-2">
-        {TABS.map((tab) => (
+      {/* Center Navigation Tabs & Dropdown */}
+      <div className="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-lg border border-slate-800/80 text-xs font-mono order-3 lg:order-2 overflow-x-auto max-w-full">
+        {PRIMARY_TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md transition-all ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all whitespace-nowrap ${
               activeTab === tab.id
                 ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-bold shadow-md shadow-cyan-500/20'
                 : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
@@ -162,6 +183,19 @@ export const Header: React.FC = () => {
             <span className="hidden sm:inline font-sans font-semibold text-[11px]">{tab.label}</span>
           </button>
         ))}
+
+        {/* Workspace Dropdown for all 14 views */}
+        <select
+          value={activeTab}
+          onChange={(e) => setActiveTab(e.target.value as WorkspaceTab)}
+          className="bg-slate-900 text-cyan-300 font-bold text-[11px] border border-cyan-800/60 rounded px-2 py-1 focus:outline-none cursor-pointer"
+        >
+          {ALL_WORKSPACES.map((w) => (
+            <option key={w.id} value={w.id} className="bg-slate-950 text-slate-200">
+              {w.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       {/* Right Session Status & Audio Controls */}

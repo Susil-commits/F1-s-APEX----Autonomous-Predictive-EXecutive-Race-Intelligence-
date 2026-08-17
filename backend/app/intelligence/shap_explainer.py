@@ -297,7 +297,7 @@ class TreeSHAPExplainer:
         if isinstance(action, StrategyAction):
             action_str = action.value
         else:
-            action_str = str(action).upper().replace("STRATEGYACTION.", "")
+            action_str = action.upper().replace("STRATEGYACTION.", "")
         return NAME_TO_ACTION_IDX.get(action_str, 0)
 
     def explain(self, features: np.ndarray) -> Dict[str, Any]:
@@ -310,6 +310,9 @@ class TreeSHAPExplainer:
             is_distilled: bool
             surrogate_type: str
         """
+        if self.explainer is None or self.model is None:
+            raise RuntimeError("TreeSHAP explainer or surrogate model is not initialized.")
+
         if features.ndim == 1:
             feat_matrix = features.reshape(1, -1)
         else:
@@ -380,6 +383,9 @@ class TreeSHAPExplainer:
         mod_a = self.action_models.get(idx_a, self.model)
         mod_b = self.action_models.get(idx_b, self.model)
 
+        if exp_a is None or exp_b is None or mod_a is None or mod_b is None:
+            raise RuntimeError("TreeSHAP surrogate models or explainers are not initialized.")
+
         # Computations for Action A
         shap_a = exp_a.shap_values(feat_matrix)
         if isinstance(shap_a, list):
@@ -440,6 +446,8 @@ class TreeSHAPExplainer:
         for act_idx in range(8):
             act_name = ACTION_MAP.get(act_idx, StrategyAction.MAINTAIN).value
             mod = self.action_models.get(act_idx, self.model)
+            if mod is None:
+                continue
             q_val = float(mod.predict(feat_matrix)[0])
             action_evaluations.append({
                 "action_index": act_idx,
@@ -447,9 +455,21 @@ class TreeSHAPExplainer:
                 "q_value": round(q_val, 4),
             })
 
+        if not action_evaluations:
+            return {
+                "action_rankings": [],
+                "recommended_action": StrategyAction.MAINTAIN.value,
+                "q_margin_top2": 0.0,
+            }
+
         action_evaluations.sort(key=lambda x: x["q_value"], reverse=True)
+        q_margin = (
+            round(action_evaluations[0]["q_value"] - action_evaluations[1]["q_value"], 4)
+            if len(action_evaluations) > 1
+            else 0.0
+        )
         return {
             "action_rankings": action_evaluations,
             "recommended_action": action_evaluations[0]["action_name"],
-            "q_margin_top2": round(action_evaluations[0]["q_value"] - action_evaluations[1]["q_value"], 4),
+            "q_margin_top2": q_margin,
         }
