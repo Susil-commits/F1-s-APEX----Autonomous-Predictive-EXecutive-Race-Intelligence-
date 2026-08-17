@@ -26,6 +26,7 @@ class AgentHealingAction(BaseModel):
     trigger_reason: str
     previous_fidelity_r2: Optional[float] = None
     post_healing_fidelity_r2: Optional[float] = None
+    pillar_breakdown: Dict[str, Any] = Field(default_factory=dict)
     plain_language_debrief: str
     status: str = "COMPLETED"
 
@@ -35,6 +36,21 @@ class SelfHealingAgent:
 
     def __init__(self):
         self.action_history: List[AgentHealingAction] = []
+
+    def get_health_summary(self) -> Dict[str, Any]:
+        """Provides an instant diagnostic snapshot of model health and alignment."""
+        explainer = TreeSHAPExplainer.get_instance()
+        drift_status = explainer.verify_drift()
+        
+        is_synced = not drift_status.get("drift_detected", False)
+        return {
+            "surrogate_synced": is_synced,
+            "active_dqn_hash": explainer.active_dqn_hash[:12] if explainer.active_dqn_hash else "none",
+            "distilled_dqn_hash": explainer.distilled_dqn_hash[:12] if explainer.distilled_dqn_hash else "none",
+            "surrogate_fidelity_r2": drift_status.get("surrogate_fidelity_r2", 0.88),
+            "total_actions_logged": len(self.action_history),
+            "system_health_rating": "OPTIMAL" if is_synced else "DRIFT_DETECTED",
+        }
 
     def check_and_heal(self, auto_redistill: bool = True) -> AgentHealingAction:
         """
@@ -64,6 +80,7 @@ class SelfHealingAgent:
                     trigger_reason="Scheduled verification check",
                     previous_fidelity_r2=drift_status.get("surrogate_fidelity_r2", 0.88),
                     post_healing_fidelity_r2=drift_status.get("surrogate_fidelity_r2", 0.88),
+                    pillar_breakdown=eval_report.get("metrics", {}),
                     plain_language_debrief=debrief,
                     status="HEALTHY",
                 )
@@ -99,6 +116,7 @@ class SelfHealingAgent:
                     trigger_reason=trigger_msg,
                     previous_fidelity_r2=prev_r2,
                     post_healing_fidelity_r2=new_r2,
+                    pillar_breakdown={"distill_r2": new_r2},
                     plain_language_debrief=debrief,
                     status="HEALED",
                 )

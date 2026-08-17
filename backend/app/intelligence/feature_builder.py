@@ -147,3 +147,25 @@ class FeatureBuilder:
         ], dtype=np.float32)
 
         return vec
+
+    @staticmethod
+    def decode_feature_vector(vec: np.ndarray) -> dict:
+        """Converts a 28-D normalized tensor into a human-readable labeled dictionary."""
+        if len(vec) != FEATURE_DIM:
+            return {}
+        return {FEATURE_NAMES[i]: float(vec[i]) for i in range(FEATURE_DIM)}
+
+    @staticmethod
+    def compute_compound_suitability(state: RaceState) -> dict:
+        """Evaluates empirical suitability index (0.0 to 1.0) for each tyre compound given track moisture."""
+        rain = float(np.clip(state.weather.rain_intensity, 0.0, 1.0))
+        cond = state.weather.condition
+
+        if cond == TrackCondition.WET or rain > 0.65:
+            return {"WET": 0.98, "INTERMEDIATE": 0.55, "HARD": 0.02, "MEDIUM": 0.02, "SOFT": 0.02}
+        elif cond == TrackCondition.DAMP or rain > 0.25:
+            return {"INTERMEDIATE": 0.95, "WET": 0.40, "SOFT": 0.15, "MEDIUM": 0.10, "HARD": 0.05}
+        else:
+            # Dry conditions
+            return {"SOFT": 0.85, "MEDIUM": 0.92, "HARD": 0.88, "INTERMEDIATE": 0.05, "WET": 0.01}
+
