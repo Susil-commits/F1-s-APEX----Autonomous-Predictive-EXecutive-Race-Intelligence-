@@ -102,18 +102,25 @@ jobs:
 
       - name: Wait for APEX Services Health
         run: |
-          for i in {1..30}; do
-            if curl -s -f http://localhost:8000/api/health > /dev/null; then
-              echo "APEX Application is UP and HEALTHY!"
+          HEALTHY=0
+          for i in {1..35}; do
+            if curl -s -f http://127.0.0.1:8000/api/health > /dev/null 2>&1; then
+              echo "APEX Application is UP and HEALTHY on iteration $i!"
+              HEALTHY=1
               break
             fi
-            echo "Waiting for APEX backend to be healthy ($i/30)..."
-            sleep 2
+            echo "Waiting for APEX backend to be healthy ($i/35)..."
+            sleep 3
           done
+          if [ $HEALTHY -ne 1 ]; then
+            echo "Healthcheck timed out! Showing container logs:"
+            docker compose logs
+            exit 1
+          fi
 
       - name: Verify Health Endpoint Response
         run: |
-          RESPONSE=$(curl -s http://localhost:8000/api/health)
+          RESPONSE=$(curl -s http://127.0.0.1:8000/api/health)
           echo "Health response: $RESPONSE"
           echo "$RESPONSE" | grep -q '"status":"ok"'
 
