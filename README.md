@@ -15,7 +15,6 @@
   <img src="https://img.shields.io/badge/FastF1-Real_Telemetry-E10600.svg" alt="FastF1" />
   <img src="https://img.shields.io/badge/RL-DQN_%2B_PPO-orange.svg" alt="RL DQN & PPO" />
   <img src="https://img.shields.io/badge/TreeSHAP-XAI-8b5cf6.svg" alt="TreeSHAP" />
-  <img src="https://img.shields.io/badge/Tests-127%2F127_Passed_(100%25)-brightgreen.svg" alt="Tests 127/127 Passed" />
   <img src="https://img.shields.io/badge/Eval_Harness-8%2F8_Passed-brightgreen.svg" alt="Eval Harness" />
   <img src="https://img.shields.io/badge/Workspaces-14_Pages-06b6d4.svg" alt="14 Workspaces" />
   <img src="https://img.shields.io/badge/React-18-61DAFB.svg" alt="React 18" />
