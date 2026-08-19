@@ -87,8 +87,9 @@ jobs:
             benchmarks/latest_benchmark_results.json
             backend/models/registry.json
             backend/training/best_hyperparameters.json
-            backend/models/curriculum_training_comparison.png
+            docs/images/*.png
           if-no-files-found: ignore
+
 
 
   frontend-build:
