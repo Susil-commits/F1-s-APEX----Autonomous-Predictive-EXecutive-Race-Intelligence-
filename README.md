@@ -205,66 +205,8 @@ APEX includes an automated evaluation harness and visualization suite generated 
 
 ---
 
-## 📈 Empirical Validation & Training Convergence Artifacts
 
-### 1. FastF1 Real-World Telemetry Tyre Model Calibration
-<p align="center">
-  <img src="backend/models/tyre_model_validation.png" alt="APEX Tyre Degradation Model — FastF1 Real Data Calibration" width="100%" />
-</p>
 
-> **Figure 1: Multi-Compound Empirical Degradation Curves (Held-out Austrian Grand Prix, 1,168 Laps).**
-> - **Real-World Telemetry Grounding**: Calibrated across 1,168 empirical lap telemetry points from the Austrian Grand Prix across Soft ($C5/C4$), Medium ($C3$), and Hard ($C2/C1$) compounds.
-> - **Non-Linear Dynamics vs Linear Baseline**: Captures compound-specific non-linear tyre wear behavior ($\text{RMSE} = 0.943\text{s}$). The APEX physics model accurately predicts early thermal degradation on Softs, steady progressive degradation on Mediums, and extended-life wear plateaus on Hards, outperforming naive linear regression baselines ($R^2_{\text{Soft}} = 0.50$, $R^2_{\text{Hard}} = 0.24$).
-> - **Operational Utility**: Feeds continuous Remaining Useful Life (RUL) and cliff risk probabilities directly into the Hybrid Decision Engine, TreeSHAP reasoner, and Monte Carlo rollout generator.
-
----
-
-### 2. Deep Q-Network Policy Training Reward Convergence
-<p align="center">
-  <img src="backend/models/training_rewards.png" alt="APEX Deep Q-Network Policy Training Reward Convergence" width="100%" />
-</p>
-
-> **Figure 2: DQN Strategic Policy Reward Convergence across 1,600 Gymnasium Training Episodes.**
-> - **Reinforcement Learning Dynamics**: Tracks cumulative episode rewards and 20-episode rolling average across 1,600 simulated Grand Prix rollouts on high-fidelity stochastic circuits.
-> - **Three Distinct Learning Phases**:
->   1. **Exploration / Sub-optimal Policy (Episodes 0–400)**: Negative cumulative rewards ($-400$ to $-200$) as the agent explores state-action spaces, experiencing late pit calls, blown tyres ($>80\%$ wear), and traffic congestion penalties.
->   2. **Policy Transition & Safe RL Internalization (Episodes 400–700)**: Rapid reward ascent as the agent internalizes quadratic tyre wear cliff penalties, optimal pit window triggers, and Safe RL action masking constraints.
->   3. **Asymptotic Convergence & Strategic Mastery (Episodes 700–1600)**: Stable convergence at $+100$ to $+150$ cumulative reward, achieving consistent high-podium finishes ($90\%$ win rate, $95\%$ podium rate on 5-circuit benchmarks), zero blown tyre occurrences, and sub-millisecond decision latencies.
-
----
-
-### 3. 3-Stage Curriculum Learning Convergence Comparison
-<p align="center">
-  <img src="backend/models/curriculum_training_comparison.png" alt="APEX 3-Stage Curriculum Learning vs Standard RL Training Comparison" width="100%" />
-</p>
-
-> **Figure 3: 3-Stage Curriculum Learning (Novice $\rightarrow$ Intermediate $\rightarrow$ Pro) vs Standard Unstructured RL Training.**
-> - **Curriculum Architecture**:
->   - **Stage 1 (Novice — Dry Baseline)**: Constant sunny conditions, deterministic tyre degradation, zero safety car interventions. Allows the agent to master pure pace, clean-air stint lengths, and baseline tyre wear physics without confounding noise.
->   - **Stage 2 (Intermediate — Dynamic Weather)**: Introduces stochastic rain probabilities and track wetness crossover windows (Slick $\leftrightarrow$ Intermediate $\leftrightarrow$ Full Wet), teaching the agent compound switching thresholds.
->   - **Stage 3 (Master / Pro — Full Stochastic Chaos)**: Enables full real-world race volatility: randomized Safety Car deployments, Virtual Safety Cars, abrupt downpours, puncture cliffs, and opponent undercut threats.
-> - **Empirical Advantage**:
->   - **$2.4\times$ Faster Sample Efficiency**: Curriculum learning reaches high-reward stability ($>+120$) in only 420 episodes compared to $>1,000$ episodes for unstructured training.
->   - **Variance Reduction**: Episode-to-episode reward variance drops by **$64\%$**, completely eliminating catastrophic policy forgetting when transitioning into high-entropy weather states.
->   - **Artifact Provenance**: Exported to [`backend/models/curriculum_dqn.zip`](backend/models/curriculum_dqn.zip) with live SHA-256 validation in the Model Registry.
-
----
-
-### 4. Bayesian Hyperparameter Optimization (Optuna HPO) Search Space & Sensitivity
-<p align="center">
-  <img src="backend/models/hpo_search_results.png" alt="APEX Optuna Bayesian Hyperparameter Optimization Results" width="100%" />
-</p>
-
-> **Figure 4: Optuna Bayesian Hyperparameter Optimization across 50 Multi-Circuit Trials.**
-> - **Multi-Objective Optimization**: Evaluates policy checkpoints across a composite objective function maximizing multi-circuit win rate and mean finish position while heavily penalizing blown tyre incidents ($>80\%$ wear) and excessive pit stop thrashing.
-> - **Key Parameter Sensitivities & Pareto Optimal Set**:
->   - **Learning Rate ($\alpha = 5.2 \times 10^{-4}$)**: Log-uniform search identified a sharp stability cliff above $1.5 \times 10^{-3}$ and slow policy convergence below $1 \times 10^{-4}$.
->   - **Discount Factor ($\gamma = 0.985$)**: High discount factors are critical for F1 strategy to value long-term compound preservation across 25+ lap stints over immediate single-lap track position gains.
->   - **Exploration Decay Rate ($\epsilon_{\text{decay}} = 0.994$)**: Controlled geometric decay ensures thorough exploration of alternate compound strategies before exploitation lock-in.
->   - **Target Network Update Period ($\tau = 450$ steps)**: Prevents moving-target divergence in Q-value estimation during abrupt weather phase changes.
-> - **Optimal Manifest**: Persisted to [`backend/training/best_hyperparameters.json`](backend/training/best_hyperparameters.json) and automatically ingested during policy retraining.
-
----
 
 ## 📁 Repository Structure
 
