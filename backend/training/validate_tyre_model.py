@@ -285,6 +285,44 @@ def evaluate_and_calibrate(
         print(f"[TyreModel] Validation plot saved to {VALIDATION_PLOT_PNG}")
     plt.close(fig)
 
+    # Online / Session Telemetry Fine-Tuning for PINN Residual Compensator
+    try:
+        from backend.app.intelligence.pinn_tyre_residual import PINNTyreResidualCompensator
+        from backend.app.simulator.models import DrivingMode, TyreCompound
+
+        comp_map = {
+            "SOFT": TyreCompound.SOFT,
+            "MEDIUM": TyreCompound.MEDIUM,
+            "HARD": TyreCompound.HARD,
+            "INTERMEDIATE": TyreCompound.INTERMEDIATE,
+            "WET": TyreCompound.WET,
+        }
+
+        pinn_samples = []
+        for _, row in train_df.iterrows():
+            c_enum = comp_map.get(str(row.get("compound", "MEDIUM")).upper(), TyreCompound.MEDIUM)
+            wear_est = min(100.0, float(row.get("tyre_age", 1)) * 3.0)
+            pinn_samples.append({
+                "compound": c_enum,
+                "wear_pct": wear_est,
+                "mode": DrivingMode.NORMAL,
+                "track_name": str(row.get("circuit", "silverstone")).lower(),
+                "track_temp_c": 35.0,
+                "rain_intensity": 0.0,
+                "actual_lap_time_loss": float(row.get("lap_time_delta", 0.0)),
+            })
+            if len(pinn_samples) >= 300:
+                break
+
+        if pinn_samples:
+            pinn_loss = PINNTyreResidualCompensator.get_instance().fine_tune_on_session_telemetry(
+                telemetry_samples=pinn_samples,
+                epochs=5,
+            )
+            print(f"[TyreModel] PINN residual compensator fine-tuned on {len(pinn_samples)} telemetry laps (Loss: {pinn_loss:.4f})")
+    except Exception as e:
+        logger.warning(f"[TyreModel] Could not fine-tune PINN residual compensator: {e}")
+
     print(
         f"[TyreModel] Validation complete ({data_source}): R² = {overall_r2:.3f} (vs linear {baseline_r2:.3f}), "
         f"RMSE = {overall_rmse:.3f}s"

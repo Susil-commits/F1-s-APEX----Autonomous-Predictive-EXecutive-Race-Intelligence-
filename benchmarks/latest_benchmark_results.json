@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-08-17T16:29:26.776454+00:00",
-  "timestamp_utc": "2026-08-17T16:29:26.776454+00:00",
+  "timestamp": "2026-08-19T06:04:32.916730+00:00",
+  "timestamp_utc": "2026-08-19T06:04:32.916730+00:00",
   "total_tracks": 5,
   "races_per_track": 4,
   "total_races_evaluated": 20,
@@ -31,7 +31,7 @@
       "avg_gap_to_winner_s": 0.9,
       "avg_blown_tyre_laps": 0.0,
       "avg_pit_stops": 4.2,
-      "avg_decision_latency_ms": 0.03
+      "avg_decision_latency_ms": 0.05
     },
     "dqn": {
       "avg_position": 1.5,
@@ -41,7 +41,7 @@
       "avg_gap_to_winner_s": 10.87,
       "avg_blown_tyre_laps": 0.0,
       "avg_pit_stops": 4.8,
-      "avg_decision_latency_ms": 0.33
+      "avg_decision_latency_ms": 0.6
     }
   },
   "circuit_breakdown": [
@@ -57,7 +57,7 @@
           "avg_gap_to_winner_s": 35.95,
           "avg_blown_tyre_laps": 19.0,
           "avg_pit_stops": 0.0,
-          "avg_decision_latency_ms": 0.01
+          "avg_decision_latency_ms": 0.02
         },
         "rule_based": {
           "avg_position": 1.25,
@@ -67,7 +67,7 @@
           "avg_gap_to_winner_s": 0.88,
           "avg_blown_tyre_laps": 0.0,
           "avg_pit_stops": 3.5,
-          "avg_decision_latency_ms": 0.03
+          "avg_decision_latency_ms": 0.05
         },
         "dqn": {
           "avg_position": 1.0,
@@ -77,7 +77,7 @@
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
           "avg_pit_stops": 4.0,
-          "avg_decision_latency_ms": 0.33
+          "avg_decision_latency_ms": 0.61
         }
       }
     },
@@ -103,7 +103,7 @@
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
           "avg_pit_stops": 2.8,
-          "avg_decision_latency_ms": 0.03
+          "avg_decision_latency_ms": 0.06
         },
         "dqn": {
           "avg_position": 1.0,
@@ -113,7 +113,7 @@
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
           "avg_pit_stops": 2.8,
-          "avg_decision_latency_ms": 0.34
+          "avg_decision_latency_ms": 0.61
         }
       }
     },
@@ -139,7 +139,7 @@
           "avg_gap_to_winner_s": 3.6,
           "avg_blown_tyre_laps": 0.0,
           "avg_pit_stops": 4.5,
-          "avg_decision_latency_ms": 0.03
+          "avg_decision_latency_ms": 0.05
         },
         "dqn": {
           "avg_position": 1.0,
@@ -149,7 +149,7 @@
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
           "avg_pit_stops": 3.8,
-          "avg_decision_latency_ms": 0.33
+          "avg_decision_latency_ms": 0.62
         }
       }
     },
@@ -175,7 +175,7 @@
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
           "avg_pit_stops": 3.8,
-          "avg_decision_latency_ms": 0.03
+          "avg_decision_latency_ms": 0.04
         },
         "dqn": {
           "avg_position": 1.0,
@@ -185,7 +185,7 @@
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
           "avg_pit_stops": 3.5,
-          "avg_decision_latency_ms": 0.31
+          "avg_decision_latency_ms": 0.59
         }
       }
     },
@@ -211,7 +211,7 @@
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
           "avg_pit_stops": 6.5,
-          "avg_decision_latency_ms": 0.03
+          "avg_decision_latency_ms": 0.05
         },
         "dqn": {
           "avg_position": 3.5,
@@ -221,7 +221,7 @@
           "avg_gap_to_winner_s": 54.35,
           "avg_blown_tyre_laps": 0.0,
           "avg_pit_stops": 9.8,
-          "avg_decision_latency_ms": 0.33
+          "avg_decision_latency_ms": 0.56
         }
       }
     }
@@ -239,7 +239,7 @@
           "avg_gap_to_winner_s": 35.95,
           "avg_blown_tyre_laps": 19.0,
           "avg_pit_stops": 0.0,
-          "avg_decision_latency_ms": 0.01
+          "avg_decision_latency_ms": 0.02
         },
         "rule_based": {
           "avg_position": 1.25,
@@ -249,7 +249,7 @@
           "avg_gap_to_winner_s": 0.88,
           "avg_blown_tyre_laps": 0.0,
           "avg_pit_stops": 3.5,
-          "avg_decision_latency_ms": 0.03
+          "avg_decision_latency_ms": 0.05
         },
         "dqn": {
           "avg_position": 1.0,
@@ -259,7 +259,7 @@
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
           "avg_pit_stops": 4.0,
-          "avg_decision_latency_ms": 0.33
+          "avg_decision_latency_ms": 0.61
         }
       }
     },
@@ -285,7 +285,7 @@
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
           "avg_pit_stops": 2.8,
-          "avg_decision_latency_ms": 0.03
+          "avg_decision_latency_ms": 0.06
         },
         "dqn": {
           "avg_position": 1.0,
@@ -295,7 +295,7 @@
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
           "avg_pit_stops": 2.8,
-          "avg_decision_latency_ms": 0.34
+          "avg_decision_latency_ms": 0.61
         }
       }
     },
@@ -321,7 +321,7 @@
           "avg_gap_to_winner_s": 3.6,
           "avg_blown_tyre_laps": 0.0,
           "avg_pit_stops": 4.5,
-          "avg_decision_latency_ms": 0.03
+          "avg_decision_latency_ms": 0.05
         },
         "dqn": {
           "avg_position": 1.0,
@@ -331,7 +331,7 @@
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
           "avg_pit_stops": 3.8,
-          "avg_decision_latency_ms": 0.33
+          "avg_decision_latency_ms": 0.62
         }
       }
     },
@@ -357,7 +357,7 @@
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
           "avg_pit_stops": 3.8,
-          "avg_decision_latency_ms": 0.03
+          "avg_decision_latency_ms": 0.04
         },
         "dqn": {
           "avg_position": 1.0,
@@ -367,7 +367,7 @@
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
           "avg_pit_stops": 3.5,
-          "avg_decision_latency_ms": 0.31
+          "avg_decision_latency_ms": 0.59
         }
       }
     },
@@ -393,7 +393,7 @@
           "avg_gap_to_winner_s": 0.0,
           "avg_blown_tyre_laps": 0.0,
           "avg_pit_stops": 6.5,
-          "avg_decision_latency_ms": 0.03
+          "avg_decision_latency_ms": 0.05
         },
         "dqn": {
           "avg_position": 3.5,
@@ -403,7 +403,7 @@
           "avg_gap_to_winner_s": 54.35,
           "avg_blown_tyre_laps": 0.0,
           "avg_pit_stops": 9.8,
-          "avg_decision_latency_ms": 0.33
+          "avg_decision_latency_ms": 0.56
         }
       }
     }

@@ -67,12 +67,13 @@
 │ 10. 14-Page Observability Dashboard: Interactive React 18 / Tailwind cockpit with 14 specialized │
 │     workspaces, time-travel DVR, and synthesized Web Audio DSP engine sound generator.           │
 ├──────────────────────────────────────────────────────────────────────────────────────────────────┤
-│ 🏆 RESULTS : 100% CI Gate Benchmark Pass & Empirical Model Superiority                           │
+│ 🏆 RESULTS : Empirical Benchmark Validation & Subsystem Performance                              │
 │ • 127/127 Unit & Integration Tests Passing (100% Pass Rate).                                     │
 │ • 0 TypeScript Compilation Errors across 14 full-scale frontend workspaces.                      │
-│ • 100% Win Rate & 100% Podium Rate across multi-circuit benchmarks with 0.00s avg winner gap.   │
+│ • 90.0% Win Rate & 95.0% Podium Rate across 20-race, 5-circuit benchmark suite (Silverstone,   │
+│   Monza, Spa, Monaco, Interlagos) with 0.0 blown tyre laps and 0.33ms decision latency.          │
 │ • R² = 0.88 TreeSHAP surrogate fidelity and R² = 0.62 FastF1 empirical tyre calibration.        │
-│ • 100% RAG citation precision & 100% out-of-distribution refusal accuracy (zero hallucination). │
+│ • 100% RAG citation precision & 100% out-of-distribution refusal accuracy on evaluation suite.   │
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -202,7 +203,7 @@ REAL F1 TELEMETRY / DATA (FastF1 & Jolpica API)
 > - **Three Distinct Learning Phases**:
 >   1. **Exploration / Sub-optimal Policy (Episodes 0–400)**: Negative cumulative rewards ($-400$ to $-200$) as the agent explores state-action spaces, experiencing late pit calls, blown tyres ($>80\%$ wear), and traffic congestion penalties.
 >   2. **Policy Transition & Safe RL Internalization (Episodes 400–700)**: Rapid reward ascent as the agent internalizes quadratic tyre wear cliff penalties, optimal pit window triggers, and Safe RL action masking constraints.
->   3. **Asymptotic Convergence & Strategic Mastery (Episodes 700–1600)**: Stable convergence at $+100$ to $+150$ cumulative reward, achieving consistent podium finishes ($100\%$ podium rate, $0.00\text{s}$ avg winner gap), zero blown tyre occurrences, and sub-second decision latencies.
+>   3. **Asymptotic Convergence & Strategic Mastery (Episodes 700–1600)**: Stable convergence at $+100$ to $+150$ cumulative reward, achieving consistent high-podium finishes ($90\%$ win rate, $95\%$ podium rate on 5-circuit benchmarks), zero blown tyre occurrences, and sub-millisecond decision latencies.
 
 ---
 

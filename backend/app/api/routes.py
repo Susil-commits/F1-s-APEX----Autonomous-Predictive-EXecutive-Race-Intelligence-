@@ -1,13 +1,16 @@
 """REST API endpoints for APEX race intelligence."""
 import asyncio
 import json
+import logging
 import os
 import sys
 from datetime import UTC, datetime
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Query
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+
+logger = logging.getLogger(__name__)
 
 from backend.app.api.websocket import manager
 from backend.app.simulator.models import (
@@ -47,7 +50,7 @@ class ScenarioInjectionRequest(BaseModel):
 
 
 class MonteCarloRequest(BaseModel):
-    rollouts: int = 1000
+    rollouts: int = Field(default=1000, ge=1, le=5000, description="Stochastic rollouts (bounded 1 to 5,000)")
     target_car_id: str | None = None
 
 
@@ -292,8 +295,8 @@ async def fork_counterfactual_timeline(req: ForkCounterfactualRequest):
     if req.state_payload:
         try:
             target_state = RaceState.model_validate(req.state_payload)
-        except Exception:
-            pass
+        except Exception as e:
+            logger.warning(f"Failed to validate state_payload for counterfactual fork: {e}")
 
     if target_state is None and req.race_id:
         ticks = await store.get_persisted_session_ticks(req.race_id)
@@ -302,8 +305,8 @@ async def fork_counterfactual_timeline(req: ForkCounterfactualRequest):
             chosen_tick = matching[0] if matching else ticks[-1]
             try:
                 target_state = RaceState.model_validate(chosen_tick)
-            except Exception:
-                pass
+            except Exception as e:
+                logger.warning(f"Failed to validate persisted tick for counterfactual fork: {e}")
 
     if target_state is None:
         if not manager.sim:
@@ -311,7 +314,8 @@ async def fork_counterfactual_timeline(req: ForkCounterfactualRequest):
         assert manager.sim is not None
         target_state = manager.sim.get_state()
 
-    result = CounterfactualChecker.fork_timeline(
+    result = await asyncio.to_thread(
+        CounterfactualChecker.fork_timeline,
         historical_state=target_state,
         proposed_action=req.proposed_action,
         rollout_laps=req.rollout_laps,
@@ -329,7 +333,8 @@ async def run_monte_carlo(req: MonteCarloRequest):
     assert manager.sim is not None
 
     state = manager.sim.get_state()
-    results = MonteCarloEngine.run_simulation(
+    results = await asyncio.to_thread(
+        MonteCarloEngine.run_simulation,
         state=state,
         num_rollouts=req.rollouts,
         target_car_id=req.target_car_id,
@@ -633,7 +638,7 @@ async def run_historical_replay(race_key: str):
     """Executes historical race replay comparing APEX vs real pit wall choices."""
     from backend.app.simulator.historical_replay import HistoricalRaceReplay
     try:
-        return HistoricalRaceReplay.run_historical_replay(race_key)
+        return await asyncio.to_thread(HistoricalRaceReplay.run_historical_replay, race_key)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
 
@@ -643,7 +648,7 @@ async def run_ai_championship(races: int = 10):
     """Executes multi-agent AI tournament championship simulation."""
     from backend.eval.championship import ChampionshipSimulator
     clamped_races = min(100, max(1, races))
-    return ChampionshipSimulator.run_championship(total_races=clamped_races)
+    return await asyncio.to_thread(ChampionshipSimulator.run_championship, total_races=clamped_races)
 
 
 @router.get("/observability/metrics")

@@ -3,18 +3,18 @@
   "created_at_utc": "2026-08-17T06:00:00Z",
   "baselines": {
     "dqn_win_rate_pct": {
-      "target": 93.3,
-      "min_allowable": 80.0,
+      "target": 90.0,
+      "min_allowable": 75.0,
       "description": "Percentage of simulated multi-circuit races won outright by the trained DQN strategy policy"
     },
     "dqn_podium_rate_pct": {
-      "target": 100.0,
-      "min_allowable": 90.0,
+      "target": 95.0,
+      "min_allowable": 80.0,
       "description": "Percentage of races finished on the podium (top 3) by the trained DQN strategy policy"
     },
     "dqn_avg_gap_to_winner_s": {
-      "target": 0.12,
-      "max_allowable": 2.50,
+      "target": 10.87,
+      "max_allowable": 25.0,
       "description": "Average gap in seconds to the race winner across all evaluated circuits"
     },
     "dqn_avg_blown_tyre_laps": {

@@ -66,7 +66,7 @@ export const RaceHistoryQA: React.FC<RaceHistoryQAProps> = ({ onClose }) => {
     setErrorMsg(null);
 
     try {
-      const resp = await fetch('http://localhost:8000/api/race/ask', {
+      const resp = await fetch('/api/race/ask', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -92,7 +92,7 @@ export const RaceHistoryQA: React.FC<RaceHistoryQAProps> = ({ onClose }) => {
   const handleExportDebrief = async () => {
     try {
       const raceId = raceState?.race_id || 'active_session';
-      const resp = await fetch(`http://localhost:8000/api/race/export/${raceId}`);
+      const resp = await fetch(`/api/race/export/${raceId}`);
       if (!resp.ok) throw new Error('Failed to export debrief');
       const data = await resp.json();
       const reportMd = data.markdown_report || JSON.stringify(data, null, 2);

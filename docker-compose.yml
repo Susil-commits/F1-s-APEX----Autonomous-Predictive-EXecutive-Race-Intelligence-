@@ -7,8 +7,9 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - REDIS_URL=redis://redis:6379/0
-      - DATABASE_URL=postgresql+asyncpg://apex_user:apex_password@postgres:5432/apex_db
+      - REDIS_URL=${REDIS_URL:-redis://redis:6379/0}
+      - DATABASE_URL=${DATABASE_URL:-postgresql+asyncpg://${POSTGRES_USER:-apex_user}:${POSTGRES_PASSWORD:-apex_password}@postgres:5432/${POSTGRES_DB:-apex_db}}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:8000,http://127.0.0.1:5173,http://127.0.0.1:8000}
       - PORT=8000
     depends_on:
       redis:
@@ -39,16 +40,16 @@ services:
     image: postgres:16-alpine
     container_name: apex-postgres
     environment:
-      POSTGRES_DB: apex_db
-      POSTGRES_USER: apex_user
-      POSTGRES_PASSWORD: apex_password
+      POSTGRES_DB: ${POSTGRES_DB:-apex_db}
+      POSTGRES_USER: ${POSTGRES_USER:-apex_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-apex_password}
     ports:
       - "5432:5432"
     volumes:
       - apex_pgdata:/var/lib/postgresql/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U apex_user -d apex_db"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-apex_user} -d ${POSTGRES_DB:-apex_db}"]
       interval: 5s
       timeout: 3s
       retries: 5

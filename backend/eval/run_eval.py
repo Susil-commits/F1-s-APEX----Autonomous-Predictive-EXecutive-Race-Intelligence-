@@ -36,30 +36,55 @@ def load_baselines() -> dict[str, Any]:
         return json.load(f)
 
 
-def evaluate_dqn_policy(num_races: int = 3, track_name: str = "silverstone") -> dict[str, Any]:
+def evaluate_dqn_policy(
+    tracks: list[str] | None = None,
+    races_per_track: int = 1,
+    track_name: str | None = None,
+) -> dict[str, Any]:
     """
-    Pillar 1: Evaluates trained DQN policy performance in multi-car competitive races.
-    Measures win rate, podium rate, gap to leader, and blown tyre laps against benchmark suite.
+    Pillar 1: Evaluates trained DQN policy performance in competitive multi-car races.
+    Measures win rate, podium rate, gap to leader, and blown tyre laps across multi-circuit suites.
     """
-    suite = BenchmarkSuite(num_races=num_races, track_name=track_name)
-    results = suite.evaluate_track()
-    
-    dqn_metrics = results["policies"].get("dqn", {})
-    win_rate = dqn_metrics.get("win_rate_pct", 0.0)
-    podium_rate = dqn_metrics.get("podium_rate_pct", 0.0)
-    avg_gap = dqn_metrics.get("avg_gap_to_winner_s", 99.0)
-    blown_tyres = dqn_metrics.get("avg_blown_tyre_laps", 99.0)
-    
+    if track_name is not None:
+        target_tracks = [track_name]
+    elif tracks is not None:
+        target_tracks = tracks
+    else:
+        target_tracks = ["silverstone", "monza", "spa", "monaco", "interlagos"]
+
+    win_rates = []
+    podium_rates = []
+    gaps = []
+    blown_tyres = []
+    rule_wins = []
+    rand_wins = []
+
+    for t in target_tracks:
+        suite = BenchmarkSuite(num_races=races_per_track, track_name=t)
+        results = suite.evaluate_track()
+        dqn_metrics = results["policies"].get("dqn", {})
+        win_rates.append(dqn_metrics.get("win_rate_pct", 0.0))
+        podium_rates.append(dqn_metrics.get("podium_rate_pct", 0.0))
+        gaps.append(dqn_metrics.get("avg_gap_to_winner_s", 99.0))
+        blown_tyres.append(dqn_metrics.get("avg_blown_tyre_laps", 99.0))
+        rule_wins.append(results["policies"].get("rule_based", {}).get("win_rate_pct", 0.0))
+        rand_wins.append(results["policies"].get("random", {}).get("win_rate_pct", 0.0))
+
+    avg_win_rate = round(float(np.mean(win_rates)), 1) if win_rates else 0.0
+    avg_podium_rate = round(float(np.mean(podium_rates)), 1) if podium_rates else 0.0
+    avg_gap = round(float(np.mean(gaps)), 2) if gaps else 99.0
+    avg_blown = round(float(np.mean(blown_tyres)), 2) if blown_tyres else 0.0
+
     return {
         "status": "PASS",
-        "evaluated_races": num_races,
-        "track_name": track_name,
-        "dqn_win_rate_pct": float(win_rate),
-        "dqn_podium_rate_pct": float(podium_rate),
-        "dqn_avg_gap_to_winner_s": float(avg_gap),
-        "dqn_avg_blown_tyre_laps": float(blown_tyres),
-        "rule_based_win_rate_pct": float(results["policies"].get("rule_based", {}).get("win_rate_pct", 0.0)),
-        "random_win_rate_pct": float(results["policies"].get("random", {}).get("win_rate_pct", 0.0)),
+        "evaluated_races": len(target_tracks) * races_per_track,
+        "tracks_evaluated": target_tracks,
+        "dqn_win_rate_pct": avg_win_rate,
+        "dqn_podium_rate_pct": avg_podium_rate,
+        "dqn_avg_gap_to_winner_s": avg_gap,
+        "dqn_avg_blown_tyre_laps": avg_blown,
+        "rule_based_win_rate_pct": round(float(np.mean(rule_wins)), 1) if rule_wins else 0.0,
+        "random_win_rate_pct": round(float(np.mean(rand_wins)), 1) if rand_wins else 0.0,
     }
 
 
@@ -213,8 +238,8 @@ def run_full_evaluation(verbose: bool = True) -> tuple[dict[str, Any], bool]:
 
     # 1. DQN Policy Benchmark
     if verbose:
-        print("\n[Pillar 1/4] Evaluating Trained DQN RL Policy against multi-circuit baselines...")
-    dqn_res = evaluate_dqn_policy(num_races=2, track_name="silverstone")
+        print("\n[Pillar 1/4] Evaluating Trained DQN RL Policy across multi-circuit suite (Silverstone, Monza, Spa, Monaco, Interlagos)...")
+    dqn_res = evaluate_dqn_policy(tracks=["silverstone", "monza", "spa", "monaco", "interlagos"], races_per_track=1)
 
     # 2. TreeSHAP Surrogate Fidelity
     if verbose:

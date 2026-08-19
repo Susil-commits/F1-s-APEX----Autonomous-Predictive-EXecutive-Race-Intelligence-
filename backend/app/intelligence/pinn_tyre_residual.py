@@ -1,7 +1,8 @@
 """Physics-Informed Neural Network (PINN) Tyre Residual Compensator for APEX.
 
 Combines classical empirical Pacejka tyre wear dynamics with a deep residual neural network
-that learns non-linear micro-thermal degradation deltas from FastF1 telemetry:
+initialized on a physics-motivated prior (capturing non-linear thermal blistering over 60% wear),
+with support for online/offline fine-tuning on live or historical FastF1 session telemetry:
 Delta_t_lap = PhysicsModel(compound, wear) + PINN_residual(track_severity, thermal_load, moisture, mode)
 """
 import os
