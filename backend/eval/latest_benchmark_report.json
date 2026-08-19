@@ -1,0 +1,364 @@
+{
+  "apex_benchmark_version": "1.0",
+  "timestamp": "2026-08-19T14:39:40.885376+00:00",
+  "seed": 42,
+  "mode": "quick",
+  "total_elapsed_s": 4.91,
+  "gate_j_passed": true,
+  "gate_e_passed": true,
+  "gate_g_passed": true,
+  "errors": [],
+  "benchmarks": [
+    {
+      "benchmark": "simulator_speed",
+      "n_races": 3,
+      "total_lap_ticks": 780,
+      "elapsed_s": 0.062,
+      "laps_per_second": 12580.6,
+      "ms_per_race": 20.7
+    },
+    {
+      "benchmark": "monte_carlo",
+      "n_100": {
+        "rollouts_per_action": 100,
+        "elapsed_ms": 0.0,
+        "ms_per_rollout": 0.0
+      },
+      "n_500": {
+        "rollouts_per_action": 500,
+        "elapsed_ms": 16.0,
+        "ms_per_rollout": 0.032
+      },
+      "n_1000": {
+        "rollouts_per_action": 1000,
+        "elapsed_ms": 0.0,
+        "ms_per_rollout": 0.0
+      }
+    },
+    {
+      "benchmark": "state_hash_determinism",
+      "seed": 42,
+      "laps_checked": 10,
+      "deterministic": true,
+      "hashes_match": true,
+      "sample_hash": "d9d2338a217ddb2b2380ef1013ee277af670cf8bb3492f9587e7e3d3f9e372e7"
+    },
+    {
+      "total_races": 3,
+      "seed": 42,
+      "champion": "Team APEX (Hybrid AI)",
+      "leaderboard": [
+        {
+          "team_name": "Team APEX (Hybrid AI)",
+          "archetype": "Autonomous Decision Intelligence",
+          "points": 61,
+          "wins": 1,
+          "podiums": 3,
+          "top5s": 3,
+          "dnfs": 0,
+          "races_run": 3,
+          "avg_finish": 1.67,
+          "strategy_distribution": {}
+        },
+        {
+          "team_name": "Team Alpha (Aggressive)",
+          "archetype": "Aggressive Attack",
+          "points": 54,
+          "wins": 2,
+          "podiums": 2,
+          "top5s": 2,
+          "dnfs": 0,
+          "races_run": 3,
+          "avg_finish": 3.33,
+          "strategy_distribution": {}
+        },
+        {
+          "team_name": "Team Delta (Risk-Aware)",
+          "archetype": "Risk Defensive",
+          "points": 43,
+          "wins": 0,
+          "podiums": 2,
+          "top5s": 3,
+          "dnfs": 0,
+          "races_run": 3,
+          "avg_finish": 3.33,
+          "strategy_distribution": {}
+        },
+        {
+          "team_name": "Team Gamma (Tyre-Focused)",
+          "archetype": "Tyre Preserver",
+          "points": 7,
+          "wins": 0,
+          "podiums": 0,
+          "top5s": 0,
+          "dnfs": 0,
+          "races_run": 3,
+          "avg_finish": 9.0,
+          "strategy_distribution": {}
+        },
+        {
+          "team_name": "Team Beta (Conservative)",
+          "archetype": "Conservative Safe",
+          "points": 4,
+          "wins": 0,
+          "podiums": 0,
+          "top5s": 0,
+          "dnfs": 0,
+          "races_run": 3,
+          "avg_finish": 9.67,
+          "strategy_distribution": {}
+        }
+      ],
+      "benchmark": "championship",
+      "elapsed_s": 0.56
+    },
+    {
+      "configs_run": 9,
+      "total_races_per_config": 3,
+      "seed": 42,
+      "elapsed_s": 4.25,
+      "reports": {
+        "FULL": {
+          "config": "FULL",
+          "description": "All modules enabled \u2014 production APEX configuration",
+          "races_run": 3,
+          "avg_finish": 4.0,
+          "win_rate": 0.667,
+          "podium_rate": 0.667,
+          "dnf_rate": 0.0,
+          "avg_points": 17.0,
+          "avg_race_time_s": 4804.8,
+          "total_points": 51
+        },
+        "NO_RL": {
+          "config": "NO_RL",
+          "description": "DQN + PPO disabled; rule engine + Monte Carlo only",
+          "races_run": 3,
+          "avg_finish": 4.0,
+          "win_rate": 0.667,
+          "podium_rate": 0.667,
+          "dnf_rate": 0.0,
+          "avg_points": 17.0,
+          "avg_race_time_s": 4804.8,
+          "total_points": 51
+        },
+        "NO_WEATHER": {
+          "config": "NO_WEATHER",
+          "description": "Weather prediction disabled; use raw rain_intensity only",
+          "races_run": 3,
+          "avg_finish": 4.0,
+          "win_rate": 0.667,
+          "podium_rate": 0.667,
+          "dnf_rate": 0.0,
+          "avg_points": 17.0,
+          "avg_race_time_s": 4804.8,
+          "total_points": 51
+        },
+        "NO_TYRE_ML": {
+          "config": "NO_TYRE_ML",
+          "description": "Tyre ML disabled; use raw wear_pct threshold rules only",
+          "races_run": 3,
+          "avg_finish": 4.0,
+          "win_rate": 0.667,
+          "podium_rate": 0.667,
+          "dnf_rate": 0.0,
+          "avg_points": 17.0,
+          "avg_race_time_s": 4804.8,
+          "total_points": 51
+        },
+        "NO_MC": {
+          "config": "NO_MC",
+          "description": "Monte Carlo rollouts disabled; greedy 1-step action selection",
+          "races_run": 3,
+          "avg_finish": 4.0,
+          "win_rate": 0.667,
+          "podium_rate": 0.667,
+          "dnf_rate": 0.0,
+          "avg_points": 17.0,
+          "avg_race_time_s": 4804.8,
+          "total_points": 51
+        },
+        "NO_RISK": {
+          "config": "NO_RISK",
+          "description": "Risk engine disabled; always risk-neutral (lambda=0.0)",
+          "races_run": 3,
+          "avg_finish": 4.0,
+          "win_rate": 0.667,
+          "podium_rate": 0.667,
+          "dnf_rate": 0.0,
+          "avg_points": 17.0,
+          "avg_race_time_s": 4804.8,
+          "total_points": 51
+        },
+        "NO_SAFETY": {
+          "config": "NO_SAFETY",
+          "description": "Safe RL guardrail disabled; all actions permitted",
+          "races_run": 3,
+          "avg_finish": 4.0,
+          "win_rate": 0.667,
+          "podium_rate": 0.667,
+          "dnf_rate": 0.0,
+          "avg_points": 17.0,
+          "avg_race_time_s": 4804.8,
+          "total_points": 51
+        },
+        "RULE_ONLY": {
+          "config": "RULE_ONLY",
+          "description": "Rule engine only; all ML modules disabled",
+          "races_run": 3,
+          "avg_finish": 1.33,
+          "win_rate": 0.667,
+          "podium_rate": 1.0,
+          "dnf_rate": 0.0,
+          "avg_points": 22.67,
+          "avg_race_time_s": 4776.4,
+          "total_points": 68
+        },
+        "RANDOM": {
+          "config": "RANDOM",
+          "description": "Fully random strategy baseline \u2014 lower bound reference",
+          "races_run": 3,
+          "avg_finish": 4.33,
+          "win_rate": 0.333,
+          "podium_rate": 0.667,
+          "dnf_rate": 0.0,
+          "avg_points": 14.67,
+          "avg_race_time_s": 4854.5,
+          "total_points": 44
+        }
+      },
+      "summary_table": [
+        {
+          "config": "RULE_ONLY",
+          "description": "Rule engine only; all ML modules disabled",
+          "races_run": 3,
+          "avg_finish": 1.33,
+          "win_rate": 0.667,
+          "podium_rate": 1.0,
+          "dnf_rate": 0.0,
+          "avg_points": 22.67,
+          "avg_race_time_s": 4776.4,
+          "total_points": 68
+        },
+        {
+          "config": "FULL",
+          "description": "All modules enabled \u2014 production APEX configuration",
+          "races_run": 3,
+          "avg_finish": 4.0,
+          "win_rate": 0.667,
+          "podium_rate": 0.667,
+          "dnf_rate": 0.0,
+          "avg_points": 17.0,
+          "avg_race_time_s": 4804.8,
+          "total_points": 51
+        },
+        {
+          "config": "NO_RL",
+          "description": "DQN + PPO disabled; rule engine + Monte Carlo only",
+          "races_run": 3,
+          "avg_finish": 4.0,
+          "win_rate": 0.667,
+          "podium_rate": 0.667,
+          "dnf_rate": 0.0,
+          "avg_points": 17.0,
+          "avg_race_time_s": 4804.8,
+          "total_points": 51
+        },
+        {
+          "config": "NO_WEATHER",
+          "description": "Weather prediction disabled; use raw rain_intensity only",
+          "races_run": 3,
+          "avg_finish": 4.0,
+          "win_rate": 0.667,
+          "podium_rate": 0.667,
+          "dnf_rate": 0.0,
+          "avg_points": 17.0,
+          "avg_race_time_s": 4804.8,
+          "total_points": 51
+        },
+        {
+          "config": "NO_TYRE_ML",
+          "description": "Tyre ML disabled; use raw wear_pct threshold rules only",
+          "races_run": 3,
+          "avg_finish": 4.0,
+          "win_rate": 0.667,
+          "podium_rate": 0.667,
+          "dnf_rate": 0.0,
+          "avg_points": 17.0,
+          "avg_race_time_s": 4804.8,
+          "total_points": 51
+        },
+        {
+          "config": "NO_MC",
+          "description": "Monte Carlo rollouts disabled; greedy 1-step action selection",
+          "races_run": 3,
+          "avg_finish": 4.0,
+          "win_rate": 0.667,
+          "podium_rate": 0.667,
+          "dnf_rate": 0.0,
+          "avg_points": 17.0,
+          "avg_race_time_s": 4804.8,
+          "total_points": 51
+        },
+        {
+          "config": "NO_RISK",
+          "description": "Risk engine disabled; always risk-neutral (lambda=0.0)",
+          "races_run": 3,
+          "avg_finish": 4.0,
+          "win_rate": 0.667,
+          "podium_rate": 0.667,
+          "dnf_rate": 0.0,
+          "avg_points": 17.0,
+          "avg_race_time_s": 4804.8,
+          "total_points": 51
+        },
+        {
+          "config": "NO_SAFETY",
+          "description": "Safe RL guardrail disabled; all actions permitted",
+          "races_run": 3,
+          "avg_finish": 4.0,
+          "win_rate": 0.667,
+          "podium_rate": 0.667,
+          "dnf_rate": 0.0,
+          "avg_points": 17.0,
+          "avg_race_time_s": 4804.8,
+          "total_points": 51
+        },
+        {
+          "config": "RANDOM",
+          "description": "Fully random strategy baseline \u2014 lower bound reference",
+          "races_run": 3,
+          "avg_finish": 4.33,
+          "win_rate": 0.333,
+          "podium_rate": 0.667,
+          "dnf_rate": 0.0,
+          "avg_points": 14.67,
+          "avg_race_time_s": 4854.5,
+          "total_points": 44
+        }
+      ],
+      "top_config": "RULE_ONLY",
+      "benchmark": "ablation"
+    },
+    {
+      "benchmark": "safe_rl_coverage",
+      "scenarios_tested": 3,
+      "violations": 0,
+      "passed": true,
+      "results": [
+        {
+          "scenario": "mid_race_normal",
+          "allowed_actions": 7
+        },
+        {
+          "scenario": "tyre_cliff_scenario",
+          "allowed_actions": 7
+        },
+        {
+          "scenario": "wet_weather_scenario",
+          "allowed_actions": 7
+        }
+      ]
+    }
+  ]
+}

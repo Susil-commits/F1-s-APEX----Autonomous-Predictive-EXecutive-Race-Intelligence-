@@ -543,3 +543,120 @@ class RaceSimulator:
         """Deep clones the simulator state for forward rollout counterfactuals."""
         return copy.deepcopy(self)
 
+    # ------------------------------------------------------------------
+    # Digital Twin: Snapshot / Restore / State Hash  (Spec §12, Gate E)
+    # ------------------------------------------------------------------
+
+    def snapshot(self) -> dict:
+        """Captures a full, serializable snapshot of all mutable engine state.
+
+        Used for:
+        - Monte Carlo branch/fork (clone state before rollout, restore after)
+        - Replay (reconstruct exact engine at any historical lap)
+        - Determinism testing (hash before/after transition should differ)
+
+        Returns:
+            dict: Serializable representation of all engine state fields.
+                  Can be passed to restore() to reconstruct engine exactly.
+        """
+        import json
+        state = self.get_state()
+        return {
+            "_version": "1.0",
+            "race_id": self.race_id,
+            "seed": self.seed,
+            "current_lap": self.current_lap,
+            "tick": self.tick,
+            "race_time_s": self.race_time_s,
+            "is_finished": self.is_finished,
+            "winner_car_id": self.winner_car_id,
+            "safety_car": self.safety_car.value,
+            "safety_car_laps_remaining": self.safety_car_laps_remaining,
+            "weather": self.weather.model_dump(),
+            "cars": [c.model_dump() for c in self.cars],
+            "events_log": [e.model_dump() for e in self.events_log[-50:]],
+            # RNG state for perfect reproducibility
+            "rng_state": self.rng.bit_generator.state,
+        }
+
+    def restore(self, snapshot: dict) -> None:
+        """Restores engine state from a snapshot dict produced by snapshot().
+
+        This is the counterpart to snapshot() — after restoring, the engine
+        will produce identical outputs to the original engine at the same lap.
+
+        Args:
+            snapshot: A dict previously returned by snapshot().
+
+        Raises:
+            ValueError: If the snapshot format version is incompatible.
+        """
+        from backend.app.simulator.models import (
+            CarState,
+            RaceEvent,
+            SafetyCarStatus,
+            WeatherState,
+        )
+        version = snapshot.get("_version", "1.0")
+        if version != "1.0":
+            raise ValueError(f"[RaceSimulator] Snapshot version '{version}' is incompatible with current engine.")
+
+        self.race_id = snapshot["race_id"]
+        self.seed = snapshot["seed"]
+        self.current_lap = snapshot["current_lap"]
+        self.tick = snapshot["tick"]
+        self.race_time_s = snapshot["race_time_s"]
+        self.is_finished = snapshot["is_finished"]
+        self.winner_car_id = snapshot["winner_car_id"]
+        self.safety_car = SafetyCarStatus(snapshot["safety_car"])
+        self.safety_car_laps_remaining = snapshot["safety_car_laps_remaining"]
+        self.weather = WeatherState(**snapshot["weather"])
+        self.cars = [CarState(**c) for c in snapshot["cars"]]
+        self.events_log = [RaceEvent(**e) for e in snapshot["events_log"]]
+        # Restore RNG state for perfect determinism
+        self.rng.bit_generator.state = snapshot["rng_state"]
+
+    def state_hash(self) -> str:
+        """Computes a SHA-256 hex digest of all race-critical state.
+
+        Properties guaranteed:
+        - Identical initial state + identical action sequence -> identical hash at each lap
+        - Hash changes if and only if a valid state transition (step()) has occurred
+        - Two engines with same seed on same track converge to same hash stream
+
+        Used by:
+        - Property tests (Gate E: deterministic replay)
+        - Anti-tampering: detect if state was mutated outside of step()
+        - Experiment reproducibility: hash stored alongside model artifacts
+
+        Returns:
+            str: 64-character hex digest.
+        """
+        import hashlib
+        import json
+
+        # Canonicalize the state into a deterministic JSON string
+        # Only hash race-critical fields (not cosmetic/UI fields)
+        critical = {
+            "lap": self.current_lap,
+            "tick": self.tick,
+            "safety_car": self.safety_car.value,
+            "weather_condition": self.weather.condition.value,
+            "weather_rain": round(self.weather.rain_intensity, 3),
+            "cars": sorted([
+                {
+                    "id": c.car_id,
+                    "pos": c.position,
+                    "lap": c.current_lap,
+                    "tyre": c.tyre_compound.value,
+                    "wear": round(c.tyre_wear_pct, 2),
+                    "fuel": round(c.fuel_kg, 2),
+                    "time": round(c.total_race_time_s, 3),
+                    "dnf": c.is_dnf,
+                }
+                for c in self.cars
+            ], key=lambda x: x["id"]),
+        }
+        raw = json.dumps(critical, sort_keys=True, separators=(",", ":"))
+        return hashlib.sha256(raw.encode("utf-8")).hexdigest()
+

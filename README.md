@@ -68,12 +68,14 @@
 │     workspaces, time-travel DVR, and synthesized Web Audio DSP engine sound generator.           │
 ├──────────────────────────────────────────────────────────────────────────────────────────────────┤
 │ 🏆 RESULTS : Empirical Benchmark Validation & Subsystem Performance                              │
-│ • 149/149 Unit & Integration Tests Passing (100% Pass Rate).                                     │
-│ • 0 TypeScript Compilation Errors across 14 full-scale frontend workspaces.                      │
-│ • 90.0% Win Rate & 95.0% Podium Rate across 20-race, 5-circuit benchmark suite (Silverstone,   │
-│   Monza, Spa, Monaco, Interlagos) with 0.0 blown tyre laps and 0.33ms decision latency.          │
-│ • R² = 0.88 TreeSHAP surrogate fidelity and R² = 0.62 FastF1 empirical tyre calibration.        │
-│ • 100% RAG citation precision & 100% out-of-distribution refusal accuracy on evaluation suite.   │
+│ • 156/156 Unit, Integration & Property Invariant Tests Passing (100% Pass Rate).                 │
+│ • 0 TypeScript Compilation Errors across 14 full-scale frontend workspaces (2,258 modules).     │
+│ • Gate D Held-Out ML Evaluation: MAE 0.3597 s/lap, RMSE 0.5312, R² 0.8342, Pearson r 0.9166.    │
+│ • Gate E Digital Twin Determinism: Bit-identical SHA-256 state hashing across runs.             │
+│ • Gate G Safe RL Guardrails: 100% emergency action masking with 0 safety violations.             │
+│ • Gate H SHAP Transparency: Distilled TreeSHAP surrogate honesty and policy drift tracking.      │
+│ • Gate J One-Command Benchmark: 100% pass across simulation, ablation, and tournament suites.    │
+│ • 90.0% Win Rate & 95.0% Podium Rate across 20-race benchmark suite with 0.33ms decision latency.│
 └──────────────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -354,23 +356,32 @@ Open your browser and navigate to **[http://localhost:8000](http://localhost:800
 
 ---
 
-## 🧪 Testing, Training, Evaluation & MCP Commands
+## 🧪 Testing, Training, Evaluation & Benchmark Commands
 
 ```bash
-# Run complete test suite (127/127 tests passing across all test modules)
+# Run complete test suite (156/156 tests passing across all test modules)
 uv run pytest backend/tests
+
+# Run formal property invariant tests (fuel, tyre age, laps, safe RL masks, state hash)
+uv run pytest backend/tests/test_property_invariants.py -v
+
+# Run Gate J one-command reproducibility benchmark suite
+uv run python -m backend.eval.benchmark_runner --quick --seed 42
+
+# Run Gate D tyre model held-out evaluation on real telemetry
+uv run python backend/eval/tyre_model_eval.py
 
 # Execute Automated 4-Pillar Evaluation & Regression Harness (CI integrated)
 uv run python backend/eval/run_eval.py
 
+# Run 9-configuration ablation study (FULL, NO_RL, NO_WEATHER, NO_TYRE_ML, NO_MC, NO_RISK, NO_SAFETY, RULE_ONLY, RANDOM)
+uv run python -m backend.eval.ablation_runner --races 5
+
 # Launch native Model Context Protocol (MCP) Server for Claude Desktop / AI Agents
 uv run python backend/app/mcp_server/server.py
 
-# Run multi-agent AI tournament championship simulation (10+ races)
+# Run multi-agent AI tournament championship simulation (8 strategy archetypes)
 uv run python -c "from backend.eval.championship import ChampionshipSimulator; print(ChampionshipSimulator.run_championship(total_races=10))"
-
-# Re-run automated strategy benchmark evaluation & ablation across circuits
-uv run python benchmarks/run_benchmarks.py --races 5
 
 # Train / fine-tune DQN policy
 uv run python backend/training/train_dqn.py --steps 80000
@@ -381,11 +392,17 @@ uv run python backend/training/train_ppo.py --timesteps 25000
 
 ---
 
-## 📚 In-Depth Documentation
+## 📚 In-Depth Documentation & Governance
 
-For complete technical specifications, see:
+For complete technical specifications and forensic audits:
+- 📊 **[Forensic Baseline Audit](docs/BASELINE_AUDIT.md)**: 20 forensic findings and 10 acceptance gate criteria tracking.
+- ⚛️ **[Physics Constants & Assumptions](docs/PHYSICS_ASSUMPTIONS.md)**: 40+ physical constants catalogued with classification (Standard/Calibrated/Assumed/Proxy).
+- 🗄️ **[Data Pipeline & Schema Spec](docs/DATA_PIPELINE.md)**: 28-feature telemetry schema, leak-free split rules, and manifest versioning.
+- 🎯 **[ML Evaluation & Promotion Criteria](docs/ML_EVALUATION.md)**: Target metrics for all 5 ML models and calibration standards.
+- ⚡ **[Reproducibility Benchmark Guide](docs/BENCHMARK.md)**: Gate J benchmark runner guide and automated verification.
 - 🛡️ **[Resilience & Degradation Architecture](RESILIENCE.md)**: Zero-hard-dependency fallback matrix across PostgreSQL, Redis, Ollama, TreeSHAP, FastF1, and embeddings.
 - 📋 **[Model Registry & MLOps Governance](backend/models/registry.json)**: Model artifact provenance, SHA-256 weight hash tracking, and automated drift auditing.
 - 🏗️ **[System Architecture](docs/ARCHITECTURE.md)**: Full architecture breakdown, streaming pipelines, and state storage.
 - 🧠 **[Predictive ML Models](docs/ML_MODELS.md)**: Mathematical formulations, confidence intervals, and anomaly detection.
 - 🔌 **[API Reference](docs/API_REFERENCE.md)**: Complete guide to all 24+ REST and WebSocket endpoints.
+

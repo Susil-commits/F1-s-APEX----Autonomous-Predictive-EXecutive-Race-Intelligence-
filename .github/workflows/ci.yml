@@ -65,6 +65,12 @@ jobs:
       - name: Run Automated Evaluation & Regression Scoring Harness
         run: uv run python backend/eval/run_eval.py
 
+      - name: Run Gate D Tyre Model Held-Out Evaluation
+        run: uv run python backend/eval/tyre_model_eval.py
+
+      - name: Run Gate J Reproducibility Benchmark Suite
+        run: uv run python -m backend.eval.benchmark_runner --quick --seed 42
+
       - name: Run Sim-to-Real Historical Decision Replay Audit
         run: uv run python backend/eval/historical_replay_eval.py
 
@@ -75,12 +81,15 @@ jobs:
           name: apex-evaluation-reports
           path: |
             backend/eval/latest_eval_report.json
+            backend/eval/latest_benchmark_report.json
+            backend/eval/tyre_model_eval_report.json
             backend/eval/sim_to_real_divergence_report.json
             benchmarks/latest_benchmark_results.json
             backend/models/registry.json
             backend/training/best_hyperparameters.json
             backend/models/curriculum_training_comparison.png
           if-no-files-found: ignore
+
 
   frontend-build:
     name: Frontend TypeScript & Vite Build

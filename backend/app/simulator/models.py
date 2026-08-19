@@ -50,6 +50,7 @@ class SafetyCarStatus(str, Enum):
 
 
 class TrackConfig(BaseModel):
+    schema_version: str = "v1.0"
     name: str = "Silverstone Circuit"
     country: str = "Great Britain"
     total_laps: int = 52
@@ -63,6 +64,7 @@ class TrackConfig(BaseModel):
 
 
 class DriverState(BaseModel):
+    schema_version: str = "v1.0"
     driver_name: str
     team_name: str
     pace_bias_s: float = 0.0
@@ -75,6 +77,7 @@ class DriverState(BaseModel):
 
 
 class TyreState(BaseModel):
+    schema_version: str = "v1.0"
     compound: TyreCompound = TyreCompound.MEDIUM
     age_laps: int = 0
     wear_pct: float = 0.0
@@ -86,6 +89,7 @@ class TyreState(BaseModel):
 
 
 class VehicleHealthState(BaseModel):
+    schema_version: str = "v1.0"
     overall_health_score: float = 100.0
     is_anomalous: bool = False
     engine_temp_c: float = 105.0
@@ -98,6 +102,7 @@ class VehicleHealthState(BaseModel):
 
 
 class OpponentState(BaseModel):
+    schema_version: str = "v1.0"
     car_id: str
     driver_name: str
     position: int
@@ -108,9 +113,11 @@ class OpponentState(BaseModel):
     defence_probability: float = 0.20
     expected_pace_delta_s: float = 0.0
     strategy_intent: str = "STINT_EXTEND"
+    confidence: float = 0.85
 
 
 class RiskState(BaseModel):
+    schema_version: str = "v1.0"
     overall_risk_score: float = 0.15 # 0.0 to 1.0
     dnf_risk: float = 0.01
     tyre_blowout_risk: float = 0.02
@@ -121,6 +128,7 @@ class RiskState(BaseModel):
 
 
 class StrategyState(BaseModel):
+    schema_version: str = "v1.0"
     planned_stops: int = 1
     current_stint: int = 1
     pit_window_start: int = 20
@@ -132,6 +140,7 @@ class StrategyState(BaseModel):
 
 
 class CarState(BaseModel):
+    schema_version: str = "v1.0"
     car_id: str
     driver_name: str
     team_name: str
@@ -176,6 +185,7 @@ class CarState(BaseModel):
 
 
 class WeatherState(BaseModel):
+    schema_version: str = "v1.0"
     condition: TrackCondition = TrackCondition.DRY
     rain_intensity: float = 0.0       # 0.0 (bone dry) to 1.0 (torrential downpour)
     track_temp_c: float = 32.5
@@ -187,6 +197,7 @@ class WeatherState(BaseModel):
 
 
 class RaceEvent(BaseModel):
+    schema_version: str = "v1.0"
     lap: int
     timestamp_s: float
     event_type: str                  # e.g., "PIT_STOP", "OVERTAKE", "SAFETY_CAR", "WEATHER_CHANGE", "DNF"
@@ -195,6 +206,7 @@ class RaceEvent(BaseModel):
 
 
 class DecisionExplanation(BaseModel):
+    schema_version: str = "v1.0"
     recommendation: StrategyAction
     confidence_score: float = Field(default=0.85, ge=0.0, le=1.0)
     urgency: str = "MEDIUM"          # LOW, MEDIUM, HIGH, CRITICAL
@@ -211,9 +223,11 @@ class DecisionExplanation(BaseModel):
     risk_score: float = 0.15
     alternative_actions: list[dict[str, Any]] = Field(default_factory=list)
     uncertainty_quantification: dict[str, Any] = Field(default_factory=dict)
+    source: str = "hybrid_decision_engine"
 
 
 class RaceState(BaseModel):
+    schema_version: str = "v1.0"
     race_id: str
     seed: int
     track: TrackConfig
@@ -221,6 +235,7 @@ class RaceState(BaseModel):
     total_laps: int = 52
     tick: int = 0
     race_time_s: float = 0.0
+    source: str = "simulator"
     
     safety_car: SafetyCarStatus = SafetyCarStatus.NONE
     safety_car_laps_remaining: int = 0
@@ -238,3 +253,4 @@ class RaceState(BaseModel):
     global_risk: RiskState | None = None
     strategy: StrategyState | None = None
     decision_history: list[dict[str, Any]] = Field(default_factory=list)
+

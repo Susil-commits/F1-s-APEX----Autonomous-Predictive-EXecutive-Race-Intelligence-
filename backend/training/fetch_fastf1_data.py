@@ -186,12 +186,18 @@ def fetch_all_real_races(
     output_path: str = OUTPUT_CSV,
     force_download: bool = False,
     allow_synthetic_fallback: bool = False,
+    register_manifest: bool = True,
+    dataset_version: str = "v1.0_telemetry",
 ) -> pd.DataFrame:
     """
     Downloads, processes, and persists clean F1 tyre degradation telemetry across specified races.
+    Validates data quality with DataQualityChecker and registers version manifest.
     If no real sessions were fetched and allow_synthetic_fallback is False, raises RuntimeError.
     If allow_synthetic_fallback is True, generates synthetic fallback dataset.
     """
+    from backend.training.datasets.data_quality import DataQualityChecker
+    from backend.training.datasets.dataset_version import DatasetVersionRegistry
+
     races_to_fetch = races or DEFAULT_RACES
     setup_fastf1_cache()
 
@@ -217,6 +223,7 @@ def fetch_all_real_races(
 
     if collected_dfs:
         full_df = pd.concat(collected_dfs, ignore_index=True)
+        source_name = "fastf1_real"
     else:
         if not allow_synthetic_fallback:
             raise RuntimeError(
@@ -225,13 +232,56 @@ def fetch_all_real_races(
             )
         print("[FastF1] No remote sessions fetched. Generating synthetic fallback dataset.")
         full_df = generate_synthetic_fallback_data()
+        source_name = "synthetic_fallback"
+
+    # Run automated data quality and leakage checks
+    quality_report = DataQualityChecker.run(full_df, dataset_name=dataset_version, fail_on_severe=False)
+    print(f"[DataQuality] Quality Check: {quality_report.summary()}")
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
     full_df.to_csv(output_path, index=False)
     print(f"[FastF1] Saved {len(full_df)} total cleaned telemetry records to {output_path}")
+
+    # Register version manifest with leak-free splits
+    if register_manifest:
+        try:
+            registry = DatasetVersionRegistry()
+            splits = registry.create_leak_free_splits(full_df)
+            train_races = list(splits["train"]["circuit"].unique()) if not splits["train"].empty and "circuit" in splits["train"].columns else []
+            val_races = list(splits["val"]["circuit"].unique()) if not splits["val"].empty and "circuit" in splits["val"].columns else []
+            test_races = list(splits["test"]["circuit"].unique()) if not splits["test"].empty and "circuit" in splits["test"].columns else []
+
+            manifest = registry.register_dataset(
+                full_df,
+                version=dataset_version,
+                source=source_name,
+                train_races=train_races,
+                val_races=val_races,
+                test_races=test_races,
+            )
+            print(f"[DatasetRegistry] Registered dataset manifest {dataset_version} ({manifest.row_count} rows)")
+        except Exception as e:
+            print(f"[DatasetRegistry] Manifest registration notice: {e}")
+
     return full_df
 
 
 if __name__ == "__main__":
-    fetch_all_real_races()
+    import argparse
+
+    parser = argparse.ArgumentParser(description="APEX FastF1 Telemetry Fetcher")
+    parser.add_argument("--quick", action="store_true", help="Fetch 1 race only for quick test")
+    parser.add_argument("--allow-synthetic", action="store_true", default=True, help="Allow fallback synthetic data if offline")
+    parser.add_argument("--version", type=str, default="v1.0_telemetry", help="Dataset version identifier")
+    parser.add_argument("--output", type=str, default=OUTPUT_CSV, help="Output CSV file path")
+    args = parser.parse_args()
+
+    races = DEFAULT_RACES[:1] if args.quick else DEFAULT_RACES
+    fetch_all_real_races(
+        races=races,
+        output_path=args.output,
+        allow_synthetic_fallback=args.allow_synthetic,
+        dataset_version=args.version,
+    )
+
 

@@ -33,8 +33,11 @@ Thumbs.db
 
 # SQLite DB & evaluation artifacts
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
 evaluations.npz
 backend/data/fastf1_cache/
+
 

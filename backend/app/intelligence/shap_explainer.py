@@ -358,6 +358,8 @@ class TreeSHAPExplainer:
             "dqn_model_hash": self.active_dqn_hash,
             "distilled_dqn_hash": self.distilled_dqn_hash,
             "surrogate_type": "distilled_dqn_surrogate" if self.is_distilled else "heuristic_fallback",
+            "explanation_method": "surrogate_shap",
+            "disclaimer": "SHAP feature attributions computed via tree surrogate approximation of policy model",
         }
 
     def explain_pairwise_actions(
@@ -434,9 +436,10 @@ class TreeSHAPExplainer:
             "preferred_action": name_a if delta_q >= 0 else name_b,
             "delta_base_value": round(delta_base, 4),
             "top_differential_features": differential_contributions[:10],
-            "all_differential_features": differential_contributions,
             "formula": "ΔQ(A - B) = (E[f_A] - E[f_B]) + Σ (φ_i(A) - φ_i(B))",
             "is_distilled": self.is_distilled,
+            "explanation_method": "surrogate_shap",
+            "disclaimer": "SHAP pairwise attributions computed via tree surrogate approximation of policy model",
         }
 
     def explain_all_actions(self, features: np.ndarray) -> dict[str, Any]:

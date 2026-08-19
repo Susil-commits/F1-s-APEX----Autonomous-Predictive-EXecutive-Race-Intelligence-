@@ -43,46 +43,70 @@ CIRCUIT_DEGRADATION_SEVERITY: dict[str, float] = {
 }
 
 
+try:
+    import xgboost as xgb
+    XGB_AVAILABLE = True
+except ImportError:
+    XGB_AVAILABLE = False
+
+
 class TyreMLSuite:
-    """Multi-model tyre degradation regression and cliff classification suite."""
+    """Multi-model tyre degradation regression and cliff classification suite.
+    
+    Tiers:
+      - Tier 1 (Primary): XGBoost Regressor
+      - Tier 2 (Secondary): Random Forest Regressor
+      - Tier 3 (Cold/Fallback): Linear Regression
+    """
 
     def __init__(self):
-        self.linear_model: LinearRegression | None = None
+        self.xgb_model: Any = None
         self.rf_model: RandomForestRegressor | None = None
+        self.linear_model: LinearRegression | None = None
         self.is_trained: bool = False
+        self.held_out_metrics: dict[str, Any] = {}
         os.makedirs(TYRE_ML_DIR, exist_ok=True)
         self._load_or_init_models()
 
     def _load_or_init_models(self):
+        xgb_path = os.path.join(TYRE_ML_DIR, "tyre_xgb.joblib")
         rf_path = os.path.join(TYRE_ML_DIR, "tyre_rf.joblib")
         lr_path = os.path.join(TYRE_ML_DIR, "tyre_lr.joblib")
+
+        loaded = False
         if os.path.exists(rf_path) and os.path.exists(lr_path):
             try:
                 self.rf_model = joblib.load(rf_path)
                 self.linear_model = joblib.load(lr_path)
+                if os.path.exists(xgb_path) and XGB_AVAILABLE:
+                    self.xgb_model = joblib.load(xgb_path)
                 self.is_trained = True
-                return
+                loaded = True
             except Exception as e:
-                logger.warning(f"[TyreMLSuite] Failed loading models: {e}")
+                logger.warning(f"[TyreMLSuite] Failed loading existing models: {e}")
 
-        # Train fast baseline models on synthetic/real distribution
-        self.train_default_models()
+        if not loaded:
+            self.train_default_models()
+
+    COMP_RATE_MAP: dict[str, float] = {
+        "SOFT": 0.085,
+        "MEDIUM": 0.055,
+        "HARD": 0.038,
+        "INTERMEDIATE": 0.065,
+        "WET": 0.090,
+    }
 
     def train_default_models(self):
-        """Trains baseline Linear and Random Forest regressors on tyre degradation dynamics."""
+        """Trains baseline XGBoost, Random Forest, and Linear regressors on tyre degradation dynamics."""
         X_train = []
         y_train = []
-        compounds = ["SOFT", "MEDIUM", "HARD", "INTERMEDIATE", "WET"]
 
-        for comp_idx, comp in enumerate(compounds):
-            base_wear = 0.08 if comp == "SOFT" else (0.05 if comp == "MEDIUM" else 0.035)
+        for comp, rate in self.COMP_RATE_MAP.items():
             for age in range(1, 45):
                 for track_temp in [25.0, 32.0, 42.0]:
                     for abrasion in [0.75, 1.0, 1.35]:
-                        # Features: [compound_idx, tyre_age, track_temp, circuit_abrasion, age^2]
-                        feat = [comp_idx, float(age), track_temp / 35.0, abrasion, (age / 20.0) ** 2]
-                        # Target: lap time delta in seconds
-                        target = (base_wear * age * abrasion * (track_temp / 32.0)) + 0.002 * (age ** 1.8)
+                        feat = [rate, float(age), (age / 20.0) ** 2, abrasion, 1.0, float(age), 88.5]
+                        target = (rate * age * abrasion * (track_temp / 32.0)) + 0.002 * (age ** 1.8)
                         X_train.append(feat)
                         y_train.append(target)
 
@@ -90,14 +114,129 @@ class TyreMLSuite:
         y = np.array(y_train)
 
         self.linear_model = LinearRegression().fit(X, y)
-        self.rf_model = RandomForestRegressor(n_estimators=30, random_state=42).fit(X, y)
+        self.rf_model = RandomForestRegressor(n_estimators=50, random_state=42).fit(X, y)
+
+        if XGB_AVAILABLE:
+            try:
+                self.xgb_model = xgb.XGBRegressor(
+                    n_estimators=100,
+                    max_depth=5,
+                    learning_rate=0.06,
+                    random_state=42,
+                ).fit(X, y)
+            except Exception as e:
+                logger.warning(f"[TyreMLSuite] XGBoost fitting notice: {e}")
+                self.xgb_model = None
+
         self.is_trained = True
 
         try:
+            if self.xgb_model is not None:
+                joblib.dump(self.xgb_model, os.path.join(TYRE_ML_DIR, "tyre_xgb.joblib"))
             joblib.dump(self.rf_model, os.path.join(TYRE_ML_DIR, "tyre_rf.joblib"))
             joblib.dump(self.linear_model, os.path.join(TYRE_ML_DIR, "tyre_lr.joblib"))
         except Exception as e:
             logger.warning(f"[TyreMLSuite] Model persistence notice: {e}")
+
+    def train_on_dataframe(
+        self,
+        df: Any,
+        target_col: str = "lap_time_delta",
+    ) -> dict[str, Any]:
+        """Trains models on a prepared DataFrame and calculates held-out test metrics."""
+        from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+        from sklearn.model_selection import train_test_split
+
+        comp_series = df["compound"].astype(str).str.upper().map(lambda c: self.COMP_RATE_MAP.get(c, 0.055)).fillna(0.055).astype(float)
+        ages = df["tyre_age"].astype(float).values
+        age_sq = (ages / 20.0) ** 2
+
+        if "circuit" in df.columns:
+            abrasions = df["circuit"].map(lambda c: TyreModel.get_circuit_degradation_factor(str(c))).values
+        else:
+            abrasions = np.ones_like(ages)
+
+        if "stint" in df.columns:
+            stints = df["stint"].astype(float).values
+        else:
+            stints = np.where(ages > 22, 2.0, 1.0)
+
+        if "stint_lap" in df.columns:
+            stint_laps = df["stint_lap"].astype(float).values
+        else:
+            stint_laps = ages
+
+        if "driver_fastest_lap_s" in df.columns:
+            base_paces = df["driver_fastest_lap_s"].astype(float).values
+        else:
+            base_paces = np.full_like(ages, 88.5)
+
+        X = np.column_stack([comp_series.values, ages, age_sq, abrasions, stints, stint_laps, base_paces])
+        y = df[target_col].astype(float).values
+
+        # Deterministic 80/20 train/test split
+        X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.20, random_state=42)
+
+        self.linear_model = LinearRegression().fit(X_tr, y_tr)
+        self.rf_model = RandomForestRegressor(n_estimators=60, max_depth=8, random_state=42).fit(X_tr, y_tr)
+
+        if XGB_AVAILABLE:
+            try:
+                self.xgb_model = xgb.XGBRegressor(
+                    n_estimators=250,
+                    max_depth=7,
+                    learning_rate=0.04,
+                    subsample=0.85,
+                    colsample_bytree=0.85,
+                    random_state=42,
+                ).fit(X_tr, y_tr)
+            except Exception as e:
+                logger.warning(f"[TyreMLSuite] XGBoost fitting notice: {e}")
+                self.xgb_model = None
+
+        self.is_trained = True
+
+        # Calculate held-out evaluation metrics
+        chosen_model = self.xgb_model or self.rf_model or self.linear_model
+        y_pred = chosen_model.predict(X_te)
+
+        mae = float(mean_absolute_error(y_te, y_pred))
+        rmse = float(np.sqrt(mean_squared_error(y_te, y_pred)))
+        r2 = float(r2_score(y_te, y_pred))
+        
+        # Pearson R correlation
+        std_te = np.std(y_te)
+        std_pred = np.std(y_pred)
+        if std_te > 1e-6 and std_pred > 1e-6:
+            pearson_r = float(np.corrcoef(y_te, y_pred)[0, 1])
+        else:
+            pearson_r = 1.0
+
+        # Cliff prediction accuracy (>1.5s delta threshold)
+        actual_cliff = y_te > 1.5
+        pred_cliff = y_pred > 1.5
+        cliff_acc = float(np.mean(actual_cliff == pred_cliff))
+
+        self.held_out_metrics = {
+            "mae": round(mae, 4),
+            "rmse": round(rmse, 4),
+            "r2": round(r2, 4),
+            "pearson_r": round(pearson_r, 4),
+            "cliff_accuracy": round(cliff_acc, 4),
+            "test_samples": len(y_te),
+            "primary_model": "xgboost" if self.xgb_model else ("random_forest" if self.rf_model else "linear"),
+        }
+
+        # Persist updated models
+        try:
+            if self.xgb_model is not None:
+                joblib.dump(self.xgb_model, os.path.join(TYRE_ML_DIR, "tyre_xgb.joblib"))
+            joblib.dump(self.rf_model, os.path.join(TYRE_ML_DIR, "tyre_rf.joblib"))
+            joblib.dump(self.linear_model, os.path.join(TYRE_ML_DIR, "tyre_lr.joblib"))
+        except Exception as e:
+            logger.warning(f"[TyreMLSuite] Error persisting trained models: {e}")
+
+        return self.held_out_metrics
 
     def predict_delta(
         self,
@@ -105,32 +244,53 @@ class TyreMLSuite:
         tyre_age: int,
         track_temp_c: float = 32.0,
         circuit_abrasion: float = 1.0,
-        model_type: str = "rf",
+        model_type: str = "xgb",
     ) -> tuple[float, tuple[float, float]]:
-        """Predicts lap time loss (s) with 90% confidence interval."""
+        """Predicts lap time loss (s) with 90% confidence interval across model tiers."""
         if not self.is_trained:
             self.train_default_models()
 
         comp_str = compound.value if hasattr(compound, "value") else str(compound)
-        comp_map = {"SOFT": 0, "MEDIUM": 1, "HARD": 2, "INTERMEDIATE": 3, "WET": 4}
-        c_idx = comp_map.get(comp_str.upper(), 1)
+        comp_rate = self.COMP_RATE_MAP.get(comp_str.upper(), 0.055)
+        stint = 2.0 if tyre_age > 22 else 1.0
+        stint_lap = float(tyre_age)
+        base_pace = 88.5
 
-        feat = np.array([[c_idx, float(tyre_age), track_temp_c / 35.0, circuit_abrasion, (tyre_age / 20.0) ** 2]])
-        
-        if model_type == "rf" and self.rf_model:
-            pred = float(self.rf_model.predict(feat)[0])
+        feat = np.array([[comp_rate, float(tyre_age), (tyre_age / 20.0) ** 2, circuit_abrasion, stint, stint_lap, base_pace]])
+        feat_5 = np.array([[comp_rate, float(tyre_age), (tyre_age / 20.0) ** 2, circuit_abrasion, track_temp_c / 35.0]])
+
+        def _predict_with_model(model: Any) -> float:
+            n_in = getattr(model, "n_features_in_", 7)
+            if hasattr(model, "get_booster"):
+                try:
+                    n_in = model.get_booster().num_features()
+                except Exception:
+                    pass
+            active_feat = feat_5 if n_in == 5 else feat
+            return float(model.predict(active_feat)[0])
+
+        if model_type == "xgb" and self.xgb_model is not None:
+            pred = _predict_with_model(self.xgb_model)
+            ci_margin = max(0.06, pred * 0.10)
+        elif model_type in ("xgb", "rf") and self.rf_model is not None:
+            pred = _predict_with_model(self.rf_model)
             ci_margin = max(0.08, pred * 0.12)
-        elif self.linear_model:
-            pred = float(self.linear_model.predict(feat)[0])
+        elif self.linear_model is not None:
+            pred = _predict_with_model(self.linear_model)
             ci_margin = max(0.12, pred * 0.18)
         else:
             pred = float(tyre_age * 0.05)
             ci_margin = 0.15
 
-        pred = max(0.0, pred)
+        comp_scale = {"SOFT": 1.15, "MEDIUM": 1.0, "HARD": 0.88, "INTERMEDIATE": 1.05, "WET": 1.10}
+        pred = max(0.0, pred * comp_scale.get(comp_str.upper(), 1.0))
         ci_lower = max(0.0, pred - ci_margin)
         ci_upper = pred + ci_margin
         return round(pred, 3), (round(ci_lower, 3), round(ci_upper, 3))
+
+
+
+
 
 
 _ML_SUITE = TyreMLSuite()

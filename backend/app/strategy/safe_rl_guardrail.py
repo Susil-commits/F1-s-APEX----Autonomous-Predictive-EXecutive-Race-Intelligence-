@@ -9,6 +9,7 @@ from pydantic import BaseModel
 
 from backend.app.simulator.models import (
     RaceState,
+    SafetyCarStatus,
     StrategyAction,
     TrackCondition,
 )
@@ -45,6 +46,15 @@ class ActionMaskGuardrail:
         wear = player.tyre_wear_pct
         laps_remaining = max(1, state.total_laps - state.current_lap)
 
+        # Check vehicle health if present
+        is_mechanical_emergency = False
+        if player.health_state is not None:
+            if player.health_state.failure_probability > 0.70 or len(player.health_state.active_alarms) >= 2:
+                is_mechanical_emergency = True
+
+        # Check race control status
+        is_red_flag = state.safety_car == SafetyCarStatus.RED_FLAG
+
         for idx, action in ACTION_MAP.items():
             # Constraint 1: In Pit Lane
             if is_in_pit and action in (
@@ -76,11 +86,20 @@ class ActionMaskGuardrail:
             if laps_remaining <= 1 and wear < 65.0 and "PIT" in action.value:
                 mask[idx] = False
 
+            # Constraint 6: Mechanical Health Critical Failure Risk (Block PUSH if car has severe alarms or high failure risk)
+            if is_mechanical_emergency and action == StrategyAction.PUSH:
+                mask[idx] = False
+
+            # Constraint 7: Race Control Red Flag / Session Suspended (Pit entry closed)
+            if is_red_flag and "PIT" in action.value:
+                mask[idx] = False
+
         # Fallback: Ensure at least MAINTAIN is allowed
         if not np.any(mask):
             mask[0] = True
 
         return mask
+
 
     @classmethod
     def apply_mask_to_q_values(
@@ -125,3 +144,8 @@ class ActionMaskGuardrail:
             allowed_actions=allowed,
             violations=violations,
         )
+
+
+# Backward-compatible alias
+SafeRLGuardrail = ActionMaskGuardrail
+
