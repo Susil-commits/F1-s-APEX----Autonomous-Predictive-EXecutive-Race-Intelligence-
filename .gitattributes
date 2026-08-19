@@ -1,0 +1,14 @@
+# Set default behavior to automatically normalize line endings to LF
+* text=auto eol=lf
+
+# Explicitly mark model weights and archives as binary
+*.zip binary
+*.pt binary
+*.joblib binary
+*.png binary
+*.npz binary
+*.json text eol=lf
+*.py text eol=lf
+*.md text eol=lf
+*.yml text eol=lf
+*.yaml text eol=lf

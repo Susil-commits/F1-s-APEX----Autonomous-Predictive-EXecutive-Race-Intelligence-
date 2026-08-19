@@ -42,14 +42,23 @@ class ModelRegistry:
 
     @staticmethod
     def compute_file_sha256(file_path: str) -> str | None:
-        """Computes SHA-256 hex digest for a file on disk."""
+        """Computes SHA-256 hex digest for a file on disk.
+        
+        Normalizes CRLF to LF for JSON and text files to ensure deterministic cross-platform
+        checksum validation between Windows and Linux CI environments.
+        """
         if not os.path.isabs(file_path):
-            abs_path = os.path.join(PROJECT_ROOT, file_path)
+            abs_path = os.path.normpath(os.path.join(PROJECT_ROOT, file_path))
         else:
-            abs_path = file_path
+            abs_path = os.path.normpath(file_path)
 
         if not os.path.exists(abs_path) or os.path.isdir(abs_path):
             return None
+
+        if abs_path.endswith(".json"):
+            with open(abs_path, "rb") as f:
+                content = f.read().replace(b"\r\n", b"\n")
+            return hashlib.sha256(content).hexdigest()
 
         sha256_hash = hashlib.sha256()
         with open(abs_path, "rb") as f:
@@ -113,7 +122,21 @@ class ModelRegistry:
                 healthy_count += 1
                 continue
 
-            abs_path = os.path.join(PROJECT_ROOT, rel_path) if not os.path.isabs(rel_path) else rel_path
+            abs_path = os.path.normpath(os.path.join(PROJECT_ROOT, rel_path) if not os.path.isabs(rel_path) else rel_path)
+            if not os.path.exists(abs_path):
+                # Search candidate subdirectories
+                filename = os.path.basename(rel_path)
+                candidate_paths = [
+                    os.path.normpath(os.path.join(PROJECT_ROOT, "backend", "models", filename)),
+                    os.path.normpath(os.path.join(PROJECT_ROOT, "backend", "models", "ppo", filename)),
+                    os.path.normpath(os.path.join(PROJECT_ROOT, "backend", "models", "health", filename)),
+                    os.path.normpath(os.path.join(PROJECT_ROOT, "backend", "models", "tyre", filename)),
+                ]
+                for cand in candidate_paths:
+                    if os.path.exists(cand):
+                        abs_path = cand
+                        break
+
             if not os.path.exists(abs_path):
                 audit_results[model_id] = {
                     "model_id": model_id,
