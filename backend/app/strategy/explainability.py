@@ -17,6 +17,7 @@ class ExplainabilityEngine:
         dqn_action: StrategyAction | None = None,
         q_value_margin: float | None = None,
         include_counterfactual: bool = True,
+        dqn_agent: Any | None = None,
     ) -> DecisionExplanation:
         """Generates comprehensive explanation schema."""
         state: RaceState = sim.get_state()
@@ -33,7 +34,19 @@ class ExplainabilityEngine:
         if include_counterfactual:
             counterfactual_summary = CounterfactualChecker.evaluate_alternatives(sim, rollout_laps=4)
 
-        # 4. Final Recommendation synthesis (Rule Engine + DQN consensus)
+        # 4. Uncertainty Quantification from Neural Policy
+        uncertainty_info = {}
+        try:
+            from backend.app.intelligence.feature_builder import FeatureBuilder
+            from backend.app.strategy.dqn_agent import DQNAgent
+
+            obs = FeatureBuilder.extract_features(state, target_car_id=player.car_id if player else None)
+            agent = dqn_agent or DQNAgent()
+            uncertainty_info = agent.compute_uncertainty_quantification(obs, num_samples=10)
+        except Exception:
+            pass
+
+        # 5. Final Recommendation synthesis (Rule Engine + DQN consensus)
         final_action = dqn_action if (dqn_action and q_value_margin and q_value_margin > 1.2) else rule_action
 
         # Confidence calculation
@@ -57,4 +70,5 @@ class ExplainabilityEngine:
             pit_window_status=pit_window["status"],
             expected_time_delta_s=round(pit_window["predicted_loss_s"], 2),
             counterfactual_summary=counterfactual_summary,
+            uncertainty_quantification=uncertainty_info,
         )

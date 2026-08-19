@@ -5,6 +5,11 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
+
+from backend.app.api.limiter import limiter
+from backend.app.api.metrics import metrics_router
 from backend.app.api.routes import router
 from backend.app.api.websocket import manager
 
@@ -17,7 +22,7 @@ async def lifespan(app: FastAPI):
 
     # Pre-warm ML singletons in background to eliminate live demo first-request cold starts
     try:
-        from backend.app.intelligence.embeddings import get_embedding_model
+        from backend.app.intelligence.embeddings import DecisionEmbedder
         from backend.app.intelligence.pinn_tyre_residual import PINNTyreResidualCompensator
         from backend.app.intelligence.shap_explainer import TreeSHAPExplainer
         from backend.app.intelligence.tyre_model import TyreModel
@@ -27,7 +32,7 @@ async def lifespan(app: FastAPI):
         TreeSHAPExplainer.get_instance()
         TyreModel.load_calibrated_model()
         PINNTyreResidualCompensator.get_instance()
-        get_embedding_model()
+        DecisionEmbedder.get_instance()
         print("[APEX] Pre-warmed ML singletons (DQN, TreeSHAP, TyreModel, PINN, Embeddings).")
     except Exception as e:
         print(f"[APEX] Model warmup notice: {e}")
@@ -43,6 +48,10 @@ app = FastAPI(
     version="0.1.0",
     lifespan=lifespan,
 )
+
+# Register SlowAPI rate limiter state and 429 exception handler
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 # Enable CORS with configurable origins via environment variable
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
@@ -65,8 +74,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register REST router
+# Register REST router & Prometheus metrics router
 app.include_router(router)
+app.include_router(metrics_router)
 
 # Mount frontend static build if present
 frontend_dist = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")
@@ -82,28 +92,35 @@ if os.path.exists(frontend_dist):
 
 
 @app.websocket("/ws")
-async def websocket_endpoint(websocket: WebSocket):
-    await manager.connect(websocket)
+@app.websocket("/ws/{session_id}")
+async def websocket_endpoint(websocket: WebSocket, session_id: str = "default"):
+    # Extract optional race_id / session_id query param if available
+    query_session = websocket.query_params.get("race_id") or websocket.query_params.get("session_id")
+    effective_session = query_session or session_id or "default"
+
+    await manager.connect(websocket, session_id=effective_session)
     try:
         while True:
             data = await websocket.receive_json()
             msg_type = data.get("type")
+            target_sid = data.get("session_id", effective_session)
+
             if msg_type == "PLAY":
-                await manager.start_loop()
+                await manager.start_loop(session_id=target_sid)
             elif msg_type == "PAUSE":
-                manager.stop_loop()
+                manager.stop_loop(session_id=target_sid)
             elif msg_type == "STEP":
-                await manager.step_once()
+                await manager.step_once(session_id=target_sid)
             elif msg_type == "SET_SPEED":
-                manager.set_speed(float(data.get("speed", 1.0)))
+                manager.set_speed(float(data.get("speed", 1.0)), session_id=target_sid)
             elif msg_type == "ACTION":
-                manager.queue_action(data.get("action"))
+                manager.queue_action(data.get("action"), session_id=target_sid)
             elif msg_type == "INJECT_EVENT":
-                manager.inject_incident(data.get("event"))
+                manager.inject_incident(data.get("event"), session_id=target_sid)
     except WebSocketDisconnect:
-        manager.disconnect(websocket)
+        manager.disconnect(websocket, session_id=effective_session)
     except Exception:
-        manager.disconnect(websocket)
+        manager.disconnect(websocket, session_id=effective_session)
 
 
 if __name__ == "__main__":

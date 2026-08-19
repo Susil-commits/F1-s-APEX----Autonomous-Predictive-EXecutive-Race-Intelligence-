@@ -18,18 +18,32 @@ DATABASE_URL = os.getenv(
     f"sqlite+aiosqlite:///{os.path.abspath(DEFAULT_SQLITE_PATH)}",
 )
 
+from sqlalchemy.pool import NullPool
+
 # Convert standard postgres:// to postgresql+asyncpg:// if needed
 if DATABASE_URL.startswith("postgresql://"):
     DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+asyncpg://", 1)
 elif DATABASE_URL.startswith("postgres://"):
     DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+asyncpg://", 1)
 
-engine = create_async_engine(
-    DATABASE_URL,
-    echo=False,
-    future=True,
-    pool_pre_ping=True,
-)
+is_sqlite = "sqlite" in DATABASE_URL
+engine_kwargs: dict = {
+    "echo": False,
+    "future": True,
+    "pool_pre_ping": True,
+}
+
+if is_sqlite:
+    engine_kwargs["poolclass"] = NullPool
+    engine_kwargs["connect_args"] = {
+        "timeout": 60.0,
+        "check_same_thread": False,
+    }
+else:
+    engine_kwargs["pool_size"] = 20
+    engine_kwargs["max_overflow"] = 40
+
+engine = create_async_engine(DATABASE_URL, **engine_kwargs)
 
 AsyncSessionLocal = async_sessionmaker(
     bind=engine,
@@ -42,6 +56,13 @@ AsyncSessionLocal = async_sessionmaker(
 async def init_db():
     """Initializes schema and tables asynchronously."""
     async with engine.begin() as conn:
+        if is_sqlite:
+            try:
+                await conn.exec_driver_sql("PRAGMA journal_mode=WAL;")
+                await conn.exec_driver_sql("PRAGMA synchronous=NORMAL;")
+                await conn.exec_driver_sql("PRAGMA busy_timeout=60000;")
+            except Exception:
+                pass
         await conn.run_sync(Base.metadata.create_all)
 
 

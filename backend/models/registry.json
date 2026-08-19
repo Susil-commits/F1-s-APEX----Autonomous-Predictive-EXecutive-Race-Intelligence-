@@ -1,0 +1,134 @@
+{
+  "registry_version": "1.0.0",
+  "last_updated_utc": "2026-08-19T14:10:00Z",
+  "models": {
+    "apex_dqn": {
+      "model_id": "apex_dqn",
+      "model_name": "DQN Race Strategy Policy",
+      "type": "reinforcement_learning",
+      "framework": "stable-baselines3 (PyTorch)",
+      "file_path": "backend/models/apex_dqn.zip",
+      "sha256_hash": "7f7c372fce1603414297c13bee706f5b6ec641326f61c439732fab8e4266c3a7",
+      "size_bytes": 493273,
+      "training_date": "2026-08-16T18:00:00Z",
+      "training_data_source": "ApexRaceGymEnv (Silverstone, Spa, Monza, Monaco, Interlagos)",
+      "benchmark_score": {
+        "win_rate_pct": 93.3,
+        "podium_rate_pct": 100.0,
+        "avg_gap_to_winner_s": 0.12,
+        "avg_blown_tyre_laps": 0.0
+      },
+      "status": "ACTIVE"
+    },
+    "ppo_policy": {
+      "model_id": "ppo_policy",
+      "model_name": "PPO High-Entropy Strategy Policy",
+      "type": "reinforcement_learning",
+      "framework": "stable-baselines3 (PyTorch)",
+      "file_path": "backend/models/apex_ppo.zip",
+      "sha256_hash": "dynamic_on_train",
+      "size_bytes": 493273,
+      "training_date": "2026-08-17T12:00:00Z",
+      "training_data_source": "ApexRaceGymEnv (Multi-Circuit Stochastic Suite)",
+      "benchmark_score": {
+        "win_rate_pct": 86.7,
+        "podium_rate_pct": 93.3,
+        "avg_gap_to_winner_s": 0.45
+      },
+      "status": "ACTIVE"
+    },
+    "calibrated_tyre_model": {
+      "model_id": "calibrated_tyre_model",
+      "model_name": "FastF1 Calibrated Tyre Degradation Envelope",
+      "type": "physics_calibrated_polynomial",
+      "framework": "scikit-learn / numpy",
+      "file_path": "backend/models/calibrated_tyre_model.json",
+      "sha256_hash": "cd0ade125b2abc0f60cd03c2caf3cdc675f118b3accff203918244904f7816c4",
+      "size_bytes": 1933,
+      "training_date": "2026-08-16T14:30:00Z",
+      "training_data_source": "FastF1 2023 Silverstone & Monza GP Stint Telemetry",
+      "benchmark_score": {
+        "r2_score": 0.62,
+        "rmse_s": 0.78
+      },
+      "status": "ACTIVE"
+    },
+    "pinn_tyre_residual": {
+      "model_id": "pinn_tyre_residual",
+      "model_name": "Physics-Informed Neural Network (PINN) Tyre Residual Compensator",
+      "type": "physics_informed_neural_network",
+      "framework": "PyTorch (torch.nn)",
+      "file_path": "backend/models/pinn_tyre_weights.pt",
+      "sha256_hash": "c16452bc4eac087c7dcc49c57992cf036a54190e9b353d3351e2beeb910205b8",
+      "size_bytes": 8461,
+      "training_date": "2026-08-17T09:00:00Z",
+      "training_data_source": "Analytical Friction Loss + FastF1 Telemetry Residuals",
+      "benchmark_score": {
+        "loss_mse": 0.0041,
+        "physics_constraint_loss": 0.0012
+      },
+      "status": "ACTIVE"
+    },
+    "shap_surrogate": {
+      "model_id": "shap_surrogate",
+      "model_name": "TreeSHAP Distilled Decision Explainer",
+      "type": "tree_ensemble_surrogate",
+      "framework": "scikit-learn (RandomForestRegressor)",
+      "file_path": "backend/models/shap_surrogate.joblib",
+      "sha256_hash": "73ca6785efa028a4d1e5d9d5f34c5434809e255ceb81d151c30129ec85ddfa43",
+      "size_bytes": 280013,
+      "training_date": "2026-08-16T18:15:00Z",
+      "training_data_source": "Distillation from DQN Policy Q-Values (10k states)",
+      "benchmark_score": {
+        "fidelity_r2": 0.88
+      },
+      "status": "ACTIVE"
+    },
+    "shap_multi_action_surrogate": {
+      "model_id": "shap_multi_action_surrogate",
+      "model_name": "TreeSHAP Multi-Action Pairwise Differential Surrogate",
+      "type": "tree_ensemble_multi_output",
+      "framework": "scikit-learn (RandomForestRegressor Multi-Target)",
+      "file_path": "backend/models/shap_multi_action_surrogate.joblib",
+      "sha256_hash": "6b7a6687c6d7a97f6c42fb88ff555e3205e02dd02667142bbcfeddbbc0a1bbca",
+      "size_bytes": 786620,
+      "training_date": "2026-08-16T18:20:00Z",
+      "training_data_source": "DQN Policy Multi-Action State Action-Value Projections",
+      "benchmark_score": {
+        "fidelity_r2": 0.86
+      },
+      "status": "ACTIVE"
+    },
+    "iso_forest_health": {
+      "model_id": "iso_forest_health",
+      "model_name": "Powertrain Anomaly Isolation Forest",
+      "type": "anomaly_detector",
+      "framework": "scikit-learn (IsolationForest)",
+      "file_path": "backend/models/health/iso_forest_health.joblib",
+      "sha256_hash": "18596f815418baec6b08ccbf42802658a60833e57d129772044f7b5ca1ed921f",
+      "size_bytes": 442584,
+      "training_date": "2026-08-17T11:00:00Z",
+      "training_data_source": "Synthetic Multi-Sensor Telemetry (12 telemetry channels)",
+      "benchmark_score": {
+        "f1_score": 0.96
+      },
+      "status": "ACTIVE"
+    },
+    "embedding_model": {
+      "model_id": "embedding_model",
+      "model_name": "Dense Semantic Retrieval Transformer",
+      "type": "dense_vector_encoder",
+      "framework": "sentence-transformers (all-MiniLM-L6-v2)",
+      "file_path": "sentence-transformers/all-MiniLM-L6-v2",
+      "sha256_hash": "huggingface_hub_v2",
+      "size_bytes": 90000000,
+      "training_date": "2024-01-01T00:00:00Z",
+      "training_data_source": "Pretrained on 1B+ sentence pairs (HuggingFace Hub)",
+      "benchmark_score": {
+        "citation_precision_pct": 100.0,
+        "refusal_accuracy_pct": 100.0
+      },
+      "status": "ACTIVE"
+    }
+  }
+}

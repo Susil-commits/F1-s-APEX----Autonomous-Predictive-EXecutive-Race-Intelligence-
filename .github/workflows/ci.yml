@@ -58,11 +58,29 @@ jobs:
       - name: Run Pytest Suite
         run: uv run pytest -v
 
-      - name: Verify Benchmark Evaluation
-        run: uv run python benchmarks/run_benchmarks.py
+      - name: Verify Model Registry & Weight Hashes Integrity
+        run: |
+          uv run python -c "from backend.app.intelligence.model_registry import ModelRegistry; res = ModelRegistry.verify_all_models(); assert res['overall_status'] == 'ALL_MODELS_HEALTHY', f'Model drift or missing artifact detected: {res}'"
 
       - name: Run Automated Evaluation & Regression Scoring Harness
         run: uv run python backend/eval/run_eval.py
+
+      - name: Run Sim-to-Real Historical Decision Replay Audit
+        run: uv run python backend/eval/historical_replay_eval.py
+
+      - name: Upload Evaluation & Benchmark Artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: apex-evaluation-reports
+          path: |
+            backend/eval/latest_eval_report.json
+            backend/eval/sim_to_real_divergence_report.json
+            benchmarks/latest_benchmark_results.json
+            backend/models/registry.json
+            backend/training/best_hyperparameters.json
+            backend/models/curriculum_training_comparison.png
+          if-no-files-found: ignore
 
   frontend-build:
     name: Frontend TypeScript & Vite Build

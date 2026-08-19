@@ -33,6 +33,9 @@ dependencies = [
     "ollama>=0.3.0",
     "sentence-transformers>=3.0.0",
     "mcp>=1.0.0",
+    "slowapi>=0.1.9",
+    "optuna>=3.6.0",
+    "prometheus-client>=0.20.0",
 ]
 
 [build-system]

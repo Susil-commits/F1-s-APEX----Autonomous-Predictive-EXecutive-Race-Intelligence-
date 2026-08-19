@@ -8,6 +8,7 @@ Usable directly from Claude Desktop, Claude Code, Antigravity, or any MCP client
 
 import asyncio
 import json
+from typing import Any
 
 from mcp.server.mcpserver import MCPServer
 
@@ -71,7 +72,7 @@ def get_race_state(track_name: str = "silverstone") -> str:
         "leader": {
             "driver": leader.driver_name if leader else "Unknown",
             "team": leader.team_name if leader else "Unknown",
-            "lap_time_s": round(leader.last_lap_time_s, 3) if leader else 0.0,
+            "lap_time_s": round(leader.last_lap_time_s, 3) if leader and leader.last_lap_time_s is not None else 0.0,
         },
         "player_car": {
             "car_id": player.car_id if player else "None",
@@ -131,8 +132,8 @@ def explain_last_decision(car_id: str | None = None) -> str:
         for f in top_feats
     ]
     
-    confidence = min(0.98, max(0.65, 0.75 + float(q_margin) * 0.15))
-    urgency = "HIGH" if (player and (player.tyre_cliff_reached or player.tyre_wear_pct > 75.0)) else ("MEDIUM" if float(q_margin) > 0.5 else "LOW")
+    confidence = min(0.98, max(0.65, 0.75 + q_margin * 0.15))
+    urgency = "HIGH" if (player and (player.tyre_cliff_reached or player.tyre_wear_pct > 75.0)) else ("MEDIUM" if q_margin > 0.5 else "LOW")
     action_name = dqn_action.value if hasattr(dqn_action, "value") else str(dqn_action)
 
     result = {
@@ -279,6 +280,69 @@ def get_agentic_strategy_plan(track_name: str = "silverstone", target_car_id: st
     strategist = get_agentic_strategist()
     plan = strategist.formulate_strategy(state=state, target_car_id=target_car_id)
     return plan.model_dump_json(indent=2)
+
+
+@mcp.tool()
+def check_model_health() -> str:
+    """Audits the APEX Model Registry, verifies SHA-256 weight hashes, and reports model drift status.
+    
+    Checks live integrity across all 8 models (DQN, PPO, FastF1 Tyre Model, PINN Residuals,
+    TreeSHAP Surrogates, Isolation Forest Vehicle Health, and Dense Embeddings). Returns
+    per-model status, benchmark performance targets, file checksums, and drift flags.
+    """
+    from backend.app.intelligence.model_registry import ModelRegistry
+    report = ModelRegistry.verify_all_models()
+    return json.dumps(report, indent=2)
+
+
+@mcp.tool()
+def get_sim_to_real_divergence_audit() -> str:
+    """Audits APEX Sim-to-Real tactical divergence against real historical F1 Grand Prix pit-wall decisions.
+    
+    Returns counterfactual delta time advantages, AI tactical agreement rates, and blunder prevention
+    metrics across real-world historical decision points (e.g. Silverstone 2022, Monaco 2022, Zandvoort 2023).
+    """
+    from pathlib import Path
+    report_path = Path(__file__).resolve().parent.parent.parent / "eval" / "sim_to_real_divergence_report.json"
+    if report_path.exists():
+        with open(report_path, "r", encoding="utf-8") as f:
+            return f.read()
+    
+    # Generate fresh divergence audit if report does not exist
+    from backend.eval.historical_replay_eval import audit_historical_decisions
+    report = audit_historical_decisions(output_path=report_path)
+    return json.dumps(report, indent=2)
+
+
+@mcp.tool()
+def get_system_metrics() -> str:
+    """Returns a real-time observability snapshot of APEX Prometheus telemetry and health counters.
+    
+    Includes active concurrent sessions count, connected WebSocket clients, total simulated laps,
+    model drift status flags, and decision latency percentiles.
+    """
+    try:
+        from prometheus_client import REGISTRY, generate_latest
+        raw_metrics = generate_latest(REGISTRY).decode("utf-8")
+        
+        # Parse APEX custom metrics into structured JSON
+        lines = [line for line in raw_metrics.splitlines() if line.startswith("apex_")]
+        parsed_metrics: dict[str, Any] = {}
+        for line in lines:
+            if " " in line:
+                key, val = line.rsplit(" ", 1)
+                try:
+                    parsed_metrics[key] = float(val) if "." in val else int(val)
+                except ValueError:
+                    parsed_metrics[key] = val
+                    
+        return json.dumps({
+            "status": "HEALTHY",
+            "apex_metrics": parsed_metrics,
+            "raw_metric_count": len(lines),
+        }, indent=2)
+    except Exception as e:
+        return json.dumps({"status": "ERROR", "message": str(e)}, indent=2)
 
 
 if __name__ == "__main__":

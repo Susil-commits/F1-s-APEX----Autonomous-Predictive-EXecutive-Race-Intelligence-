@@ -210,6 +210,7 @@ class DecisionExplanation(BaseModel):
     commentary: str | None = None
     risk_score: float = 0.15
     alternative_actions: list[dict[str, Any]] = Field(default_factory=list)
+    uncertainty_quantification: dict[str, Any] = Field(default_factory=dict)
 
 
 class RaceState(BaseModel):

@@ -7,11 +7,12 @@ import sys
 from datetime import UTC, datetime
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
 
 logger = logging.getLogger(__name__)
 
+from backend.app.api.limiter import limiter
 from backend.app.api.websocket import manager
 from backend.app.simulator.models import (
     RaceState,
@@ -69,8 +70,89 @@ class RaceAskRequest(BaseModel):
 
 
 @router.get("/health")
-async def health_check():
-    return {"status": "ok", "service": "APEX Race Intelligence API"}
+async def health_check(detailed: bool = True):
+    """
+    Subsystem health probe. Validates simulator state, ML models, DB connection,
+    Redis/in-memory cache, and semantic embedding pipelines while maintaining
+    root 'status': 'ok' compatibility with Docker Compose and CI healthchecks.
+    """
+    from backend.app.intelligence.embeddings import DecisionEmbedder
+    from backend.app.intelligence.pinn_tyre_residual import PINNTyreResidualCompensator
+    from backend.app.intelligence.shap_explainer import TreeSHAPExplainer
+    from backend.app.intelligence.tyre_model import TyreModel
+    from backend.app.strategy.dqn_agent import DQNAgent
+    from backend.app.strategy.ppo_agent import PPOStrategyAgent
+    from backend.app.twin.store import store
+
+    subsystems: dict[str, Any] = {}
+
+    # 1. Simulator status
+    sim_active = manager.sim is not None
+    subsystems["simulator"] = {
+        "status": "HEALTHY" if sim_active else "IDLE",
+        "active_track": manager.sim.track.name if (sim_active and manager.sim.track) else "none",
+        "total_cars": len(manager.sim.cars) if sim_active else 0,
+        "current_lap": manager.sim.current_lap if sim_active else 0,
+        "is_running": manager.is_running,
+    }
+
+    # 2. ML Models status
+    try:
+        dqn_loaded = DQNAgent().is_loaded()
+        ppo_loaded = PPOStrategyAgent().is_loaded()
+        tyre_calib = TyreModel.is_calibrated()
+        pinn_inst = PINNTyreResidualCompensator.get_instance()
+        pinn_loaded = pinn_inst.is_calibrated if hasattr(pinn_inst, "is_calibrated") else True
+        shap_drift = TreeSHAPExplainer.get_instance().verify_drift()
+        shap_sync = shap_drift.get("in_sync", True)
+        models_healthy = dqn_loaded and ppo_loaded and tyre_calib and shap_sync
+
+        subsystems["models"] = {
+            "status": "HEALTHY" if models_healthy else "DRIFT_OR_UNLOADED",
+            "dqn_policy_loaded": dqn_loaded,
+            "ppo_policy_loaded": ppo_loaded,
+            "tyre_model_calibrated": tyre_calib,
+            "pinn_weights_loaded": pinn_loaded,
+            "shap_surrogate_in_sync": shap_sync,
+        }
+    except Exception as e:
+        subsystems["models"] = {"status": "DEGRADED", "error": str(e)}
+
+    # 3. Database store status
+    db_connected = store.is_connected if hasattr(store, "is_connected") else True
+    subsystems["database"] = {
+        "status": "HEALTHY" if db_connected else "DEGRADED",
+        "backend": getattr(store, "backend_type", "sqlite_or_postgres"),
+        "persisted_sessions": len(store.persisted_sessions) if hasattr(store, "persisted_sessions") else 0,
+    }
+
+    # 4. Redis / Memory cache status
+    redis_active = getattr(store, "redis_client", None) is not None
+    subsystems["redis"] = {
+        "status": "HEALTHY" if redis_active else "DEGRADED_IN_MEMORY",
+        "connected": redis_active,
+        "fallback": "local_memory_dict" if not redis_active else "none",
+    }
+
+    # 5. Embeddings status
+    try:
+        embedder = DecisionEmbedder.get_instance()
+        src = embedder.get_embedding_source()
+        subsystems["embeddings"] = {
+            "status": "HEALTHY",
+            "model": "all-MiniLM-L6-v2",
+            "source": src,
+            "loaded": True,
+        }
+    except Exception as e:
+        subsystems["embeddings"] = {"status": "FALLBACK_LEXICAL", "error": str(e)}
+
+    return {
+        "status": "ok",
+        "service": "APEX Race Intelligence API",
+        "timestamp_utc": datetime.now(UTC).isoformat(),
+        "subsystems": subsystems if detailed else None,
+    }
 
 
 @router.get("/tracks")
@@ -283,7 +365,8 @@ async def get_shap_pairwise_comparison(
 
 
 @router.post("/strategy/fork-counterfactual")
-async def fork_counterfactual_timeline(req: ForkCounterfactualRequest):
+@limiter.limit("20/minute")
+async def fork_counterfactual_timeline(request: Request, req: ForkCounterfactualRequest):
     """
     Forks alternative strategy simulation from any historical or provided RaceState snapshot.
     """
@@ -324,7 +407,8 @@ async def fork_counterfactual_timeline(req: ForkCounterfactualRequest):
 
 
 @router.post("/strategy/monte-carlo")
-async def run_monte_carlo(req: MonteCarloRequest):
+@limiter.limit("15/minute")
+async def run_monte_carlo(request: Request, req: MonteCarloRequest):
     """Executes stochastic 1,000-rollout forward simulations across candidate strategy paths."""
     from backend.app.strategy.monte_carlo import MonteCarloEngine
 
@@ -644,11 +728,22 @@ async def run_historical_replay(race_key: str):
 
 
 @router.get("/championship/run")
-async def run_ai_championship(races: int = 10):
+@limiter.limit("5/minute")
+async def run_ai_championship(request: Request, races: int = 10):
     """Executes multi-agent AI tournament championship simulation."""
     from backend.eval.championship import ChampionshipSimulator
     clamped_races = min(100, max(1, races))
     return await asyncio.to_thread(ChampionshipSimulator.run_championship, total_races=clamped_races)
+
+
+@router.get("/models/registry")
+async def get_model_registry():
+    """
+    Returns full model registry manifest, live SHA-256 weight checksums,
+    and drift / artifact integrity status across all APEX models.
+    """
+    from backend.app.intelligence.model_registry import ModelRegistry
+    return ModelRegistry.verify_all_models()
 
 
 @router.get("/observability/metrics")

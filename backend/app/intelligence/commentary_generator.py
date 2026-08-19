@@ -23,6 +23,10 @@ class CommentaryGenerator:
     The LLM functions strictly as a translator/summarizer, never as a decision-maker.
     """
 
+    _ollama_available: bool | None = None
+    _last_ollama_check: float = 0.0
+    _OLLAMA_RETRY_INTERVAL: float = 60.0
+
     def __init__(self, model_name: str = DEFAULT_OLLAMA_MODEL, host: str = DEFAULT_OLLAMA_HOST):
         self.model_name = model_name
         self.host = host
@@ -44,7 +48,7 @@ class CommentaryGenerator:
         Debounces across identical ticks unless recommendation changes or every 5 laps.
         """
         rec_str = str(explanation.recommendation.value if hasattr(explanation.recommendation, "value") else explanation.recommendation)
-        urgency_str = str(explanation.urgency)
+        urgency_str = explanation.urgency
 
         # Debounce check
         rec_changed = (rec_str != self._last_recommendation)
@@ -93,15 +97,21 @@ class CommentaryGenerator:
         explanation: DecisionExplanation,
         persona: str = "apex_core",
     ) -> str:
-        """Invokes Ollama local LLM with timeout protection, falling back to persona template."""
+        """Invokes Ollama local LLM with circuit-breaker protection, falling back to persona template."""
+        now = time.time()
+        if CommentaryGenerator._ollama_available is False:
+            if now - CommentaryGenerator._last_ollama_check < CommentaryGenerator._OLLAMA_RETRY_INTERVAL:
+                return self.get_template_fallback(explanation, persona)
+
         try:
             import ollama
-            client = ollama.Client(host=self.host, timeout=2.0)
+            client = ollama.Client(host=self.host, timeout=0.5)
             response = client.chat(
                 model=self.model_name,
                 messages=[{"role": "user", "content": prompt}],
                 options={"temperature": 0.15, "top_p": 0.9},
             )
+            CommentaryGenerator._ollama_available = True
             raw_text = response.get("message", {}).get("content", "").strip()
             if raw_text:
                 # Sanity check for invented numbers
@@ -110,6 +120,8 @@ class CommentaryGenerator:
                 else:
                     logger.warning(f"[Commentary] LLM response violated fact constraints: '{raw_text}'. Using fallback template.")
         except Exception as e:
+            CommentaryGenerator._ollama_available = False
+            CommentaryGenerator._last_ollama_check = now
             logger.debug(f"[Commentary] Ollama offline or timed out ({e}). Using deterministic template fallback.")
 
         return self.get_template_fallback(explanation, persona)

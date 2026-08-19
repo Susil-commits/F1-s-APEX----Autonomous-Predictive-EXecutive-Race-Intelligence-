@@ -147,6 +147,17 @@ export interface DecisionExplanation {
   risk_score?: number;
   alternative_actions?: any[];
   commentary?: string;
+  uncertainty_quantification?: {
+    method?: string;
+    epistemic_uncertainty_score?: number;
+    policy_entropy?: number;
+    action_uncertainty?: Record<string, {
+      q_mean?: number;
+      q_std?: number;
+      ci_90_lower?: number;
+      ci_90_upper?: number;
+    }>;
+  };
 }
 
 export interface RaceState {

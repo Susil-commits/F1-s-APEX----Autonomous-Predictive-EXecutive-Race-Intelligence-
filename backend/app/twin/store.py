@@ -94,11 +94,12 @@ class RaceStore:
         except Exception as e:
             logger.debug(f"[RaceStore] Async Redis write skipped: {e}")
 
-        # 3. Tier 3: Async Persistence
+        # 3. Tier 3: Async Persistence (Non-blocking background task)
         try:
-            await self.persist_tick_async(state)
-        except Exception as e:
-            logger.debug(f"[RaceStore] Save state DB persist error: {e}")
+            import asyncio
+            asyncio.create_task(self.persist_tick_async(state))
+        except Exception:
+            pass
 
     def get_state(self, race_id: str) -> RaceState | None:
         """Retrieves active state from L1 in-memory store."""
@@ -198,9 +199,10 @@ class RaceStore:
             logger.debug(f"[RaceStore] Async Redis decision write skipped: {e}")
 
         try:
-            await self.persist_decision_async(race_id, lap, decision)
-        except Exception as e:
-            logger.debug(f"[RaceStore] Direct persist decision error: {e}")
+            import asyncio
+            asyncio.create_task(self.persist_decision_async(race_id, lap, decision))
+        except Exception:
+            pass
 
     async def persist_decision_async(self, race_id: str, lap: int, decision: DecisionExplanation):
         """Persists decision log to database."""

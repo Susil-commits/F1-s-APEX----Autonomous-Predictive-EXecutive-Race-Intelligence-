@@ -3,10 +3,13 @@ import json
 
 from backend.app.mcp_server.server import (
     ask_race_history,
+    check_model_health,
     evaluate_monte_carlo,
     explain_last_decision,
     get_agentic_strategy_plan,
     get_race_state,
+    get_sim_to_real_divergence_audit,
+    get_system_metrics,
     mcp,
     preview_pit_strategy,
     trigger_scenario,
@@ -14,7 +17,7 @@ from backend.app.mcp_server.server import (
 
 
 def test_mcp_server_initialization():
-    """Validates that MCP server is instantiated and tools are registered."""
+    """Validates that MCP server is instantiated and all tools are registered."""
     tools = mcp._tool_manager.list_tools()
     tool_names = [t.name for t in tools]
     
@@ -24,6 +27,10 @@ def test_mcp_server_initialization():
     assert "preview_pit_strategy" in tool_names
     assert "evaluate_monte_carlo" in tool_names
     assert "trigger_scenario" in tool_names
+    assert "get_agentic_strategy_plan" in tool_names
+    assert "check_model_health" in tool_names
+    assert "get_sim_to_real_divergence_audit" in tool_names
+    assert "get_system_metrics" in tool_names
 
 
 def test_mcp_get_race_state():
@@ -129,4 +136,39 @@ def test_mcp_get_agentic_strategy_plan():
     assert "shapley_drivers" in data
     assert "contingencies" in data
     assert "monte_carlo_metrics" in data
+
+
+def test_mcp_check_model_health():
+    """Validates Model Registry health check and SHA-256 integrity reporting."""
+    res_str = check_model_health()
+    data = json.loads(res_str)
+    
+    assert "audit_timestamp_utc" in data
+    assert "total_models" in data
+    assert data["total_models"] >= 8
+    assert "models" in data
+    assert "apex_dqn" in data["models"]
+
+
+def test_mcp_get_sim_to_real_divergence_audit():
+    """Validates sim-to-real historical divergence replay audit output."""
+    res_str = get_sim_to_real_divergence_audit()
+    data = json.loads(res_str)
+    
+    assert "audit_run_id" in data
+    assert "case_studies" in data
+    assert len(data["case_studies"]) >= 3
+    assert "aggregate_metrics" in data
+    assert data["status"] == "PASS"
+
+
+def test_mcp_get_system_metrics():
+    """Validates Prometheus runtime metrics snapshot extraction."""
+    res_str = get_system_metrics()
+    data = json.loads(res_str)
+    
+    assert "status" in data
+    assert data["status"] == "HEALTHY"
+    assert "apex_metrics" in data
+    assert "raw_metric_count" in data
 

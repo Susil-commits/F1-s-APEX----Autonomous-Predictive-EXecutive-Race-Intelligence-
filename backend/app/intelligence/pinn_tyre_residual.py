@@ -140,6 +140,7 @@ class PINNTyreResidualCompensator:
         telemetry_samples: list[dict[str, Any]],
         learning_rate: float = 0.001,
         epochs: int = 10,
+        save_to_disk: bool = False,
     ) -> float:
         """
         Online fine-tuning of PINN residual weights on live race session telemetry.
@@ -178,10 +179,11 @@ class PINNTyreResidualCompensator:
             final_loss = float(loss.item())
 
         self.model.eval()
-        try:
-            torch.save(self.model.state_dict(), self.weights_path)
-        except Exception:
-            pass
+        if save_to_disk:
+            try:
+                torch.save(self.model.state_dict(), self.weights_path)
+            except Exception:
+                pass
 
         return round(final_loss, 4)
 

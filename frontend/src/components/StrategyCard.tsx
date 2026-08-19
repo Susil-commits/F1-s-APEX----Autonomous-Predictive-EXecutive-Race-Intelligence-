@@ -105,6 +105,26 @@ export const StrategyCard: React.FC = () => {
             </div>
           </div>
         )}
+
+        {/* Epistemic Uncertainty & Confidence Interval */}
+        {decision.uncertainty_quantification && (
+          <div className="mt-2 p-2 rounded-lg bg-slate-950/70 border border-slate-800/80 flex items-center justify-between text-[10px] font-mono">
+            <span className="text-slate-400 flex items-center gap-1">
+              <span className="w-1.5 h-1.5 rounded-full bg-cyan-400" />
+              Epistemic Uncertainty (&sigma;<sub>Q</sub>):
+            </span>
+            <div className="flex items-center gap-2">
+              <span className="text-cyan-300 font-bold">
+                &plusmn;{decision.uncertainty_quantification.epistemic_uncertainty_score?.toFixed(3) || '0.000'}
+              </span>
+              {decision.uncertainty_quantification.action_uncertainty?.[decision.recommendation] && (
+                <span className="text-slate-400 text-[9px] bg-slate-900 px-1.5 py-0.5 rounded border border-slate-800">
+                  90% CI: [{decision.uncertainty_quantification.action_uncertainty[decision.recommendation].ci_90_lower?.toFixed(2)}, {decision.uncertainty_quantification.action_uncertainty[decision.recommendation].ci_90_upper?.toFixed(2)}]
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Quick Action Button */}
