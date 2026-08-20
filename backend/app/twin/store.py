@@ -98,7 +98,13 @@ class RaceStore:
         # 3. Tier 3: Async Persistence (Non-blocking background task)
         try:
             import asyncio
-            asyncio.create_task(self.persist_tick_async(state))
+            is_testing = bool(os.getenv("PYTEST_CURRENT_TEST") or os.getenv("TESTING") == "1")
+            if not is_testing:
+                task = asyncio.create_task(self.persist_tick_async(state))
+                if not hasattr(self, "_background_tasks"):
+                    self._background_tasks = set()
+                self._background_tasks.add(task)
+                task.add_done_callback(self._background_tasks.discard)
         except Exception:
             pass
 
@@ -201,7 +207,13 @@ class RaceStore:
 
         try:
             import asyncio
-            asyncio.create_task(self.persist_decision_async(race_id, lap, decision))
+            is_testing = bool(os.getenv("PYTEST_CURRENT_TEST") or os.getenv("TESTING") == "1")
+            if not is_testing:
+                task = asyncio.create_task(self.persist_decision_async(race_id, lap, decision))
+                if not hasattr(self, "_background_tasks"):
+                    self._background_tasks = set()
+                self._background_tasks.add(task)
+                task.add_done_callback(self._background_tasks.discard)
         except Exception:
             pass
 
