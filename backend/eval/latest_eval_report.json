@@ -1,7 +1,7 @@
 {
-  "run_id": "EVAL-APEX-20260820-134144",
-  "timestamp_utc": "2026-08-20T13:41:44.091210+00:00",
-  "duration_seconds": 15.34,
+  "run_id": "EVAL-APEX-20260820-134523",
+  "timestamp_utc": "2026-08-20T13:45:23.231957+00:00",
+  "duration_seconds": 8.11,
   "overall_status": "PASS",
   "has_regressions": false,
   "metrics_evaluated": 8,

@@ -148,32 +148,61 @@ def evaluate_rag_retrieval() -> dict[str, Any]:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
 
-    # Test query with known grounding
-    known_query = "Why did the system pit on lap 23?"
+    async def _run_rag_eval():
+        from backend.app.simulator.models import DecisionExplanation, StrategyAction
+        from backend.app.twin.store import store
+
+        eval_race_id = "eval_rag_grounded_session"
+        store.decision_history[eval_race_id] = []
+
+        # Seed known decision entries for retrieval testing
+        expl_10 = DecisionExplanation(
+            recommendation=StrategyAction.MAINTAIN,
+            confidence_score=0.88,
+            urgency="LOW",
+            primary_factors=["Stable medium tyre wear at 22%", "Good pace in clean air"],
+            rule_engine_action=StrategyAction.MAINTAIN,
+            dqn_action=StrategyAction.MAINTAIN,
+            tyre_cliff_risk="LOW",
+        )
+        await store.log_decision(eval_race_id, 10, expl_10)
+
+        expl_23 = DecisionExplanation(
+            recommendation=StrategyAction.PIT_HARD,
+            confidence_score=0.96,
+            urgency="CRITICAL",
+            primary_factors=["Physical Safety Car deployed (12.0s cheap pit advantage)", "Tyre wear 65%"],
+            rule_engine_action=StrategyAction.PIT_HARD,
+            dqn_action=StrategyAction.PIT_HARD,
+            tyre_cliff_risk="HIGH",
+        )
+        await store.log_decision(eval_race_id, 23, expl_23)
+
+        # Test query with known grounding
+        known_query = "Why did the system pit on lap 23?"
+        known_res = await answer_race_question(query=known_query, race_id=eval_race_id, top_k=3)
+        precision_pass = bool(known_res.get("sources") is not None and len(known_res.get("sources", [])) > 0)
+
+        # Test out-of-distribution / refusal behavior
+        refusal_query = "What was the tyre pressure on lap 999 for driver nonexistent?"
+        ood_res = await answer_race_question(query=refusal_query, race_id=eval_race_id, top_k=3)
+        ood_ans = ood_res.get("answer", "").lower()
+        refusal_pass = bool("don't have" in ood_ans or "not present" in ood_ans or "no" in ood_ans or len(ood_res.get("sources", [])) == 0)
+
+        return precision_pass, refusal_pass
+
     if loop.is_running():
         import nest_asyncio
         nest_asyncio.apply()
-        known_res = loop.run_until_complete(answer_race_question(query=known_query, top_k=3))
+        precision_pass, refusal_pass = loop.run_until_complete(_run_rag_eval())
     else:
-        known_res = loop.run_until_complete(answer_race_question(query=known_query, top_k=3))
-
-    precision_pass = bool(known_res.get("sources") is not None and len(known_res.get("sources", [])) > 0)
-
-    # Test out-of-distribution / refusal behavior
-    refusal_query = "What was the tyre pressure on lap 999 for driver nonexistent?"
-    if loop.is_running():
-        ood_res = loop.run_until_complete(answer_race_question(query=refusal_query, top_k=3))
-    else:
-        ood_res = loop.run_until_complete(answer_race_question(query=refusal_query, top_k=3))
-
-    ood_ans = ood_res.get("answer", "").lower()
-    refusal_pass = ("don't have" in ood_ans or "not present" in ood_ans or "no" in ood_ans or len(ood_res.get("sources", [])) == 0)
+        precision_pass, refusal_pass = loop.run_until_complete(_run_rag_eval())
 
     citation_precision = 100.0 if precision_pass else 0.0
     refusal_accuracy = 100.0 if refusal_pass else 0.0
 
     return {
-        "status": "PASS",
+        "status": "PASS" if precision_pass and refusal_pass else "REGRESSION",
         "rag_citation_precision_pct": citation_precision,
         "rag_refusal_accuracy_pct": refusal_accuracy,
         "embedding_model": "all-MiniLM-L6-v2",
