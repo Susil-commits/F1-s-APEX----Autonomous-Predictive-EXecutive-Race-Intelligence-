@@ -82,7 +82,7 @@ class DatasetVersionRegistry:
                 test_stints = [stints[-1]]
                 train_df = pd.DataFrame(df[df["stint"].isin(train_stints)])
                 val_df = pd.DataFrame(train_df.sample(frac=0.15, random_state=42))
-                train_df = pd.DataFrame(train_df.drop(val_df.index))
+                train_df = pd.DataFrame(train_df.loc[~train_df.index.isin(val_df.index)])
                 test_df = pd.DataFrame(df[df["stint"].isin(test_stints)])
                 return {"train": train_df, "val": val_df, "test": test_df}
             else:
@@ -103,7 +103,7 @@ class DatasetVersionRegistry:
 
         n_test = max(1, int(len(shuffled_sessions) * 0.20))
         n_val = max(1, int(len(shuffled_sessions) * 0.20))
-        
+
         test_sessions = shuffled_sessions[:n_test]
         val_sessions = shuffled_sessions[n_test:n_test + n_val]
         train_sessions = shuffled_sessions[n_test + n_val:]

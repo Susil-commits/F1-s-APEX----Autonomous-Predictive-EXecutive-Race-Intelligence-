@@ -60,16 +60,16 @@ class RaceSimulator:
         self.track = get_track(track_name)
         self.race_id = f"race_{uuid.uuid4().hex[:8]}"
         self.enable_dynamic_weather = enable_dynamic_weather
-        
+
         self.current_lap = 0
         self.tick = 0
         self.race_time_s = 0.0
         self.is_finished = False
         self.winner_car_id: str | None = None
-        
+
         self.safety_car = SafetyCarStatus.NONE
         self.safety_car_laps_remaining = 0
-        
+
         # Initialize weather
         self.weather = WeatherState(
             condition=TrackCondition.DRY,
@@ -79,7 +79,7 @@ class RaceSimulator:
             rain_probability_next_5_laps=self.track.rain_probability_base,
             drying_rate_per_lap=0.08,
         )
-        
+
         # Initialize cars on starting grid
         self.cars: list[CarState] = []
         drivers_subset = DEFAULT_DRIVERS[:grid_size]
@@ -236,7 +236,7 @@ class RaceSimulator:
             car.tyre_cliff_reached = cliff
 
             # Update Fuel Burn
-            mode_burn = MODE_SPECS_MULTIPLIER = 1.20 if car.driving_mode == DrivingMode.PUSH else (0.80 if car.driving_mode == DrivingMode.CONSERVE else 1.0)
+            mode_burn = 1.20 if car.driving_mode == DrivingMode.PUSH else (0.80 if car.driving_mode == DrivingMode.CONSERVE else 1.0)
             burn = car.fuel_burn_per_lap_kg * mode_burn
             car.fuel_kg = max(0.5, car.fuel_kg - burn)
 
@@ -559,8 +559,6 @@ class RaceSimulator:
             dict: Serializable representation of all engine state fields.
                   Can be passed to restore() to reconstruct engine exactly.
         """
-        import json
-        state = self.get_state()
         return {
             "_version": "1.0",
             "race_id": self.race_id,

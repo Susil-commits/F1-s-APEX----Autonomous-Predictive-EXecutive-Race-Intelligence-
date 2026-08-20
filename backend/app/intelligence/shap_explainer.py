@@ -174,7 +174,7 @@ class TreeSHAPExplainer:
             fidelity_r2 = float(self.surrogate_meta["r2_score"])
         elif self.surrogate_meta and "test_r2" in self.surrogate_meta:
             fidelity_r2 = float(self.surrogate_meta["test_r2"])
-            
+
         return {
             "in_sync": not self.surrogate_drift_detected,
             "drift_detected": self.surrogate_drift_detected,

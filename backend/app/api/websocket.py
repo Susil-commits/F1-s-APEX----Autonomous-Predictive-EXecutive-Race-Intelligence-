@@ -34,7 +34,7 @@ class RaceSession:
         self.session_id = session_id
         self.track_name = track_name
         self.seed = seed
-        self.sim: RaceSimulator = RaceSimulator(track_name=track_name, seed=seed)
+        self.sim: RaceSimulator | None = RaceSimulator(track_name=track_name, seed=seed)
         self.active_connections: set[WebSocket] = set()
         self.is_running: bool = False
         self.sim_speed: float = 1.0

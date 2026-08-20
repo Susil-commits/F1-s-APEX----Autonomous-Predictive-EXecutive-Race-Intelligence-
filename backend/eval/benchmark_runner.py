@@ -29,8 +29,6 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
-import numpy as np
-
 logger = logging.getLogger(__name__)
 
 BENCHMARK_OUTPUT_PATH = Path(__file__).parent / "latest_benchmark_report.json"

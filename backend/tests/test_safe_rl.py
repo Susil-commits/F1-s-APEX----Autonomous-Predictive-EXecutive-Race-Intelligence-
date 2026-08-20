@@ -29,7 +29,7 @@ def test_guardrail_masks_slicks_in_torrential_rain():
     player = sim.get_player_car()
 
     mask = ActionMaskGuardrail.get_action_mask(state, player.car_id)
-    
+
     # In wet weather, PIT_SOFT, PIT_MEDIUM, PIT_HARD must be masked (False)
     for idx, act in ACTION_MAP.items():
         if act in (StrategyAction.PIT_SOFT, StrategyAction.PIT_MEDIUM, StrategyAction.PIT_HARD):

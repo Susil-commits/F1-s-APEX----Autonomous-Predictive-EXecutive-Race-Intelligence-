@@ -76,7 +76,7 @@ class CommentaryGenerator:
         )
 
         commentary = self._call_llm_or_fallback(prompt, explanation, persona)
-        
+
         # Strip extraneous quotes and markdown wrappers
         commentary = commentary.strip(' \n\r\t"\'`')
         if commentary.startswith("Radio:") or commentary.startswith("Engineer:"):
@@ -134,7 +134,6 @@ class CommentaryGenerator:
         """
         rec = str(explanation.recommendation.value if hasattr(explanation.recommendation, "value") else explanation.recommendation)
         factor = explanation.primary_factors[0] if explanation.primary_factors else "strategic window"
-        urgency = explanation.urgency
         conf = int(explanation.confidence_score * 100)
 
         is_pit = rec.startswith("PIT_")

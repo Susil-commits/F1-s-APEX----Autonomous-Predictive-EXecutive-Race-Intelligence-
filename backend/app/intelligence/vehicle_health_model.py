@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import logging
 import os
+from typing import Any, cast
 
 import joblib
 import numpy as np
@@ -47,31 +48,35 @@ class VehicleHealthIntelligence:
 
     @classmethod
     def get_detector(cls) -> IsolationForest:
-        if cls._detector is None:
-            os.makedirs(HEALTH_MODEL_DIR, exist_ok=True)
-            model_path = os.path.join(HEALTH_MODEL_DIR, "iso_forest_health.joblib")
-            if os.path.exists(model_path):
-                try:
-                    cls._detector = joblib.load(model_path)
-                    return cls._detector
-                except Exception as e:
-                    logger.warning(f"[VehicleHealth] Model load error: {e}")
+        if cls._detector is not None:
+            return cls._detector
 
-            # Train default baseline Isolation Forest on synthetic normal/anomalous bounds
-            detector = IsolationForest(n_estimators=50, contamination=0.08, random_state=42)
-            normal_data, _ = cls.generate_synthetic_telemetry(n_samples=500, anomaly_rate=0.05)
-            X = np.array([[
-                s.engine_temp_c, s.oil_temp_c, s.coolant_temp_c, s.brake_temp_c,
-                s.battery_temp_c, s.battery_voltage_v, s.ers_output_kw,
-                s.brake_pressure_bar, s.power_output_kw, s.cooling_efficiency
-            ] for s in normal_data])
-            detector.fit(X)
-            cls._detector = detector
+        os.makedirs(HEALTH_MODEL_DIR, exist_ok=True)
+        model_path = os.path.join(HEALTH_MODEL_DIR, "iso_forest_health.joblib")
+        if os.path.exists(model_path):
             try:
-                joblib.dump(detector, model_path)
-            except Exception:
-                pass
-        return cls._detector
+                loaded = joblib.load(model_path)
+                if isinstance(loaded, IsolationForest):
+                    cls._detector = loaded
+                    return cls._detector
+            except Exception as e:
+                logger.warning(f"[VehicleHealth] Model load error: {e}")
+
+        # Train default baseline Isolation Forest on synthetic normal/anomalous bounds
+        detector = IsolationForest(n_estimators=50, contamination=cast(Any, 0.08), random_state=42)
+        normal_data, _ = cls.generate_synthetic_telemetry(n_samples=500, anomaly_rate=0.05)
+        X = np.array([[
+            s.engine_temp_c, s.oil_temp_c, s.coolant_temp_c, s.brake_temp_c,
+            s.battery_temp_c, s.battery_voltage_v, s.ers_output_kw,
+            s.brake_pressure_bar, s.power_output_kw, s.cooling_efficiency
+        ] for s in normal_data])
+        detector.fit(X)
+        cls._detector = detector
+        try:
+            joblib.dump(detector, model_path)
+        except Exception:
+            pass
+        return detector
 
     @staticmethod
     def generate_synthetic_telemetry(

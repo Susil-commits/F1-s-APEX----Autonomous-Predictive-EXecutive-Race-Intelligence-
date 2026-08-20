@@ -48,8 +48,9 @@ def compute_tyre_features(df: pd.DataFrame) -> pd.DataFrame:
     out["circuit_abrasion"] = out["circuit"].apply(get_abrasion)
 
     # Thermal stress interaction
-    track_temp = out.get("track_temp_c", 30.0)
-    out["thermal_stress"] = (track_temp / 35.0) * out["circuit_abrasion"] * (1.2 if out["is_soft"].any() else 1.0)
+    track_temp = out["track_temp_c"] if "track_temp_c" in out.columns else 30.0
+    has_soft = bool((out["is_soft"] > 0).any())
+    out["thermal_stress"] = (track_temp / 35.0) * out["circuit_abrasion"] * (1.2 if has_soft else 1.0)
 
     # Stint relative wear estimate
     out["estimated_wear_pct"] = np.clip(

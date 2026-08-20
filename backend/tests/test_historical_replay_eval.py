@@ -2,7 +2,6 @@
 import json
 import tempfile
 from pathlib import Path
-import pytest
 
 from backend.app.simulator.historical_replay import HistoricalRaceReplay
 from backend.eval.historical_replay_eval import run_historical_divergence_audit

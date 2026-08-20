@@ -80,7 +80,7 @@ def train(
         exploration_fraction=0.35,
         exploration_initial_eps=1.0,
         exploration_final_eps=0.03,
-        policy_kwargs=dict(net_arch=[128, 128, 64]),
+        policy_kwargs={"net_arch": [128, 128, 64]},
         verbose=1,
     )
 
@@ -108,11 +108,11 @@ def train(
             plt.figure(figsize=(10, 5), dpi=150)
             episodes = np.arange(1, len(reward_logger.episode_rewards) + 1)
             raw_rewards = np.array(reward_logger.episode_rewards)
-            
+
             # Compute rolling moving average
             window = max(1, min(20, len(raw_rewards) // 5))
             moving_avg = np.convolve(raw_rewards, np.ones(window) / window, mode="valid")
-            
+
             plt.plot(episodes, raw_rewards, alpha=0.3, color="#00d2be", label="Episode Reward")
             plt.plot(
                 episodes[window - 1:],

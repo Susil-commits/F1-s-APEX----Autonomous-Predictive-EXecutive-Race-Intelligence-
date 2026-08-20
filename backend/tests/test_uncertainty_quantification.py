@@ -1,6 +1,5 @@
 """Tests for DQNAgent epistemic uncertainty quantification and confidence bounds."""
 import numpy as np
-import pytest
 
 from backend.app.simulator.engine import RaceSimulator
 from backend.app.strategy.dqn_agent import DQNAgent

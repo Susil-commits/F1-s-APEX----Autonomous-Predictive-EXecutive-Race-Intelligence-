@@ -69,7 +69,7 @@ class DriverIntelligenceEngine:
     ) -> dict[str, Any]:
         """Calculates dynamic driver status under current race context."""
         profile = cls.get_profile(car.driver_name)
-        
+
         # Pressure multiplier when chased closely (< 1.0s)
         chased_pressure = 1.8 if (0.0 < car.gap_to_car_behind_s <= 1.0) else 1.0
         # Fatigue factor towards end of race

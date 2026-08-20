@@ -13,14 +13,11 @@ from backend.app.simulator.models import (
     DrivingMode,
     RaceState,
     SafetyCarStatus,
-    StrategyAction,
     TrackCondition,
     TyreCompound,
-    VehicleHealthState,
     WeatherState,
 )
 from backend.app.simulator.track import get_track
-
 
 # ---------------------------------------------------------------------------
 # Minimal deterministic RaceState

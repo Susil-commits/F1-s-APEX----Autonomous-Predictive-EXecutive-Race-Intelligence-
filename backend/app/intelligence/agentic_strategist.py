@@ -72,7 +72,7 @@ class AgenticRaceStrategist:
         """
         now_utc = datetime.datetime.now(datetime.UTC).isoformat()
         player = next((c for c in state.cars if (target_car_id and c.car_id == target_car_id) or c.is_player), state.cars[0] if state.cars else None)
-        
+
         if player is None:
             # Fallback for empty state
             return AgenticStrategyPlan(
@@ -155,7 +155,7 @@ class AgenticRaceStrategist:
         # Step 7: Chain-of-Thought Synthesis
         favored_compound = max(suitability.keys(), key=lambda k: suitability.get(k, 0.0)) if suitability else "HARD"
         cot: list[str] = [
-            f"1. Telemetry Audit: Lap {state.current_lap}/{state.total_laps}, P{player.position}, {player.tyre_compound.value} tyres at {player.tyre_wear_pct:.1f}% wear (~{laps_to_cliff} laps to cliff).",
+            f"1. Telemetry Audit: Lap {state.current_lap}/{state.total_laps}, P{player.position}, {player.tyre_compound.value} tyres at {player.tyre_wear_pct:.1f}% wear (~{laps_to_cliff} laps to cliff, PINN residual: +{pinn_residual_s:.3f}s/lap).",
             f"2. Environmental State: Weather is {state.weather.condition.value} with rain intensity {state.weather.rain_intensity:.2f}. Compound suitability favors {favored_compound}.",
             f"3. Neural Policy (DQN): Optimal action {dqn_action.value} (Q-margin: +{q_margin:.2f}, Shannon entropy: {entropy:.3f}).",
             f"4. TreeSHAP Attribution: Primary policy driver is '{top_shap_factors[0]['feature'] if top_shap_factors else 'Wear progression'}' with impact {top_shap_factors[0]['impact'] if top_shap_factors else 'nominal'}.",

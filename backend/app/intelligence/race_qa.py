@@ -49,7 +49,7 @@ class RaceQAEngine:
         lap_match = re.search(r"\blap\s*(\d+)\b", query.lower())
         target_lap = int(lap_match.group(1)) if lap_match else None
 
-        texts = [format_decision_log(l) for l in logs]
+        texts = [format_decision_log(item) for item in logs]
         log_embeddings = embed_texts(texts)  # [N, dim]
         query_embedding = embed_text(query)  # [dim]
 
@@ -64,8 +64,8 @@ class RaceQAEngine:
 
         # Boost score if exact lap requested matches
         if target_lap is not None:
-            for i, l in enumerate(logs):
-                if l.get("lap") == target_lap:
+            for i, item in enumerate(logs):
+                if item.get("lap") == target_lap:
                     similarities[i] += 1.5
 
         scored_pairs = list(zip(logs, similarities.tolist()))

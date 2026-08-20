@@ -1,4 +1,5 @@
 """Unit tests for FastF1 tyre data cleaning, calibration, and prediction."""
+import numpy as np
 import pandas as pd
 import pytest
 
@@ -78,7 +79,7 @@ def test_clean_session_laps_filtering():
 
     clean_df = clean_session_laps(raw_df, circuit_name="Silverstone", year=2023)
     assert len(clean_df) == 2, f"Expected 2 clean laps, got {len(clean_df)}"
-    assert (clean_df["tyre_age"].values == [5, 9]).all()
+    assert np.array_equal(clean_df["tyre_age"].to_numpy(), [5, 9])
     assert (clean_df["lap_time_delta"] >= 0.0).all()
     assert "data_source" in clean_df.columns
     assert (clean_df["data_source"] == "fastf1_real").all()
@@ -122,7 +123,7 @@ def test_tyre_model_predict_loss_calibrated():
     """Verifies that TyreModel uses calibrated curve when available and respects tyre compound differences."""
     loss_fresh_soft = TyreModel.predict_lap_time_loss(TyreCompound.SOFT, wear_pct=5.0, tyre_age_laps=2)
     loss_worn_soft = TyreModel.predict_lap_time_loss(TyreCompound.SOFT, wear_pct=75.0, tyre_age_laps=22)
-    
+
     assert loss_worn_soft > loss_fresh_soft, "Worn tyre degradation loss must exceed fresh tyre loss"
     assert loss_fresh_soft >= 0.0
 

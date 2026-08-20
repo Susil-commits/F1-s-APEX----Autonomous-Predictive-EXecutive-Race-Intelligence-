@@ -40,7 +40,7 @@ def clean_weather_dataframe(raw_weather: pd.DataFrame) -> pd.DataFrame:
     df["track_temp_c"] = _col_or_default("TrackTemp", 30.0).clip(10.0, 70.0)
     df["humidity_pct"] = _col_or_default("Humidity", 50.0).clip(0.0, 100.0)
     df["pressure_mbar"] = _col_or_default("Pressure", 1013.25).clip(900.0, 1100.0)
-    
+
     # Rainfall flag / intensity
     if "Rainfall" in df.columns:
         df["is_raining"] = df["Rainfall"].astype(bool)

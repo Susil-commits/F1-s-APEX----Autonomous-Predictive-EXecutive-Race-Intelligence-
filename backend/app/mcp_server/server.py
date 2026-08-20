@@ -110,17 +110,17 @@ def explain_last_decision(car_id: str | None = None) -> str:
     sim = get_or_create_sim()
     state = sim.get_state()
     features = FeatureBuilder.extract_features(state, target_car_id=car_id)
-    
+
     explainer = TreeSHAPExplainer.get_instance()
     explanation = explainer.explain(features)
-    
+
     player = sim.get_player_car()
     dqn_agent = DQNAgent()
     dqn_action, q_margin = dqn_agent.predict_action(features)
 
     top_feats = explanation.get("top_features", [])
     primary_factors = [f["feature"].replace("_", " ").title() for f in top_feats[:3]]
-    
+
     detailed_attributions = [
         {
             "feature": f["feature"],
@@ -131,7 +131,7 @@ def explain_last_decision(car_id: str | None = None) -> str:
         }
         for f in top_feats
     ]
-    
+
     confidence = min(0.98, max(0.65, 0.75 + q_margin * 0.15))
     urgency = "HIGH" if (player and (player.tyre_cliff_reached or player.tyre_wear_pct > 75.0)) else ("MEDIUM" if q_margin > 0.5 else "LOW")
     action_name = dqn_action.value if hasattr(dqn_action, "value") else str(dqn_action)
@@ -167,14 +167,14 @@ def ask_race_history(question: str, race_id: str | None = None, top_k: int = 5) 
     except RuntimeError:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        
+
     if loop.is_running():
         import nest_asyncio
         nest_asyncio.apply()
         raw_result = loop.run_until_complete(answer_race_question(query=question, race_id=race_id, top_k=top_k))
     else:
         raw_result = loop.run_until_complete(answer_race_question(query=question, race_id=race_id, top_k=top_k))
-        
+
     formatted = {
         "question": question,
         "answer": raw_result.get("answer", "No answer found."),
@@ -194,7 +194,7 @@ def preview_pit_strategy(proposed_action: str = "PIT_SOFT", rollout_laps: int = 
     """
     sim = get_or_create_sim()
     state = sim.get_state()
-    
+
     result = CounterfactualChecker.fork_timeline(
         historical_state=state,
         proposed_action=proposed_action,
@@ -212,7 +212,7 @@ def evaluate_monte_carlo(rollouts: int = 500, target_car_id: str | None = None) 
     """
     sim = get_or_create_sim()
     state = sim.get_state()
-    
+
     results = MonteCarloEngine.run_simulation(
         state=state,
         num_rollouts=min(rollouts, 2000),
@@ -233,7 +233,7 @@ def trigger_scenario(scenario_type: str, intensity: float = 0.8, laps: int = 4) 
     """
     sim = get_or_create_sim()
     scen = scenario_type.upper()
-    
+
     if scen in ("TORRENTIAL_RAIN", "RAIN", "WET"):
         sim.inject_weather(TrackCondition.WET, rain_intensity=intensity or 0.85)
     elif scen in ("DAMP_TRACK", "DAMP", "LIGHT_RAIN"):
@@ -254,7 +254,7 @@ def trigger_scenario(scenario_type: str, intensity: float = 0.8, laps: int = 4) 
         sim.clear_hazards()
     else:
         return json.dumps({"error": f"Unknown scenario type '{scenario_type}'"}, indent=2)
-        
+
     state = sim.get_state()
     return json.dumps({
         "status": "scenario_applied",
@@ -307,7 +307,7 @@ def get_sim_to_real_divergence_audit() -> str:
     if report_path.exists():
         with open(report_path, "r", encoding="utf-8") as f:
             return f.read()
-    
+
     # Generate fresh divergence audit if report does not exist
     from backend.eval.historical_replay_eval import audit_historical_decisions
     report = audit_historical_decisions(output_path=report_path)
@@ -324,7 +324,7 @@ def get_system_metrics() -> str:
     try:
         from prometheus_client import REGISTRY, generate_latest
         raw_metrics = generate_latest(REGISTRY).decode("utf-8")
-        
+
         # Parse APEX custom metrics into structured JSON
         lines = [line for line in raw_metrics.splitlines() if line.startswith("apex_")]
         parsed_metrics: dict[str, Any] = {}
@@ -335,7 +335,7 @@ def get_system_metrics() -> str:
                     parsed_metrics[key] = float(val) if "." in val else int(val)
                 except ValueError:
                     parsed_metrics[key] = val
-                    
+
         return json.dumps({
             "status": "HEALTHY",
             "apex_metrics": parsed_metrics,

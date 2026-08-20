@@ -21,14 +21,12 @@ import sys
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 import pandas as pd
 
-from backend.app.intelligence.tyre_model import _ML_SUITE, TyreMLSuite
+from backend.app.intelligence.tyre_model import _ML_SUITE
 from backend.training.fetch_fastf1_data import (
     OUTPUT_CSV,
     fetch_all_real_races,
-    generate_synthetic_fallback_data,
 )
 
 logger = logging.getLogger(__name__)

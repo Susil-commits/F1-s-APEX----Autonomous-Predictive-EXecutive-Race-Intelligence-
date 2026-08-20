@@ -25,11 +25,11 @@ class JSONLogFormatter(logging.Formatter):
 
         # Include custom extra metadata if passed
         if hasattr(record, "session_id"):
-            log_obj["session_id"] = record.session_id
+            log_obj["session_id"] = getattr(record, "session_id", None)
         if hasattr(record, "race_id"):
-            log_obj["race_id"] = record.race_id
+            log_obj["race_id"] = getattr(record, "race_id", None)
         if hasattr(record, "action"):
-            log_obj["action"] = record.action
+            log_obj["action"] = getattr(record, "action", None)
 
         return json.dumps(log_obj)
 

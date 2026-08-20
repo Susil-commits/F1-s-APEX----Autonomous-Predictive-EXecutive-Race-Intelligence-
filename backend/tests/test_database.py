@@ -20,11 +20,11 @@ async def test_database_initialization():
 async def test_race_store_async_persistence():
     sim = RaceSimulator(track_name="silverstone", seed=999)
     state = sim.step()
-    
+
     # Save to store asynchronously
     await store.save_state(state)
     assert store.get_state(state.race_id) is not None
-    
+
     # Test async tick persistence
     await store.persist_tick_async(state)
     ticks = await store.get_persisted_session_ticks(state.race_id)

@@ -16,6 +16,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import random
 import time
 from datetime import UTC, datetime
 from typing import Any
@@ -55,12 +56,13 @@ class BenchmarkSuite:
             player = sim.get_player_car()
             state = sim.get_state()
             t0 = time.perf_counter()
+            action: StrategyAction = StrategyAction.MAINTAIN
 
             if policy_type == "random":
                 if np.random.rand() < 0.85:
                     action = StrategyAction.MAINTAIN
                 else:
-                    action = np.random.choice([
+                    action = random.choice([
                         StrategyAction.PUSH,
                         StrategyAction.CONSERVE,
                         StrategyAction.PIT_SOFT,
@@ -161,15 +163,9 @@ class BenchmarkSuite:
 
 def run_ablation_study(num_races: int = 5, track_name: str = "silverstone") -> dict[str, Any]:
     """Measures contribution of each intelligence component."""
-    ablations = {
-        "APEX_Full": ["hybrid_apex"],
-        "Rule_Baseline": ["rule_based"],
-        "Pure_Monte_Carlo": ["monte_carlo"],
-        "Pure_RL_DQN": ["dqn"],
-        "Pure_RL_PPO": ["ppo"],
-    }
+    ablation_policies = ["hybrid_apex", "rule_based", "monte_carlo", "dqn", "ppo"]
     suite = BenchmarkSuite(num_races=num_races, track_name=track_name)
-    eval_res = suite.evaluate_track(policies=POLICIES)
+    eval_res = suite.evaluate_track(policies=ablation_policies)
     return {
         "ablation_title": "APEX Intelligence Subsystem Ablation Study",
         "num_races_per_configuration": num_races,

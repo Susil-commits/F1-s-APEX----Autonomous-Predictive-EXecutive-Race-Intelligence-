@@ -8,7 +8,6 @@ Evaluates candidates against the standardized APEX multi-circuit benchmark suite
 import argparse
 import json
 import logging
-import os
 import sys
 from pathlib import Path
 from typing import Any
@@ -118,7 +117,7 @@ def objective(trial: optuna.Trial, steps_per_trial: int = 15000) -> float:
         exploration_fraction=exploration_fraction,
         exploration_initial_eps=1.0,
         exploration_final_eps=0.03,
-        policy_kwargs=dict(net_arch=net_arch),
+        policy_kwargs={"net_arch": net_arch},
         verbose=0,
     )
 
@@ -188,9 +187,10 @@ def run_hpo_sweep(
     # Generate visualization plot
     try:
         plot_path.parent.mkdir(parents=True, exist_ok=True)
-        trial_numbers = [t.number for t in study.trials]
-        trial_values = [t.value for t in study.trials]
-        best_so_far = np.maximum.accumulate(trial_values)
+        valid_trials = [t for t in study.trials if t.value is not None]
+        trial_numbers = [int(t.number) for t in valid_trials]
+        trial_values = [float(t.value) for t in valid_trials if t.value is not None]
+        best_so_far = list(np.maximum.accumulate(np.array(trial_values, dtype=float))) if trial_values else []
 
         plt.figure(figsize=(10, 5), dpi=150)
         plt.scatter(trial_numbers, trial_values, color="#00d2be", alpha=0.7, s=60, label="Trial Score")

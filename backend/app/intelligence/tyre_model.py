@@ -47,6 +47,7 @@ try:
     import xgboost as xgb
     XGB_AVAILABLE = True
 except ImportError:
+    xgb = None  # type: ignore
     XGB_AVAILABLE = False
 
 
@@ -116,7 +117,7 @@ class TyreMLSuite:
         self.linear_model = LinearRegression().fit(X, y)
         self.rf_model = RandomForestRegressor(n_estimators=50, random_state=42).fit(X, y)
 
-        if XGB_AVAILABLE:
+        if XGB_AVAILABLE and xgb is not None:
             try:
                 self.xgb_model = xgb.XGBRegressor(
                     n_estimators=100,
@@ -180,7 +181,7 @@ class TyreMLSuite:
         self.linear_model = LinearRegression().fit(X_tr, y_tr)
         self.rf_model = RandomForestRegressor(n_estimators=60, max_depth=8, random_state=42).fit(X_tr, y_tr)
 
-        if XGB_AVAILABLE:
+        if XGB_AVAILABLE and xgb is not None:
             try:
                 self.xgb_model = xgb.XGBRegressor(
                     n_estimators=250,
@@ -203,7 +204,7 @@ class TyreMLSuite:
         mae = float(mean_absolute_error(y_te, y_pred))
         rmse = float(np.sqrt(mean_squared_error(y_te, y_pred)))
         r2 = float(r2_score(y_te, y_pred))
-        
+
         # Pearson R correlation
         std_te = np.std(y_te)
         std_pred = np.std(y_pred)
@@ -213,8 +214,8 @@ class TyreMLSuite:
             pearson_r = 1.0
 
         # Cliff prediction accuracy (>1.5s delta threshold)
-        actual_cliff = y_te > 1.5
-        pred_cliff = y_pred > 1.5
+        actual_cliff = np.asarray(y_te, dtype=float) > 1.5
+        pred_cliff = np.asarray(y_pred, dtype=float) > 1.5
         cliff_acc = float(np.mean(actual_cliff == pred_cliff))
 
         self.held_out_metrics = {
@@ -341,10 +342,10 @@ class TyreModel:
         """Estimates laps remaining before reaching the degradation cliff."""
         spec = COMPOUND_SPECS[compound]
         mode_spec = MODE_SPECS[mode]
-        
+
         calib = cls.load_calibrated_model()
         comp_str = compound.value if hasattr(compound, "value") else str(compound)
-        
+
         cliff_threshold = spec["cliff_threshold_pct"]
         base_wear = spec["base_wear_rate_pct"]
 

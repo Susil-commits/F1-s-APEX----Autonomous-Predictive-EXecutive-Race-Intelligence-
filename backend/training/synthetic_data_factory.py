@@ -43,7 +43,7 @@ class SyntheticDataFactory:
             # Random incident injection chance
             inject_sc = rng.uniform() < 0.35
             sc_lap = rng.integers(10, 35) if inject_sc else -1
-            
+
             inject_rain = rng.uniform() < 0.25
             rain_lap = rng.integers(8, 30) if inject_rain else -1
 

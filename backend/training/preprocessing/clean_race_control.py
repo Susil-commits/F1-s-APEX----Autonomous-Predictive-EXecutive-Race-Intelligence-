@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any, cast
 
 import pandas as pd
 
@@ -18,7 +19,7 @@ def clean_race_control_dataframe(raw_messages: pd.DataFrame) -> pd.DataFrame:
     - GREEN_FLAG
     """
     if raw_messages is None or raw_messages.empty:
-        return pd.DataFrame(columns=["lap", "time_s", "category", "flag", "message", "status"])
+        return pd.DataFrame([], columns=cast(Any, ["lap", "time_s", "category", "flag", "message", "status"]))
 
     df = raw_messages.copy()
     records = []
@@ -26,8 +27,12 @@ def clean_race_control_dataframe(raw_messages: pd.DataFrame) -> pd.DataFrame:
     for _, row in df.iterrows():
         msg = str(row.get("Message", "")).upper()
         category = str(row.get("Category", "OTHER")).upper()
-        lap = int(row.get("Lap", 0)) if pd.notna(row.get("Lap")) else 0
-        
+        lap_val = row.get("Lap", 0)
+        try:
+            lap = int(lap_val) if lap_val is not None else 0
+        except (ValueError, TypeError):
+            lap = 0
+
         status = "NONE"
         if "VIRTUAL SAFETY CAR" in msg or "VSC" in msg:
             status = "VSC"

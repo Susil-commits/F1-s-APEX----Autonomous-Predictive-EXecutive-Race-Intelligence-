@@ -22,8 +22,9 @@ try:
     from stable_baselines3 import PPO
     SB3_AVAILABLE = True
 except ImportError:
+    torch = None  # type: ignore
+    PPO = None  # type: ignore
     SB3_AVAILABLE = False
-    PPO = Any  # type: ignore
 
 from backend.app.intelligence.feature_builder import FeatureBuilder
 from backend.app.simulator.models import RaceState, StrategyAction, TrackCondition, TyreCompound
@@ -46,7 +47,7 @@ class PPOStrategyAgent:
         self._load_model()
 
     def _load_model(self) -> None:
-        if SB3_AVAILABLE and os.path.exists(self.model_path):
+        if SB3_AVAILABLE and PPO is not None and os.path.exists(self.model_path):
             try:
                 self.model = PPO.load(self.model_path)
                 logger.info(f"[PPOStrategyAgent] Loaded trained PPO policy from {self.model_path}")
@@ -79,7 +80,7 @@ class PPOStrategyAgent:
         features = FeatureBuilder.extract_features(state)
         mask = ActionMaskGuardrail.get_action_mask(state) if apply_guardrail else np.ones(len(ACTION_MAP), dtype=bool)
 
-        if self.model is not None:
+        if self.model is not None and torch is not None:
             try:
                 obs_tensor = torch.as_tensor(features.reshape(1, -1), dtype=torch.float32)
                 with torch.no_grad():
@@ -114,7 +115,7 @@ class PPOStrategyAgent:
         features = FeatureBuilder.extract_features(state)
         mask = ActionMaskGuardrail.get_action_mask(state)
 
-        if self.model is not None:
+        if self.model is not None and torch is not None:
             try:
                 obs_tensor = torch.as_tensor(features.reshape(1, -1), dtype=torch.float32)
                 with torch.no_grad():
@@ -147,7 +148,7 @@ class PPOStrategyAgent:
 
     def estimate_value(self, state: RaceState) -> float:
         """Estimates state value V(s) via the PPO critic/value network."""
-        if self.model is not None:
+        if self.model is not None and torch is not None:
             try:
                 features = FeatureBuilder.extract_features(state)
                 obs_tensor = torch.as_tensor(features.reshape(1, -1), dtype=torch.float32)

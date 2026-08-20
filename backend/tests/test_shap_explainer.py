@@ -67,7 +67,7 @@ def test_shap_explainer_output_structure():
     """Tests that explain() returns the expected dictionary contract."""
     explainer = TreeSHAPExplainer.get_instance()
     dummy_features = np.random.uniform(0.0, 1.0, size=(FEATURE_DIM,))
-    
+
     result = explainer.explain(dummy_features)
     assert "base_value" in result
     assert "prediction" in result
@@ -77,7 +77,7 @@ def test_shap_explainer_output_structure():
     assert "surrogate_type" in result
     assert len(result["top_features"]) == 10
     assert len(result["all_features"]) == FEATURE_DIM
-    
+
     # Check feature contribution structure
     top_feat = result["top_features"][0]
     assert "feature" in top_feat

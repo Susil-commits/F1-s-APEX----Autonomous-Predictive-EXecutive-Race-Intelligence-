@@ -127,7 +127,7 @@ class ApexRaceGymEnv(gym.Env):
         is_wet = state.weather.condition == TrackCondition.WET or "WET" in str(state.weather.condition).upper()
         is_damp = state.weather.condition == TrackCondition.DAMP or "DAMP" in str(state.weather.condition).upper()
         is_dry = state.weather.condition == TrackCondition.DRY or "DRY" in str(state.weather.condition).upper()
-        
+
         is_slick = player.tyre_compound in (TyreCompound.SOFT, TyreCompound.MEDIUM, TyreCompound.HARD) or any(c in str(player.tyre_compound).upper() for c in ("SOFT", "MEDIUM", "HARD"))
         is_rain_tyre = player.tyre_compound in (TyreCompound.INTERMEDIATE, TyreCompound.WET) or any(c in str(player.tyre_compound).upper() for c in ("INTER", "WET"))
 

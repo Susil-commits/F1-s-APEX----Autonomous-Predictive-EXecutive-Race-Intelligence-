@@ -47,11 +47,12 @@ class RaceStore:
             return None
         if self._async_redis is None:
             try:
+                redis_timeout = float(os.getenv("REDIS_TIMEOUT_SECONDS", "3.0"))
                 self._async_redis = aioredis.from_url(
                     self.redis_url,
                     decode_responses=True,
-                    socket_connect_timeout=0.1,
-                    socket_timeout=0.1,
+                    socket_connect_timeout=redis_timeout,
+                    socket_timeout=redis_timeout,
                 )
                 await self._async_redis.ping()
                 logger.info(f"[RaceStore] Connected non-blocking Redis hot cache at {self.redis_url}")
@@ -227,9 +228,21 @@ class RaceStore:
                     session.add(db_session)
                     await session.flush()
 
-                rec_val = decision.recommendation.value if hasattr(decision.recommendation, "value") else str(decision.recommendation)
-                rule_val = decision.rule_engine_action.value if hasattr(decision.rule_engine_action, "value") else (str(decision.rule_engine_action) if decision.rule_engine_action else None)
-                dqn_val = decision.dqn_action.value if hasattr(decision.dqn_action, "value") else (str(decision.dqn_action) if decision.dqn_action else None)
+                rec_val = (
+                    decision.recommendation.value
+                    if decision.recommendation is not None and hasattr(decision.recommendation, "value")
+                    else str(getattr(decision, "recommendation", "MAINTAIN"))
+                )
+                rule_val = (
+                    decision.rule_engine_action.value
+                    if decision.rule_engine_action is not None and hasattr(decision.rule_engine_action, "value")
+                    else (str(decision.rule_engine_action) if decision.rule_engine_action is not None else None)
+                )
+                dqn_val = (
+                    decision.dqn_action.value
+                    if decision.dqn_action is not None and hasattr(decision.dqn_action, "value")
+                    else (str(decision.dqn_action) if decision.dqn_action is not None else None)
+                )
 
                 log_entry = DecisionLogModel(
                     race_id=race_id,
@@ -254,7 +267,7 @@ class RaceStore:
 
     async def get_persisted_decisions(self, race_id: str | None = None) -> list[dict[str, Any]]:
         """Queries persisted decision logs from database for RAG intelligence and auditing."""
-        mem_items = self.decision_history.get(race_id, []) if race_id else [l for logs in self.decision_history.values() for l in logs]
+        mem_items = self.decision_history.get(race_id, []) if race_id else [item for logs in self.decision_history.values() for item in logs]
         try:
             await self.ensure_db_ready()
             async with get_db_session() as session:

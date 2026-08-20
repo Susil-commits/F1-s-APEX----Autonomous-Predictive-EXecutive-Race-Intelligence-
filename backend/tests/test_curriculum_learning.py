@@ -1,13 +1,10 @@
 """Tests for Curriculum Learning Reinforcement Learning Pipeline."""
-import os
 import tempfile
 from pathlib import Path
-import pytest
 
-from backend.app.simulator.models import TrackCondition, SafetyCarStatus
+from backend.app.simulator.models import SafetyCarStatus, TrackCondition
 from backend.training.curriculum_learning import (
     CURRICULUM_STAGES,
-    CurriculumStage,
     StageCustomRaceEnv,
     train_curriculum_policy,
 )
@@ -33,6 +30,7 @@ def test_stage_custom_race_env_constraints():
     env = StageCustomRaceEnv(stage=stage1, track_name="silverstone")
     obs, info = env.reset()
 
+    assert env.sim is not None
     assert env.sim.weather.condition == TrackCondition.DRY
     assert env.sim.weather.rain_intensity == 0.0
     assert env.sim.safety_car == SafetyCarStatus.NONE

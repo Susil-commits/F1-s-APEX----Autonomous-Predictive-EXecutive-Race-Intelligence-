@@ -1,5 +1,4 @@
 """Tests for APEX Model Registry, SHA-256 integrity hashing, and drift detection."""
-import pytest
 from starlette.testclient import TestClient
 
 from backend.app.intelligence.model_registry import ModelRegistry
@@ -41,6 +40,7 @@ def test_model_registry_api_endpoint():
 def test_mcp_check_model_health():
     """Verifies that the MCP tool check_model_health executes and returns structured JSON."""
     import json
+
     from backend.app.mcp_server.server import check_model_health
 
     result_str = check_model_health()

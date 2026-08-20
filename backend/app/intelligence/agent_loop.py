@@ -36,7 +36,7 @@ class SelfHealingAgent:
         """Provides an instant diagnostic snapshot of model health and alignment."""
         explainer = TreeSHAPExplainer.get_instance()
         drift_status = explainer.verify_drift()
-        
+
         is_synced = not drift_status.get("drift_detected", False)
         return {
             "surrogate_synced": is_synced,
@@ -62,7 +62,7 @@ class SelfHealingAgent:
         if not drift_status.get("drift_detected", False):
             # Evaluate harness
             eval_report, has_regressions = run_full_evaluation(verbose=False)
-            
+
             if not has_regressions:
                 debrief = (
                     "APEX Intelligence Loop Nominal: TreeSHAP surrogate is in sync with active DQN weights "
@@ -88,21 +88,21 @@ class SelfHealingAgent:
             f"Surrogate drift detected (Active DQN: {explainer.active_dqn_hash[:8] if explainer.active_dqn_hash else 'unknown'} "
             f"vs Distilled: {explainer.distilled_dqn_hash[:8] if explainer.distilled_dqn_hash else 'missing'})."
         )
-        
+
         if auto_redistill:
             try:
                 # Run distillation pipeline
                 from backend.training.distill_dqn_surrogate import (
                     run_distillation_pipeline,
                 )
-                distill_meta = run_distillation_pipeline(n_samples=2000, epochs=30)
-                
+                run_distillation_pipeline(n_samples=2000, epochs=30)
+
                 # Reset singleton and re-verify
                 TreeSHAPExplainer.reset_instance()
                 new_explainer = TreeSHAPExplainer.get_instance()
                 new_drift = new_explainer.verify_drift()
                 new_r2 = new_drift.get("surrogate_fidelity_r2", 0.89)
-                
+
                 debrief = (
                     f"Autonomous Healing Succeeded: Re-distilled TreeSHAP surrogate against active DQN policy. "
                     f"Fidelity R2 restored to {new_r2:.3f}. Hashes synchronized."

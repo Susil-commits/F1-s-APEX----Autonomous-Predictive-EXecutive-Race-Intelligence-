@@ -66,7 +66,7 @@ async def test_api_scenario_injection():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as ac:
         await ac.post("/api/race/init", json={"track_name": "silverstone", "seed": 42})
-        
+
         # Test rain injection
         rain_res = await ac.post("/api/simulator/inject-scenario", json={"scenario_type": "TORRENTIAL_RAIN", "intensity": 0.85})
         assert rain_res.status_code == 200

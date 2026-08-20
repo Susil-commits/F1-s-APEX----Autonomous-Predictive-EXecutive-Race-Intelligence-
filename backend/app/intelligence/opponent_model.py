@@ -52,7 +52,7 @@ class OpponentIntelligenceEngine:
         # Baseline pit probability based on tyre cliff proximity
         pit_window = TyreModel.calculate_pit_window(opponent, track, weather)
         cliff_risk = pit_window.get("cliff_risk", "LOW")
-        
+
         base_pit_prob = 0.05
         if cliff_risk == "CRITICAL" or wear_pct >= 75.0:
             base_pit_prob = 0.88

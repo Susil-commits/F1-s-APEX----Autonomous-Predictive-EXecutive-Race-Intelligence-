@@ -76,7 +76,7 @@ def test_embeddings_generation():
 async def test_retrieve_relevant_decisions(seed_decision_history):
     """Verifies that retrieval correctly identifies the relevant historical lap."""
     qa = RaceQAEngine()
-    
+
     # Query specifically about lap 23 / safety car
     results = await qa.retrieve_relevant_decisions(
         query="Why did we pit on lap 23?",

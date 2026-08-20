@@ -10,7 +10,6 @@ Generates comparative convergence benchmarks against flat training schedules.
 
 import argparse
 import logging
-import os
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -28,7 +27,6 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
-from backend.app.simulator.engine import RaceSimulator
 from backend.app.simulator.models import SafetyCarStatus, TrackCondition
 from backend.app.strategy.gym_env import ApexRaceGymEnv
 from benchmarks.run_benchmarks import BenchmarkSuite
@@ -93,20 +91,26 @@ class StageCustomRaceEnv(ApexRaceGymEnv):
         self.stage = stage
         super().__init__(track_name=track_name, seed=seed)
 
-    def reset(self, seed: int | None = None, options: dict[str, Any] | None = None):
+    def reset(
+        self,
+        *,
+        seed: int | None = None,
+        options: dict[str, Any] | None = None,
+    ) -> tuple[np.ndarray, dict[str, Any]]:
         obs, info = super().reset(seed=seed, options=options)
         # Apply curriculum stage constraints directly to simulator
-        if not self.stage.enable_dynamic_weather:
-            self.sim.weather.condition = TrackCondition.DRY
-            self.sim.weather.rain_intensity = 0.0
-            self.sim.weather.rain_probability_next_5_laps = 0.0
-            self.sim.enable_dynamic_weather = False
-        else:
-            self.sim.enable_dynamic_weather = True
+        if self.sim is not None:
+            if not self.stage.enable_dynamic_weather:
+                self.sim.weather.condition = TrackCondition.DRY
+                self.sim.weather.rain_intensity = 0.0
+                self.sim.weather.rain_probability_next_5_laps = 0.0
+                self.sim.enable_dynamic_weather = False
+            else:
+                self.sim.enable_dynamic_weather = True
 
-        if not self.stage.enable_safety_cars:
-            self.sim.safety_car = SafetyCarStatus.NONE
-            self.sim.safety_car_laps_remaining = 0
+            if not self.stage.enable_safety_cars:
+                self.sim.safety_car = SafetyCarStatus.NONE
+                self.sim.safety_car_laps_remaining = 0
 
         return obs, info
 

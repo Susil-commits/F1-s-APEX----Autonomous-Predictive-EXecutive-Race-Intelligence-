@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import logging
 
-import numpy as np
 import pandas as pd
 
 logger = logging.getLogger(__name__)
@@ -34,53 +33,77 @@ def clean_laps_dataframe(
     if raw_laps is None or raw_laps.empty:
         return pd.DataFrame()
 
-    df = raw_laps.copy()
+    records = []
+    for _, row in raw_laps.iterrows():
+        # Drop pit laps
+        pit_in = str(row.get("PitInTime", ""))
+        pit_out = str(row.get("PitOutTime", ""))
+        if pit_in not in ("", "nan", "NaT", "None") or pit_out not in ("", "nan", "NaT", "None"):
+            continue
+        if "IsAccurate" in row and not bool(row["IsAccurate"]):
+            continue
+        if "TrackStatus" in row and str(row["TrackStatus"]).strip() != "1":
+            continue
 
-    # Drop pit laps
-    if "PitInTime" in df.columns:
-        df = df[df["PitInTime"].isna()]
-    if "PitOutTime" in df.columns:
-        df = df[df["PitOutTime"].isna()]
-    if "IsAccurate" in df.columns:
-        df = df[df["IsAccurate"] == True]
+        lap_time = row.get("LapTime")
+        if lap_time is None or str(lap_time) in ("", "nan", "NaT", "None"):
+            continue
 
-    # Green flag only
-    if "TrackStatus" in df.columns:
-        df = df[df["TrackStatus"].astype(str) == "1"]
+        lap_s = 0.0
+        if hasattr(lap_time, "total_seconds"):
+            try:
+                lap_s = float(getattr(lap_time, "total_seconds")())
+            except Exception:
+                continue
+        else:
+            try:
+                lap_s = float(str(lap_time))
+            except (ValueError, TypeError):
+                continue
 
-    if "LapTime" not in df.columns or "TyreLife" not in df.columns:
+        if lap_s <= 30.0:
+            continue
+
+        tyre_life = row.get("TyreLife", 1)
+        try:
+            tyre_age = int(float(str(tyre_life)))
+        except (ValueError, TypeError):
+            tyre_age = 1
+
+        if tyre_age < 1:
+            continue
+
+        raw_comp = str(row.get("Compound", "MEDIUM")).upper()
+        comp = COMPOUND_MAP.get(raw_comp, "UNKNOWN")
+        if comp not in COMPOUND_MAP:
+            continue
+
+        driver = str(row.get("Driver", "UNKNOWN"))
+        try:
+            stint = int(float(str(row.get("Stint", 1))))
+        except (ValueError, TypeError):
+            stint = 1
+
+        records.append({
+            "Driver": driver,
+            "Compound": raw_comp,
+            "compound": comp,
+            "tyre_age": tyre_age,
+            "stint": stint,
+            "lap_time_s": lap_s,
+        })
+
+    if not records:
         return pd.DataFrame()
 
-    # Parse lap times
-    if hasattr(df["LapTime"].iloc[0], "total_seconds"):
-        df["lap_time_s"] = df["LapTime"].apply(lambda t: t.total_seconds() if pd.notna(t) else np.nan)
-    else:
-        df["lap_time_s"] = pd.to_numeric(df["LapTime"], errors="coerce")
-
-    df = df[df["lap_time_s"].notna() & (df["lap_time_s"] > 30.0)]
-    df["tyre_age"] = pd.Series(pd.to_numeric(df["TyreLife"], errors="coerce")).fillna(1).astype(int)
-    df = df[df["tyre_age"] >= 1]
-
-    # Normalize compounds
-    if "Compound" in df.columns:
-        df["compound"] = df["Compound"].astype(str).str.upper().map(lambda c: COMPOUND_MAP.get(c, "UNKNOWN"))
-        df = df[df["compound"].isin(COMPOUND_MAP.values())]
-    else:
-        df["compound"] = "MEDIUM"
+    df = pd.DataFrame(records)
 
     # Driver-relative pace delta calculation
-    if "Driver" in df.columns:
-        driver_bests = df.groupby("Driver")["lap_time_s"].min()
-        df["driver_best_s"] = df["Driver"].map(driver_bests)
-        raw_delta = df["lap_time_s"] - df["driver_best_s"]
-    else:
-        df["Driver"] = "UNKNOWN"
-        df["driver_best_s"] = df["lap_time_s"].min()
-        raw_delta = df["lap_time_s"] - df["driver_best_s"]
+    driver_bests = df.groupby("Driver")["lap_time_s"].min().to_dict()
+    df["driver_best_s"] = df["Driver"].apply(lambda d: driver_bests.get(str(d), 90.0))
+    raw_delta = df["lap_time_s"] - df["driver_best_s"]
 
     # Fuel correction: as laps elapse in stint, car gets lighter by ~0.055s/lap
-    stint_col = df["Stint"] if "Stint" in df.columns else pd.Series(1, index=df.index)
-    df["stint"] = pd.Series(pd.to_numeric(stint_col, errors="coerce")).fillna(1).astype(int)
     df["stint_lap"] = df.groupby(["Driver", "stint"]).cumcount() + 1
     df["fuel_corrected_delta"] = raw_delta + (fuel_burn_rate_s_per_lap * df["stint_lap"])
     df["lap_time_delta"] = df["fuel_corrected_delta"].clip(lower=0.0)
@@ -92,4 +115,4 @@ def clean_laps_dataframe(
     df["season"] = season
     df["data_source"] = "clean_pipeline"
 
-    return df.reset_index(drop=True)
+    return pd.DataFrame(df.reset_index(drop=True))

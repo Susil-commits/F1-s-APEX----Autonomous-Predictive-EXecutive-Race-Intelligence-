@@ -146,7 +146,7 @@ class CarState(BaseModel):
     team_name: str
     car_number: int
     is_player: bool = False
-    
+
     # Position and timing
     position: int = 1
     current_lap: int = 1
@@ -157,7 +157,7 @@ class CarState(BaseModel):
     gap_to_leader_s: float = 0.0
     gap_to_car_ahead_s: float = 0.0
     gap_to_car_behind_s: float = 0.0
-    
+
     # Physics & consumables
     tyre_compound: TyreCompound = TyreCompound.MEDIUM
     tyre_age_laps: int = 0
@@ -166,13 +166,13 @@ class CarState(BaseModel):
     fuel_kg: float = 105.0            # Fuel remaining in kg
     fuel_burn_per_lap_kg: float = 1.85
     driving_mode: DrivingMode = DrivingMode.NORMAL
-    
+
     # Pit info
     in_pit: bool = False
     pit_count: int = 0
     laps_since_last_pit: int = 0
     pit_stop_queued_compound: TyreCompound | None = None
-    
+
     # Status
     is_dnf: bool = False
     dnf_reason: str | None = None
@@ -236,14 +236,14 @@ class RaceState(BaseModel):
     tick: int = 0
     race_time_s: float = 0.0
     source: str = "simulator"
-    
+
     safety_car: SafetyCarStatus = SafetyCarStatus.NONE
     safety_car_laps_remaining: int = 0
-    
+
     weather: WeatherState = Field(default_factory=WeatherState)
     cars: list[CarState] = Field(default_factory=list)
     events_log: list[RaceEvent] = Field(default_factory=list)
-    
+
     active_decision: DecisionExplanation | None = None
     is_finished: bool = False
     winner_car_id: str | None = None

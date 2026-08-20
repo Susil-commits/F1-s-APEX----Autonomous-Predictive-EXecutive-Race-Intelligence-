@@ -14,7 +14,7 @@ def compute_strategy_features(df: pd.DataFrame, total_laps: int = 52) -> pd.Data
 
     stint = pd.Series(pd.to_numeric(out["stint"], errors="coerce")).fillna(1).astype(int) if "stint" in out.columns else pd.Series(1, index=out.index)
     tyre_age = pd.Series(pd.to_numeric(out["tyre_age"], errors="coerce")).fillna(1).astype(int) if "tyre_age" in out.columns else pd.Series(1, index=out.index)
-    
+
     if "LapNumber" in out.columns:
         lap = pd.Series(pd.to_numeric(out["LapNumber"], errors="coerce")).fillna(tyre_age).astype(int)
     else:

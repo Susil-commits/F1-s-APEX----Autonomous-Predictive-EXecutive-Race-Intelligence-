@@ -95,10 +95,10 @@ def evaluate_shap_surrogate() -> dict[str, Any]:
     """
     explainer = TreeSHAPExplainer.get_instance()
     drift_status = explainer.verify_drift()
-    
+
     fidelity_r2 = drift_status.get("surrogate_fidelity_r2", 0.88)
     in_sync = drift_status.get("in_sync", True)
-    
+
     return {
         "status": "PASS" if in_sync else "DRIFT_DETECTED",
         "shap_surrogate_fidelity_r2": float(fidelity_r2),
@@ -128,7 +128,7 @@ def evaluate_tyre_model_calibration() -> dict[str, Any]:
         r2 = 0.62
         rmse = 0.78
         data_source = "calibrated_polynomial_envelope"
-        
+
     return {
         "status": "PASS",
         "tyre_model_fastf1_r2": r2,
@@ -147,7 +147,7 @@ def evaluate_rag_retrieval() -> dict[str, Any]:
     except RuntimeError:
         loop = asyncio.new_event_loop()
         asyncio.set_event_loop(loop)
-        
+
     # Test query with known grounding
     known_query = "Why did the system pit on lap 23?"
     if loop.is_running():
@@ -156,16 +156,16 @@ def evaluate_rag_retrieval() -> dict[str, Any]:
         known_res = loop.run_until_complete(answer_race_question(query=known_query, top_k=3))
     else:
         known_res = loop.run_until_complete(answer_race_question(query=known_query, top_k=3))
-        
+
     precision_pass = bool(known_res.get("sources") is not None and len(known_res.get("sources", [])) > 0)
-    
+
     # Test out-of-distribution / refusal behavior
     refusal_query = "What was the tyre pressure on lap 999 for driver nonexistent?"
     if loop.is_running():
         ood_res = loop.run_until_complete(answer_race_question(query=refusal_query, top_k=3))
     else:
         ood_res = loop.run_until_complete(answer_race_question(query=refusal_query, top_k=3))
-        
+
     ood_ans = ood_res.get("answer", "").lower()
     refusal_pass = ("don't have" in ood_ans or "not present" in ood_ans or "no" in ood_ans or len(ood_res.get("sources", [])) == 0)
 
@@ -192,7 +192,7 @@ def check_thresholds(
     for metric_name, spec in baselines.items():
         if metric_name not in metrics:
             continue
-            
+
         val = metrics[metric_name]
         target = spec.get("target")
         min_allow = spec.get("min_allowable")

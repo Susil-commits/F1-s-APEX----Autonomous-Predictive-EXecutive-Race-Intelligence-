@@ -158,7 +158,7 @@ class PINNTyreResidualCompensator:
             track_sev = TyreModel.get_circuit_degradation_factor(s.get("track_name", "silverstone"))
             temp_norm = float(np.clip(s.get("track_temp_c", 35.0) / 60.0, 0.0, 1.0))
             rain_norm = float(np.clip(s.get("rain_intensity", 0.0), 0.0, 1.0))
-            
+
             X_list.append([softness, wear_norm, mode_intensity, track_sev, temp_norm, rain_norm])
             y_list.append([float(s.get("actual_lap_time_loss", 0.0))])
 

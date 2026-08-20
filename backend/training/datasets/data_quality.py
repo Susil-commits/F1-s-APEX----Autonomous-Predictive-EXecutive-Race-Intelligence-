@@ -170,13 +170,14 @@ class DataQualityChecker:
             return
         invalid = df[(df["tyre_age"] < 1) | (df["tyre_age"] > 80)]
         if len(invalid) > 0:
+            sample_vals = [float(v) for v in pd.Series(invalid["tyre_age"]).iloc[:5].tolist()]
             report.add(DataQualityIssue(
                 check="impossible_tyre_age",
                 severity=IssueSeverity.SEVERE,
                 description=f"{len(invalid)} rows have tyre_age outside [1, 80]. "
-                            f"Sample values: {invalid['tyre_age'].head(5).tolist()}",
+                            f"Sample values: {sample_vals}",
                 affected_rows=len(invalid),
-                sample=invalid["tyre_age"].head(5).tolist(),
+                sample=sample_vals,
             ))
 
     @staticmethod
@@ -201,11 +202,12 @@ class DataQualityChecker:
             return
         unknown = df[~df["compound"].str.upper().isin(VALID_COMPOUNDS)]
         if len(unknown) > 0:
+            unrec = list(set(pd.Series(unknown["compound"]).dropna().astype(str).tolist()))
             report.add(DataQualityIssue(
                 check="invalid_compound",
                 severity=IssueSeverity.SEVERE,
                 description=f"{len(unknown)} rows have unrecognized compound: "
-                            f"{unknown['compound'].unique().tolist()}",
+                            f"{unrec}",
                 affected_rows=len(unknown),
             ))
 
@@ -236,12 +238,13 @@ class DataQualityChecker:
         """Check 6: Target leakage — features with perfect or near-perfect correlation to target."""
         if "lap_time_delta" not in df.columns:
             return
-        target = df["lap_time_delta"]
+        target = pd.Series(df["lap_time_delta"], dtype=float)
         for col in df.select_dtypes(include=[np.number]).columns:
             if col in ("lap_time_delta", "lap_time_s", "driver_fastest_lap_s", "fuel_corrected_delta"):
                 continue  # These are expected to be related
             try:
-                corr = float(target.corr(df[col]))
+                col_series = pd.Series(df[col], dtype=float)
+                corr = float(target.corr(col_series))
                 if abs(corr) > 0.98:
                     report.add(DataQualityIssue(
                         check="target_leakage",
@@ -266,7 +269,7 @@ class DataQualityChecker:
 
         violations = 0
         for _, grp in df.groupby(group_cols):
-            ages = grp["tyre_age"].values
+            ages = np.asarray(grp["tyre_age"].values, dtype=float)
             if len(ages) > 1 and not np.all(np.diff(ages) >= 0):
                 violations += 1
 

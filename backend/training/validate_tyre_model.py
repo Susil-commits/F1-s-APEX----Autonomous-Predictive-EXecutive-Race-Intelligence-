@@ -55,8 +55,8 @@ def fit_compound_curve(
             "sample_count": len(sub_df),
         }
 
-    x = sub_df["tyre_age"].values.astype(float)
-    y = sub_df["lap_time_delta"].values.astype(float)
+    x = np.asarray(sub_df["tyre_age"], dtype=float)
+    y = np.asarray(sub_df["lap_time_delta"], dtype=float)
 
     # Degree 2 polynomial: y = c2*x^2 + c1*x + c0
     # Constrain to ensure non-negative degradation growth
@@ -148,7 +148,7 @@ def evaluate_and_calibrate(
         train_comp = train_df[train_df["compound"] == comp]
         val_comp = val_df[val_df["compound"] == comp]
 
-        poly_coeffs, meta = fit_compound_curve(train_df, comp)
+        poly_coeffs, meta = fit_compound_curve(pd.DataFrame(train_df), comp)
         # poly_coeffs are [c2, c1, c0]
         c2, c1, c0 = float(poly_coeffs[0]), float(poly_coeffs[1]), float(poly_coeffs[2])
 
@@ -163,9 +163,9 @@ def evaluate_and_calibrate(
             "val_samples": len(val_comp),
         }
 
-        if not val_comp.empty:
-            x_val = val_comp["tyre_age"].values.astype(float)
-            y_val = val_comp["lap_time_delta"].values.astype(float)
+        if len(val_comp) > 0:
+            x_val = np.asarray(val_comp["tyre_age"], dtype=float)
+            y_val = np.asarray(val_comp["lap_time_delta"], dtype=float)
 
             # Calibrated model prediction
             y_pred = np.polyval(poly_coeffs, x_val)
@@ -173,7 +173,11 @@ def evaluate_and_calibrate(
 
             # Naive linear baseline fit on training data
             if len(train_comp) >= 2:
-                lin_coeffs = np.polyfit(train_comp["tyre_age"].values.astype(float), train_comp["lap_time_delta"].values.astype(float), deg=1)
+                lin_coeffs = np.polyfit(
+                    np.asarray(train_comp["tyre_age"], dtype=float),
+                    np.asarray(train_comp["lap_time_delta"], dtype=float),
+                    deg=1,
+                )
                 y_lin = np.polyval(lin_coeffs, x_val)
             else:
                 y_lin = 0.05 * x_val
@@ -287,7 +291,9 @@ def evaluate_and_calibrate(
 
     # Online / Session Telemetry Fine-Tuning for PINN Residual Compensator
     try:
-        from backend.app.intelligence.pinn_tyre_residual import PINNTyreResidualCompensator
+        from backend.app.intelligence.pinn_tyre_residual import (
+            PINNTyreResidualCompensator,
+        )
         from backend.app.simulator.models import DrivingMode, TyreCompound
 
         comp_map = {
@@ -301,7 +307,7 @@ def evaluate_and_calibrate(
         pinn_samples = []
         for _, row in train_df.iterrows():
             c_enum = comp_map.get(str(row.get("compound", "MEDIUM")).upper(), TyreCompound.MEDIUM)
-            wear_est = min(100.0, float(row.get("tyre_age", 1)) * 3.0)
+            wear_est = min(100.0, float(row.get("tyre_age") or 1) * 3.0)
             pinn_samples.append({
                 "compound": c_enum,
                 "wear_pct": wear_est,
@@ -309,7 +315,7 @@ def evaluate_and_calibrate(
                 "track_name": str(row.get("circuit", "silverstone")).lower(),
                 "track_temp_c": 35.0,
                 "rain_intensity": 0.0,
-                "actual_lap_time_loss": float(row.get("lap_time_delta", 0.0)),
+                "actual_lap_time_loss": float(row.get("lap_time_delta") or 0.0),
             })
             if len(pinn_samples) >= 300:
                 break

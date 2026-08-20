@@ -20,7 +20,7 @@ def test_mcp_server_initialization():
     """Validates that MCP server is instantiated and all tools are registered."""
     tools = mcp._tool_manager.list_tools()
     tool_names = [t.name for t in tools]
-    
+
     assert "get_race_state" in tool_names
     assert "explain_last_decision" in tool_names
     assert "ask_race_history" in tool_names
@@ -37,7 +37,7 @@ def test_mcp_get_race_state():
     """Validates live telemetry snapshot structure and data types."""
     res_str = get_race_state(track_name="silverstone")
     data = json.loads(res_str)
-    
+
     assert "race_id" in data
     assert "track" in data
     assert data["track"]["name"] == "Silverstone Circuit"
@@ -55,7 +55,7 @@ def test_mcp_explain_last_decision():
     """Validates TreeSHAP explainability attributions and plain language rationale."""
     res_str = explain_last_decision()
     data = json.loads(res_str)
-    
+
     assert "race_id" in data
     assert "lap" in data
     assert "recommended_action" in data
@@ -71,7 +71,7 @@ def test_mcp_preview_pit_strategy():
     """Validates counterfactual timeline simulation."""
     res_str = preview_pit_strategy(proposed_action="PIT_SOFT", rollout_laps=3)
     data = json.loads(res_str)
-    
+
     assert "proposed_action" in data
     assert data["proposed_action"] == "PIT_SOFT"
     assert "rollout_laps" in data
@@ -82,7 +82,7 @@ def test_mcp_evaluate_monte_carlo():
     """Validates stochastic Monte Carlo rollout engine."""
     res_str = evaluate_monte_carlo(rollouts=100)
     data = json.loads(res_str)
-    
+
     assert "total_rollouts" in data
     assert "recommended_strategy" in data
     assert "strategies" in data
@@ -94,7 +94,7 @@ def test_mcp_trigger_scenario_safety_car():
     """Validates incident injection into active twin."""
     res_str = trigger_scenario(scenario_type="SAFETY_CAR", intensity=0.8, laps=3)
     data = json.loads(res_str)
-    
+
     assert data["status"] == "scenario_applied"
     assert data["scenario"] == "SAFETY_CAR"
     assert data["safety_car"] == "SAFETY_CAR"
@@ -104,7 +104,7 @@ def test_mcp_trigger_scenario_weather():
     """Validates weather injection into active twin."""
     res_str = trigger_scenario(scenario_type="TORRENTIAL_RAIN", intensity=0.9, laps=4)
     data = json.loads(res_str)
-    
+
     assert data["status"] == "scenario_applied"
     assert data["scenario"] == "TORRENTIAL_RAIN"
     assert data["track_condition"] == "WET"
@@ -114,7 +114,7 @@ def test_mcp_ask_race_history():
     """Validates grounded decision history RAG question answering."""
     res_str = ask_race_history(question="Why did we pit on lap 23?", top_k=3)
     data = json.loads(res_str)
-    
+
     assert "question" in data
     assert "answer" in data
     assert len(data["answer"]) > 0
@@ -126,7 +126,7 @@ def test_mcp_get_agentic_strategy_plan():
     """Validates agentic multi-step reasoning plan execution."""
     res_str = get_agentic_strategy_plan(track_name="silverstone")
     data = json.loads(res_str)
-    
+
     assert "executive_summary" in data
     assert "primary_action" in data
     assert "chain_of_thought" in data
@@ -142,7 +142,7 @@ def test_mcp_check_model_health():
     """Validates Model Registry health check and SHA-256 integrity reporting."""
     res_str = check_model_health()
     data = json.loads(res_str)
-    
+
     assert "audit_timestamp_utc" in data
     assert "total_models" in data
     assert data["total_models"] >= 8
@@ -154,7 +154,7 @@ def test_mcp_get_sim_to_real_divergence_audit():
     """Validates sim-to-real historical divergence replay audit output."""
     res_str = get_sim_to_real_divergence_audit()
     data = json.loads(res_str)
-    
+
     assert "audit_run_id" in data
     assert "case_studies" in data
     assert len(data["case_studies"]) >= 3
@@ -166,7 +166,7 @@ def test_mcp_get_system_metrics():
     """Validates Prometheus runtime metrics snapshot extraction."""
     res_str = get_system_metrics()
     data = json.loads(res_str)
-    
+
     assert "status" in data
     assert data["status"] == "HEALTHY"
     assert "apex_metrics" in data

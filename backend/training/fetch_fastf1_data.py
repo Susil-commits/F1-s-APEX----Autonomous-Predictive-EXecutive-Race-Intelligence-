@@ -59,65 +59,94 @@ def clean_session_laps(session_laps: pd.DataFrame, circuit_name: str, year: int)
     if session_laps is None or session_laps.empty:
         return pd.DataFrame()
 
-    df = session_laps.copy()
-
-    # Require essential columns
     required_cols = ["Driver", "Compound", "TyreLife", "LapTime", "Stint"]
     for col in required_cols:
-        if col not in df.columns:
+        if col not in session_laps.columns:
             logger.warning(f"[FastF1] Missing required column '{col}' in session laps")
             return pd.DataFrame()
 
-    # 1. Filter out pit laps and inaccurate timing marks
-    if "PitInTime" in df.columns:
-        df = df[df["PitInTime"].isna()]
-    if "PitOutTime" in df.columns:
-        df = df[df["PitOutTime"].isna()]
-    if "IsAccurate" in df.columns:
-        df = df[df["IsAccurate"] == True]
+    records = []
+    for _, row in session_laps.iterrows():
+        # Drop pit laps
+        pit_in = str(row.get("PitInTime", ""))
+        pit_out = str(row.get("PitOutTime", ""))
+        if pit_in not in ("", "nan", "NaT", "None") or pit_out not in ("", "nan", "NaT", "None"):
+            continue
+        if "IsAccurate" in row and not bool(row["IsAccurate"]):
+            continue
+        if "TrackStatus" in row and str(row["TrackStatus"]).strip() != "1":
+            continue
 
-    # 2. Filter out non-green flag conditions (TrackStatus '1' = all green)
-    if "TrackStatus" in df.columns:
-        # FastF1 TrackStatus is string, e.g. '1', '2', '4', '6', etc.
-        df = df[df["TrackStatus"].astype(str) == "1"]
+        lap_time = row.get("LapTime")
+        if lap_time is None or str(lap_time) in ("", "nan", "NaT", "None"):
+            continue
 
-    # 3. Filter valid LapTime and TyreLife
-    df = df[df["LapTime"].notna()]
-    df = df[df["TyreLife"].notna()]
-    df = df[df["TyreLife"] >= 1]  # Exclude invalid zero-lap markers
+        lap_s = 0.0
+        if hasattr(lap_time, "total_seconds"):
+            try:
+                lap_s = float(getattr(lap_time, "total_seconds")())
+            except Exception:
+                continue
+        else:
+            try:
+                lap_s = float(str(lap_time))
+            except (ValueError, TypeError):
+                continue
 
-    # Convert LapTime timedelta to seconds
-    if hasattr(df["LapTime"].iloc[0], "total_seconds"):
-        df["lap_time_s"] = df["LapTime"].apply(lambda t: t.total_seconds() if pd.notna(t) else np.nan)
-    else:
-        df["lap_time_s"] = pd.to_numeric(df["LapTime"], errors="coerce")
+        if lap_s <= 30.0:
+            continue
 
-    df = df[df["lap_time_s"].notna()]
+        tyre_life = row.get("TyreLife", 1)
+        try:
+            tyre_age = int(float(str(tyre_life)))
+        except (ValueError, TypeError):
+            tyre_age = 1
 
-    # 4. Normalize compound names
-    df["compound_raw"] = df["Compound"].astype(str).str.upper()
-    df["compound"] = df["compound_raw"].map(lambda c: COMPOUND_NORM_MAP.get(c, "UNKNOWN"))
-    df = df[df["compound"].isin(["SOFT", "MEDIUM", "HARD", "INTERMEDIATE", "WET"])]
+        if tyre_age < 1:
+            continue
 
-    # 5. Compute lap_time_delta per driver (relative to driver's fastest clean lap in session)
-    driver_bests = df.groupby("Driver")["lap_time_s"].min()
-    df["driver_fastest_lap_s"] = df["Driver"].map(driver_bests)
+        raw_comp = str(row.get("Compound", "MEDIUM")).upper()
+        comp = COMPOUND_NORM_MAP.get(raw_comp, "UNKNOWN")
+        if comp not in ("SOFT", "MEDIUM", "HARD", "INTERMEDIATE", "WET"):
+            continue
+
+        driver = str(row.get("Driver", "UNKNOWN"))
+        try:
+            stint = int(float(str(row.get("Stint", 1))))
+        except (ValueError, TypeError):
+            stint = 1
+
+        records.append({
+            "Driver": driver,
+            "compound_raw": raw_comp,
+            "compound": comp,
+            "tyre_age": tyre_age,
+            "stint": stint,
+            "lap_time_s": lap_s,
+        })
+
+    if not records:
+        return pd.DataFrame()
+
+    df = pd.DataFrame(records)
+
+    # Compute lap_time_delta per driver (relative to driver's fastest clean lap in session)
+    driver_bests = df.groupby("Driver")["lap_time_s"].min().to_dict()
+    df["driver_fastest_lap_s"] = df["Driver"].apply(lambda d: driver_bests.get(str(d), 90.0))
     raw_delta = df["lap_time_s"] - df["driver_fastest_lap_s"]
 
     # In F1, fuel burn-off improves pace by ~0.055s per lap. Correcting for fuel isolates pure tyre degradation.
     # Stint-relative fuel correction:
-    df["stint_lap"] = df.groupby(["Driver", "Stint"]).cumcount() + 1
+    df["stint_lap"] = df.groupby(["Driver", "stint"]).cumcount() + 1
     df["fuel_corrected_delta"] = raw_delta + (0.055 * df["stint_lap"])
     df["lap_time_delta"] = df["fuel_corrected_delta"].clip(lower=0.0)
 
-    # 6. Filter outliers: delta should be >= 0 and < 12.0 seconds for normal racing pace
+    # Filter outliers: delta should be >= 0 and < 12.0 seconds for normal racing pace
     df = df[(df["lap_time_delta"] >= 0.0) & (df["lap_time_delta"] <= 12.0)]
 
     # Metadata annotations
     df["circuit"] = circuit_name
     df["season"] = year
-    df["tyre_age"] = df["TyreLife"].astype(int)
-    df["stint"] = df["Stint"].astype(int)
     df["data_source"] = "fastf1_real"
 
     result_cols = [
@@ -134,7 +163,7 @@ def clean_session_laps(session_laps: pd.DataFrame, circuit_name: str, year: int)
         "lap_time_delta",
         "data_source",
     ]
-    return df[[c for c in result_cols if c in df.columns]]
+    return pd.DataFrame(df[[c for c in result_cols if c in df.columns]])
 
 
 def generate_synthetic_fallback_data() -> pd.DataFrame:

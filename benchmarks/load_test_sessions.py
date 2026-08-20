@@ -9,7 +9,6 @@ import argparse
 import asyncio
 import json
 import logging
-import os
 import sys
 import time
 from datetime import UTC, datetime
@@ -61,17 +60,25 @@ async def run_single_session_worker(
             completed_laps = state.current_lap
 
     session = manager.sessions[session_id]
-    final_state = session.sim.get_state()
-    player_car = session.sim.get_player_car()
+    final_race_id = "unknown"
+    wear_pct = 0.0
+    fuel_kg = 0.0
+    if session.sim is not None:
+        final_state = session.sim.get_state()
+        final_race_id = final_state.race_id
+        player_car = session.sim.get_player_car()
+        if player_car:
+            wear_pct = player_car.tyre_wear_pct
+            fuel_kg = player_car.fuel_kg
 
     return {
         "session_id": session_id,
         "track_name": track_name,
         "seed": seed,
         "final_lap": completed_laps,
-        "race_id": final_state.race_id,
-        "player_tyre_wear_pct": player_car.tyre_wear_pct if player_car else 0.0,
-        "player_fuel_kg": player_car.fuel_kg if player_car else 0.0,
+        "race_id": final_race_id,
+        "player_tyre_wear_pct": wear_pct,
+        "player_fuel_kg": fuel_kg,
     }
 
 

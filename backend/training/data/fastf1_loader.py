@@ -49,7 +49,7 @@ class FastF1DataLoader:
         """
         session_id = f"{year}_{circuit}_{session_type}"
         is_offline = self.offline_only if offline_only is None else offline_only
-        
+
         # Check raw storage cache first
         if self.storage.exists("laps", session_id):
             logger.info(f"[FastF1DataLoader] Loading session {session_id} from raw storage cache")
@@ -77,7 +77,7 @@ class FastF1DataLoader:
             laps_df = session.laps.copy() if hasattr(session, "laps") and session.laps is not None else pd.DataFrame()
             weather_df = session.weather_data.copy() if hasattr(session, "weather_data") and session.weather_data is not None else pd.DataFrame()
             results_df = session.results.copy() if hasattr(session, "results") and session.results is not None else pd.DataFrame()
-            
+
             # Race control messages
             race_control_df = pd.DataFrame()
             if hasattr(session, "race_control_messages") and session.race_control_messages is not None:

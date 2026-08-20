@@ -130,7 +130,7 @@ class DQNAgent:
         probs = list(self.predict_action_distribution(obs, temperature=1.0, action_mask=action_mask).values())
         probs_arr = np.array(probs)
         probs_arr = probs_arr[probs_arr > 1e-8]
-        entropy = -np.sum(probs_arr * np.log2(probs_arr))
+        entropy = -float(np.sum(probs_arr * np.log2(probs_arr)))
         max_entropy = np.log2(len(ACTION_MAP))  # log2(8) = 3.0
         return round(float(entropy / max_entropy), 3)
 

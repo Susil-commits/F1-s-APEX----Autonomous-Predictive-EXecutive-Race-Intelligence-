@@ -48,7 +48,6 @@ class UnifiedSessionLoader:
         """Generates realistic synthetic session tables with laps, weather, and results."""
         np.random.seed(year * 100 + len(circuit))
         drivers = ["VER", "NOR", "LEC", "HAM", "RUS", "PIA", "SAI", "ALO", "PER", "TSU"]
-        compounds = ["SOFT", "MEDIUM", "HARD"]
         total_laps = 52
         base_lap_s = 89.0
 

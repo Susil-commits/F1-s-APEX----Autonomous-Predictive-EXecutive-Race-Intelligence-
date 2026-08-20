@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import logging
+from typing import Any, cast
 
 import httpx
 import pandas as pd
@@ -51,7 +52,7 @@ class JolpicaDataLoader:
             logger.warning(f"[JolpicaDataLoader] Failed to fetch season {year}: {e}")
 
         # Fallback empty dataframe
-        return pd.DataFrame(columns=["season", "round", "race_name", "circuit_id", "circuit_name", "country", "date"])
+        return pd.DataFrame([], columns=cast(Any, ["season", "round", "race_name", "circuit_id", "circuit_name", "country", "date"]))
 
     def fetch_race_pitstops(self, year: int, round_num: int) -> pd.DataFrame:
         """Fetches historical pit stop durations and laps for a given Grand Prix."""
@@ -85,4 +86,4 @@ class JolpicaDataLoader:
         except Exception as e:
             logger.warning(f"[JolpicaDataLoader] Failed to fetch pitstops for {year} R{round_num}: {e}")
 
-        return pd.DataFrame(columns=["season", "round", "driver_id", "lap", "stop", "duration_s", "time"])
+        return pd.DataFrame([], columns=cast(Any, ["season", "round", "driver_id", "lap", "stop", "duration_s", "time"]))

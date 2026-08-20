@@ -65,9 +65,7 @@ class MonteCarloEngine:
         total_cars = len(state.cars)
         current_pos = player.position
         current_wear = player.tyre_wear_pct
-        current_age = player.tyre_age_laps
 
-        base_lap_time = getattr(state.track, "base_lap_time_s", 88.5) if hasattr(state, "track") and state.track else 88.5
         track_name = getattr(state.track, "name", "silverstone").lower()
         track_severity = TyreModel.get_circuit_degradation_factor(track_name)
         wetness = WeatherPredictor.calculate_track_wetness(state.weather)
@@ -145,7 +143,7 @@ class MonteCarloEngine:
             accumulated_wear = current_wear
             if immediate_pit_lap is not None:
                 accumulated_wear = 0.0 # Fresh set after pit
-            
+
             wear_penalty_per_lap = np.clip((accumulated_wear - 60.0) * 0.04 * deg_multiplier, 0.0, 4.0)
             total_time_deltas = np.sum(lap_pace_deltas, axis=1) + (wear_penalty_per_lap * laps_remaining)
 
@@ -156,7 +154,7 @@ class MonteCarloEngine:
 
             # Stochastic DNF simulation
             dnf_mask = rng.uniform(0.0, 1.0, size=n_rollouts) < (dnf_prob_base * laps_remaining)
-            
+
             # Position projection mapping (density ~3.5s/position)
             projected_positions = np.clip(current_pos + np.round(total_time_deltas / 3.5), 1, total_cars).astype(int)
             projected_positions[dnf_mask] = total_cars # DNFs placed last

@@ -17,9 +17,9 @@ from backend.app.simulator.models import (
 def test_opponent_intelligence_predictions():
     track = TrackConfig(name="Silverstone", total_laps=52)
     weather = WeatherState(condition=TrackCondition.DRY)
-    
+
     player = CarState(car_id="car_04", driver_name="APEX AI", team_name="APEX", car_number=44, is_player=True, position=2)
-    
+
     # Rival car with high tyre wear
     rival = CarState(
         car_id="car_01",

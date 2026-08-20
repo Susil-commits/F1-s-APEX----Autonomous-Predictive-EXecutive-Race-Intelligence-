@@ -267,7 +267,7 @@ def run_distillation(
     dqn_model = DQN.load(dqn_model_path)
 
     # 1. Collect rollout data
-    X_rollout, y_rollout, actions, q_dist_rollout = collect_dqn_rollouts(
+    X_rollout, y_rollout, _, q_dist_rollout = collect_dqn_rollouts(
         model=dqn_model,
         num_episodes=episodes,
     )

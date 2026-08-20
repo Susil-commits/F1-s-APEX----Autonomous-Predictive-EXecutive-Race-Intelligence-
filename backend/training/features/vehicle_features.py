@@ -25,7 +25,7 @@ def compute_vehicle_features(df: pd.DataFrame, total_laps: int = 52) -> pd.DataF
         lap_num = pd.Series(pd.to_numeric(out["stint_lap"], errors="coerce")).fillna(1)
     else:
         lap_num = pd.Series(1, index=out.index)
-    
+
     # Fuel remaining in kg (Starts at ~105kg, burns ~1.85kg/lap)
     out["fuel_remaining_kg"] = np.clip(105.0 - (1.85 * lap_num), 3.0, 105.0)
     out["fuel_weight_delta_s"] = out["fuel_remaining_kg"] * 0.033

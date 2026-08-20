@@ -1,10 +1,10 @@
 """FastAPI application entry point for APEX Race Intelligence."""
 import os
 from contextlib import asynccontextmanager
+from typing import Any, cast
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
-
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
@@ -51,7 +51,7 @@ app = FastAPI(
 
 # Register SlowAPI rate limiter state and 429 exception handler
 app.state.limiter = limiter
-app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
+app.add_exception_handler(RateLimitExceeded, cast(Any, _rate_limit_exceeded_handler))
 
 # Enable CORS with configurable origins via environment variable
 allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")

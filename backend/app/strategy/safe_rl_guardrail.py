@@ -41,7 +41,6 @@ class ActionMaskGuardrail:
 
         is_in_pit = player.in_pit or player.pit_stop_queued_compound is not None
         is_wet = state.weather.condition == TrackCondition.WET or state.weather.rain_intensity > 0.40
-        is_damp = state.weather.condition == TrackCondition.DAMP or (0.10 <= state.weather.rain_intensity <= 0.40)
         is_dry = state.weather.condition == TrackCondition.DRY and state.weather.rain_intensity < 0.10
         wear = player.tyre_wear_pct
         laps_remaining = max(1, state.total_laps - state.current_lap)

@@ -23,14 +23,13 @@ class SessionDataMerger:
         """Merges cleaned laps, weather, and race control into a single synchronized dataframe."""
         raw_laps = raw_components.get("laps", pd.DataFrame())
         raw_weather = raw_components.get("weather", pd.DataFrame())
-        raw_rc = raw_components.get("race_control", pd.DataFrame())
 
         clean_laps = clean_laps_dataframe(raw_laps, circuit_name=circuit_name, season=season)
         if clean_laps.empty:
             return pd.DataFrame()
 
         clean_weather = clean_weather_dataframe(raw_weather)
-        
+
         # Attach session-level average weather if weather time series is available
         if not clean_weather.empty:
             clean_laps["track_temp_c"] = clean_weather["track_temp_c"].mean()

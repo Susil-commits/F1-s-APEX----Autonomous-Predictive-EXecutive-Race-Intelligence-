@@ -7,11 +7,9 @@ Produces 4 empirical figures using real benchmark, evaluation, and telemetry dat
   4. docs/images/safe_rl_risk_frontier.png — Safe-RL guardrail action masking & risk-reward trade-off
 """
 import os
-import json
-import numpy as np
-import pandas as pd
+
 import matplotlib.pyplot as plt
-import matplotlib.ticker as ticker
+import numpy as np
 
 # Ensure output directory exists
 DOCS_IMG_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "docs", "images")
@@ -317,7 +315,6 @@ def generate_safe_rl_plot():
     ]
 
     intervention_pct = [100.0, 100.0, 100.0, 100.0, 100.0, 100.0]
-    unmasked_violation_pct = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
 
     y_pos = np.arange(len(guardrail_categories))
     bars = ax2.barh(y_pos, intervention_pct, color="#22c55e", height=0.55, edgecolor="#0f172a", label="Action Mask Enforcement (100% Guaranteed)")

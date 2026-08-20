@@ -59,7 +59,7 @@ class RuleEngine:
             if car.tyre_wear_pct > 38.0 and car.laps_since_last_pit > 8 and laps_remaining > 5:
                 advantage = state.track.sc_pit_advantage_s if sc_val == "SAFETY_CAR" else state.track.vsc_pit_advantage_s
                 factors.append(f"Opportunistic pit under {sc_val}: saves ~{advantage:.1f}s pit loss delta.")
-                
+
                 # Pick optimal compound for remaining race distance
                 rec_compound = cls._select_dry_compound(laps_remaining)
                 action_map = {

@@ -26,7 +26,6 @@ class CounterfactualChecker:
         """
         Executes fast forward rollouts of candidate actions and compares projected positions and times.
         """
-        player = sim.get_player_car()
         candidates: list[CandidateOption] = [
             {"name": "Maintain Current Stint", "action": StrategyAction.MAINTAIN},
             {"name": "Box Now (Hard Tyres)", "action": StrategyAction.PIT_HARD},
@@ -46,10 +45,10 @@ class CounterfactualChecker:
                 sim_clone.step(player_action=StrategyAction.MAINTAIN)
 
             clone_player = sim_clone.get_player_car()
-            
+
             # Estimate tyre cliff risk probability
             cliff_risk_pct = 95.0 if clone_player.tyre_cliff_reached else min(100.0, max(0.0, (clone_player.tyre_wear_pct - 50.0) * 2.5))
-            
+
             results.append({
                 "strategy": cand["name"],
                 "action": cand["action"].value,

@@ -1,8 +1,7 @@
 """Tests for WebSocket multi-session isolation and concurrent race state independence."""
-import asyncio
 import pytest
 
-from backend.app.api.websocket import ConnectionManager, RaceSession
+from backend.app.api.websocket import ConnectionManager
 from backend.app.simulator.models import StrategyAction
 
 
@@ -26,7 +25,10 @@ async def test_session_isolation_independent_states():
 
     # Session beta should remain at lap 0 / initial state
     session_b = manager.sessions["session_beta"]
-    assert state_a_advanced.current_lap > session_b.sim.current_lap
+    sim_b = session_b.sim
+    assert sim_b is not None
+    assert state_a_advanced is not None
+    assert state_a_advanced.current_lap > sim_b.current_lap
 
 
 @pytest.mark.asyncio
@@ -51,7 +53,7 @@ async def test_session_isolation_speed_and_actions():
 async def test_default_session_backward_compatibility():
     """Verifies that legacy single-session calls map cleanly to the default session."""
     manager = ConnectionManager()
-    state = await manager.init_race(track_name="spa", seed=10)
+    await manager.init_race(track_name="spa", seed=10)
 
     assert manager.sim is not None
     assert "spa" in manager.sim.track.name.lower()

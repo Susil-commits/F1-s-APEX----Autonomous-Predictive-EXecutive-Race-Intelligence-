@@ -12,7 +12,7 @@ from pydantic import BaseModel, Field
 
 from backend.app.intelligence.risk_engine import RiskEngine
 from backend.app.simulator.engine import RaceSimulator
-from backend.app.simulator.models import SafetyCarStatus, StrategyAction, TrackCondition, TyreCompound
+from backend.app.simulator.models import RaceState, SafetyCarStatus, StrategyAction, TrackCondition, TyreCompound
 from backend.app.strategy.hybrid_decision_engine import hybrid_decision_aggregator
 from backend.app.strategy.monte_carlo import MonteCarloEngine
 from backend.app.strategy.ppo_agent import PPOStrategyAgent
@@ -68,7 +68,6 @@ class ChampionshipSimulator:
         teams: list[dict[str, str]] | None = None,
     ) -> dict[str, Any]:
         """Executes N championship rounds, tracking standings and points progression."""
-        rng = np.random.default_rng(seed)
         ppo_agent = PPOStrategyAgent()
         active_teams = teams or cls.AI_TEAMS
 
@@ -136,7 +135,7 @@ class ChampionshipSimulator:
             "total_races": total_races,
             "seed": seed,
             "champion": leaderboard[0].team_name,
-            "leaderboard": [l.model_dump() for l in leaderboard],
+            "leaderboard": [entry.model_dump() for entry in leaderboard],
         }
 
     @classmethod

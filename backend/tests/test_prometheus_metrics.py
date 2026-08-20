@@ -1,5 +1,4 @@
 """Tests for Prometheus metrics exposition and structured logging."""
-import pytest
 from starlette.testclient import TestClient
 
 from backend.app.api.metrics import (

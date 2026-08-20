@@ -87,12 +87,22 @@ async def health_check(detailed: bool = True):
     subsystems: dict[str, Any] = {}
 
     # 1. Simulator status
-    sim_active = manager.sim is not None
+    active_sim = manager.sim
+    sim_active = active_sim is not None
+    active_track = "none"
+    total_cars = 0
+    current_lap = 0
+    if active_sim is not None:
+        if active_sim.track is not None:
+            active_track = active_sim.track.name
+        total_cars = len(active_sim.cars)
+        current_lap = active_sim.current_lap
+
     subsystems["simulator"] = {
         "status": "HEALTHY" if sim_active else "IDLE",
-        "active_track": manager.sim.track.name if (sim_active and manager.sim.track) else "none",
-        "total_cars": len(manager.sim.cars) if sim_active else 0,
-        "current_lap": manager.sim.current_lap if sim_active else 0,
+        "active_track": active_track,
+        "total_cars": total_cars,
+        "current_lap": current_lap,
         "is_running": manager.is_running,
     }
 
@@ -102,7 +112,7 @@ async def health_check(detailed: bool = True):
         ppo_loaded = PPOStrategyAgent().is_loaded()
         tyre_calib = TyreModel.is_calibrated()
         pinn_inst = PINNTyreResidualCompensator.get_instance()
-        pinn_loaded = pinn_inst.is_calibrated if hasattr(pinn_inst, "is_calibrated") else True
+        pinn_loaded = getattr(pinn_inst, "is_calibrated", True)
         shap_drift = TreeSHAPExplainer.get_instance().verify_drift()
         shap_sync = shap_drift.get("in_sync", True)
         models_healthy = dqn_loaded and ppo_loaded and tyre_calib and shap_sync
@@ -119,11 +129,12 @@ async def health_check(detailed: bool = True):
         subsystems["models"] = {"status": "DEGRADED", "error": str(e)}
 
     # 3. Database store status
-    db_connected = store.is_connected if hasattr(store, "is_connected") else True
+    db_connected = getattr(store, "is_connected", True)
+    persisted_sessions = getattr(store, "persisted_sessions", [])
     subsystems["database"] = {
         "status": "HEALTHY" if db_connected else "DEGRADED",
         "backend": getattr(store, "backend_type", "sqlite_or_postgres"),
-        "persisted_sessions": len(store.persisted_sessions) if hasattr(store, "persisted_sessions") else 0,
+        "persisted_sessions": len(persisted_sessions) if isinstance(persisted_sessions, (list, dict, set)) else 0,
     }
 
     # 4. Redis / Memory cache status
@@ -315,7 +326,7 @@ async def get_shap_attribution(car_id: str | None = None):
     features = FeatureBuilder.extract_features(state, target_car_id=car_id)
     explainer = TreeSHAPExplainer.get_instance()
     explanation = explainer.explain(features)
-    
+
     player_car = manager.sim.get_player_car()
     fallback_id = player_car.car_id if player_car else "CAR_01"
     return {
@@ -534,7 +545,7 @@ async def ask_race_history(req: RaceAskRequest):
     from backend.app.intelligence.race_qa import answer_race_question
     if not req.question or not req.question.strip():
         raise HTTPException(status_code=400, detail="Question cannot be empty.")
-    
+
     result = await answer_race_question(
         query=req.question.strip(),
         race_id=req.race_id,
