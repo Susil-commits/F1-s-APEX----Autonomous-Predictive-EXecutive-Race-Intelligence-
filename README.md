@@ -72,7 +72,7 @@
 
 ---
 
-## ⚡ What's New: Modern Tech Advancements Suite (Phases 1 — 14)
+## ⚡ Modern Tech Advancements Suite 
 
 APEX has expanded into a next-generation motorsport digital twin platform with 50+ interactive workspaces and high-tech simulations:
 
