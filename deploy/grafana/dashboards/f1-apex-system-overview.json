@@ -1,0 +1,101 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "title": "Active WebSocket Cockpit Clients",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "apex_connected_websockets_count",
+          "legendFormat": "Connected Clients",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Active Race Simulation Sessions",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 6, "y": 0 },
+      "targets": [
+        {
+          "expr": "apex_active_sessions_count",
+          "legendFormat": "Sessions",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Decision Latency P95 (ms)",
+      "type": "gauge",
+      "gridPos": { "h": 6, "w": 6, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(apex_decision_latency_seconds_bucket[1m])) by (le)) * 1000",
+          "legendFormat": "P95 Latency (ms)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "ML Model Registry Status",
+      "type": "stat",
+      "gridPos": { "h": 6, "w": 6, "x": 18, "y": 0 },
+      "targets": [
+        {
+          "expr": "apex_model_drift_status",
+          "legendFormat": "Status (1=Healthy, 0=Drift)",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Decision Engine Latency Distribution (P50, P95, P99)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 6 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.50, sum(rate(apex_decision_latency_seconds_bucket[1m])) by (le)) * 1000",
+          "legendFormat": "P50 Latency (ms)",
+          "refId": "A"
+        },
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(apex_decision_latency_seconds_bucket[1m])) by (le)) * 1000",
+          "legendFormat": "P95 Latency (ms)",
+          "refId": "B"
+        },
+        {
+          "expr": "histogram_quantile(0.99, sum(rate(apex_decision_latency_seconds_bucket[1m])) by (le)) * 1000",
+          "legendFormat": "P99 Latency (ms)",
+          "refId": "C"
+        }
+      ]
+    },
+    {
+      "title": "Total Race Laps Simulated Rate",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 6 },
+      "targets": [
+        {
+          "expr": "rate(apex_laps_simulated_total[1m])",
+          "legendFormat": "Laps / sec",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["f1", "apex", "observability"],
+  "time": { "from": "now-15m", "to": "now" },
+  "title": "APEX — System Overview & Pit Wall Telemetry",
+  "uid": "apex-system-overview",
+  "version": 1
+}

@@ -1,0 +1,38 @@
+groups:
+  - name: apex_critical_alerts
+    rules:
+      - alert: ApexHighKafkaConsumerLag
+        expr: apex_kafka_consumer_lag_gauge > 5000
+        for: 30s
+        labels:
+          severity: critical
+        annotations:
+          summary: "High Kafka Consumer Lag Detected on APEX Streaming Broker"
+          description: "Topic consumer lag has exceeded 5,000 unread messages for > 30 seconds."
+
+      - alert: ApexJobQueueSpike
+        expr: apex_job_queue_depth > 200
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "BullMQ / Redis Async Job Queue Backlog"
+          description: "Pending asynchronous compute jobs exceeded 200 items in queue."
+
+      - alert: ApexModelDriftDetected
+        expr: apex_model_drift_status == 0
+        for: 1m
+        labels:
+          severity: high
+        annotations:
+          summary: "ML Model Drift / Integrity Check Failed"
+          description: "One or more physics/ML models in ModelRegistry failed health check."
+
+      - alert: ApexHighDecisionLatency
+        expr: histogram_quantile(0.95, sum(rate(apex_decision_latency_seconds_bucket[5m])) by (le)) > 0.100
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Decision Latency P95 Degradation (>100ms)"
+          description: "RL & Monte Carlo decision engine P95 latency is above 100ms SLA."

@@ -41,6 +41,7 @@ import { VehicleHealthView } from './components/VehicleHealthView';
 import { HistoricalReplayView } from './components/HistoricalReplayView';
 import { ChampionshipTournamentView } from './components/ChampionshipTournamentView';
 import { SystemHealthView } from './components/SystemHealthView';
+import { PitWallConsensusModal } from './components/PitWallConsensusModal';
 import { useRaceStore } from './store/raceStore';
 import { audioEngine } from './utils/audioEngine';
 import {
@@ -58,6 +59,7 @@ import {
   VolumeX,
   Zap,
   BarChart2,
+  Users,
   X,
 } from 'lucide-react';
 
@@ -65,12 +67,14 @@ export const App: React.FC = () => {
   const { raceState, activeTab, inspectedCar, showDebriefModal, setShowDebriefModal } =
     useRaceStore();
   const [showCopilotModal, setShowCopilotModal] = useState<boolean>(false);
+  const [showConsensusModal, setShowConsensusModal] = useState<boolean>(false);
   const [showQAModal, setShowQAModal] = useState<boolean>(false);
   const [showPitSimModal, setShowPitSimModal] = useState<boolean>(false);
   const [showStandingsModal, setShowStandingsModal] = useState<boolean>(false);
   const [showAeroTunerModal, setShowAeroTunerModal] = useState<boolean>(false);
   const [showBenchmarkModal, setShowBenchmarkModal] = useState<boolean>(false);
   const [engineAudioActive, setEngineAudioActive] = useState<boolean>(false);
+
 
   const events = raceState?.events_log || [];
 
@@ -97,12 +101,21 @@ export const App: React.FC = () => {
           <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs">
             <div className="flex flex-wrap items-center gap-2">
               <button
+                onClick={() => setShowConsensusModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-950/70 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-700/60 font-bold transition-all active:scale-95 shadow-sm shadow-emerald-900/30"
+              >
+                <Users className="w-3.5 h-3.5 text-emerald-400" />
+                <span>Pit Wall 5-Agent Consensus</span>
+              </button>
+
+              <button
                 onClick={() => setShowQAModal(true)}
                 className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-cyan-950/70 hover:bg-cyan-900/90 text-cyan-300 border border-cyan-700/60 font-bold transition-all active:scale-95 shadow-sm shadow-cyan-900/30"
               >
                 <Brain className="w-3.5 h-3.5 text-cyan-400" />
                 <span>RAG Race Debrief</span>
               </button>
+
 
               <button
                 onClick={() => setShowBenchmarkModal(true)}
@@ -414,6 +427,12 @@ export const App: React.FC = () => {
       {/* RAG Race History Debrief Modal */}
       {showQAModal && <RaceHistoryQA onClose={() => setShowQAModal(false)} />}
 
+      {/* Multi-Agent Pit Wall Consensus Modal */}
+      <PitWallConsensusModal
+        isOpen={showConsensusModal}
+        onClose={() => setShowConsensusModal(false)}
+      />
+
       {/* Post-Race Podium & Analytics Debrief Modal */}
       {showDebriefModal && (
         <PostRaceDebriefModal onClose={() => setShowDebriefModal(false)} />
@@ -421,5 +440,6 @@ export const App: React.FC = () => {
     </div>
   );
 };
+
 
 export default App;

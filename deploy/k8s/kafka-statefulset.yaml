@@ -1,0 +1,72 @@
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: apex-kafka
+  namespace: default
+  labels:
+    app: apex
+    tier: streaming
+spec:
+  serviceName: apex-kafka
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apex
+      tier: streaming
+  template:
+    metadata:
+      labels:
+        app: apex
+        tier: streaming
+    spec:
+      containers:
+        - name: redpanda-kafka
+          image: docker.redpanda.com/redpandadata/redpanda:v24.1.1
+          command:
+            - redpanda
+            - start
+            - --smp
+            - "1"
+            - --memory
+            - "1G"
+            - --reserve-memory
+            - "0M"
+            - --overprovisioned
+            - --node-id
+            - "0"
+            - --kafka-addr
+            - PLAINTEXT://0.0.0.0:9092
+            - --advertise-kafka-addr
+            - PLAINTEXT://apex-kafka:9092
+          ports:
+            - containerPort: 9092
+              name: kafka
+            - containerPort: 9644
+              name: admin
+          resources:
+            requests:
+              cpu: "500m"
+              memory: "1Gi"
+            limits:
+              cpu: "2000m"
+              memory: "2Gi"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: apex-kafka
+  namespace: default
+  labels:
+    app: apex
+    tier: streaming
+spec:
+  ports:
+    - port: 9092
+      targetPort: 9092
+      name: kafka
+    - port: 9644
+      targetPort: 9644
+      name: admin
+  selector:
+    app: apex
+    tier: streaming

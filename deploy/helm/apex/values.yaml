@@ -1,0 +1,59 @@
+replicaCount: 3
+
+image:
+  repository: apex-race-intelligence
+  pullPolicy: IfNotPresent
+  tag: "1.0.0"
+
+service:
+  type: ClusterIP
+  port: 8000
+
+ingress:
+  enabled: true
+  className: "nginx"
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-read-timeout: "3600"
+    nginx.ingress.kubernetes.io/proxy-send-timeout: "3600"
+    nginx.ingress.kubernetes.io/websocket-services: "apex"
+  hosts:
+    - host: apex.f1.local
+      paths:
+        - path: /
+          pathType: Prefix
+
+resources:
+  limits:
+    cpu: 2000m
+    memory: 2Gi
+  requests:
+    cpu: 500m
+    memory: 512Mi
+
+autoscaling:
+  enabled: true
+  minReplicas: 3
+  maxReplicas: 20
+  targetCPUUtilizationPercentage: 70
+  targetMemoryUtilizationPercentage: 80
+
+worker:
+  enabled: true
+  replicaCount: 4
+  resources:
+    limits:
+      cpu: 4000m
+      memory: 4Gi
+    requests:
+      cpu: 1000m
+      memory: 1Gi
+
+kafka:
+  bootstrapServers: "apex-kafka:9092"
+  mockMode: "0"
+
+redis:
+  url: "redis://apex-redis:6379/0"
+
+postgres:
+  databaseUrl: "postgresql+asyncpg://apex_user:apex_password@apex-postgres:5432/apex_db"

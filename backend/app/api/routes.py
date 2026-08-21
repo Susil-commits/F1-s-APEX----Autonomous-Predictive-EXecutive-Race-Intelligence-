@@ -437,6 +437,29 @@ async def run_monte_carlo(request: Request, req: MonteCarloRequest):
     return results
 
 
+@router.get("/strategy/pitwall-consensus")
+@router.get("/strategy/pitwall-consensus/{race_id}")
+async def get_pitwall_consensus(race_id: str = "default", car_id: str | None = None):
+    """
+    Returns real-time 5-Agent pit wall consensus debate, individual specialist proposals,
+    weighted voting distribution, and transcribed pit wall radio dialogue.
+    """
+    from backend.app.intelligence.multi_agent_consensus import multi_agent_engine
+
+    target_session = manager.sessions.get(race_id) or manager.sessions.get("default")
+    if target_session and target_session.sim:
+        state = target_session.sim.get_state()
+    else:
+        if not manager.sim:
+            await manager.init_race()
+        assert manager.sim is not None
+        state = manager.sim.get_state()
+
+    return multi_agent_engine.evaluate_pitwall_consensus(state, target_car_id=car_id)
+
+
+
+
 @router.get("/benchmarks/latest")
 async def get_latest_benchmarks():
     """Returns the latest multi-circuit policy evaluation benchmark results."""
@@ -781,4 +804,28 @@ async def get_system_observability():
             "benchmark_runs_count": len(store.benchmark_runs),
         },
     }
+
+
+@router.post("/streaming/fastf1/start")
+async def start_fastf1_stream(track: str = "silverstone"):
+    """Starts live 60Hz FastF1 multi-car telemetry stream directly into Kafka."""
+    from backend.app.streaming.fastf1_streamer import fastf1_streamer
+    await fastf1_streamer.start_stream(track=track)
+    return fastf1_streamer.get_status()
+
+
+@router.post("/streaming/fastf1/stop")
+async def stop_fastf1_stream():
+    """Stops the active FastF1 live telemetry stream."""
+    from backend.app.streaming.fastf1_streamer import fastf1_streamer
+    await fastf1_streamer.stop_stream()
+    return fastf1_streamer.get_status()
+
+
+@router.get("/streaming/fastf1/status")
+async def get_fastf1_stream_status():
+    """Returns real-time streaming status, message rate, and active laps."""
+    from backend.app.streaming.fastf1_streamer import fastf1_streamer
+    return fastf1_streamer.get_status()
+
 

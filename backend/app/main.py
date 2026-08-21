@@ -1,24 +1,50 @@
-"""FastAPI application entry point for APEX Race Intelligence."""
+"""FastAPI application entry point for APEX Race Intelligence with Kafka and Worker Pools."""
 import os
 from contextlib import asynccontextmanager
-from typing import Any, cast
+from typing import Any, Optional, cast
 
 from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
+from backend.app.api.auth import auth_router
+from backend.app.api.jobs_router import jobs_router
 from backend.app.api.limiter import limiter
 from backend.app.api.metrics import metrics_router
 from backend.app.api.routes import router
 from backend.app.api.websocket import manager
+from backend.app.core.security import decode_access_token
+from backend.app.jobs.workers import worker_pool
+from backend.app.streaming.consumer import ApexTelemetryConsumerGroup
+from backend.app.streaming.producer import ApexKafkaProducer
+
+global_consumer: Optional[ApexTelemetryConsumerGroup] = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
+    global global_consumer
     # Initialize default race session on startup
     await manager.init_race(track_name="silverstone", seed=42)
     print("[APEX] Backend server initialized with default Silverstone race.")
+
+    # Start Kafka Producer & Consumer Group
+    try:
+        producer = ApexKafkaProducer.get_instance()
+        await producer.start()
+        global_consumer = ApexTelemetryConsumerGroup()
+        await global_consumer.start()
+        print("[APEX] Kafka / Event Streaming layer active.")
+    except Exception as e:
+        print(f"[APEX] Streaming initialization notice: {e}")
+
+    # Start Asynchronous Worker Pool
+    try:
+        await worker_pool.start()
+        print("[APEX] Asynchronous Worker Pool active.")
+    except Exception as e:
+        print(f"[APEX] Worker pool initialization notice: {e}")
 
     # Pre-warm ML singletons in background to eliminate live demo first-request cold starts
     try:
@@ -38,14 +64,20 @@ async def lifespan(app: FastAPI):
         print(f"[APEX] Model warmup notice: {e}")
 
     yield
+
+    # Shutdown sequence
+    if global_consumer:
+        await global_consumer.stop()
+    await worker_pool.stop()
+    await ApexKafkaProducer.get_instance().stop()
     manager.stop_loop()
     print("[APEX] Backend server shutting down.")
 
 
 app = FastAPI(
     title="APEX — Autonomous Predictive & EXecutive Race Intelligence",
-    description="Real-time race digital twin, tyre intelligence, DQN strategy RL, and explainability API.",
-    version="0.1.0",
+    description="Enterprise real-time race digital twin, Kafka event broker, BullMQ worker queue, DQN RL, and explainability API.",
+    version="1.0.0",
     lifespan=lifespan,
 )
 
@@ -74,7 +106,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Register REST router & Prometheus metrics router
+# Register REST & WebSocket routers
+app.include_router(auth_router)
+app.include_router(jobs_router)
 app.include_router(router)
 app.include_router(metrics_router)
 
@@ -94,7 +128,12 @@ if os.path.exists(frontend_dist):
 @app.websocket("/ws")
 @app.websocket("/ws/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, session_id: str = "default"):
-    # Extract optional race_id / session_id query param if available
+    # Optional token verification from query parameters (e.g., /ws?token=...)
+    token = websocket.query_params.get("token")
+    user_info = None
+    if token:
+        user_info = decode_access_token(token)
+
     query_session = websocket.query_params.get("race_id") or websocket.query_params.get("session_id")
     effective_session = query_session or session_id or "default"
 

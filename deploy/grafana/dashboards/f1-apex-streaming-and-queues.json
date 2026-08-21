@@ -1,0 +1,67 @@
+{
+  "annotations": { "list": [] },
+  "editable": true,
+  "fiscalYearStartMonth": 0,
+  "graphTooltip": 1,
+  "id": null,
+  "links": [],
+  "liveNow": true,
+  "panels": [
+    {
+      "title": "Kafka Telemetry Production Rate (msg/s by Topic)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(apex_kafka_messages_produced_total[1m])) by (topic)",
+          "legendFormat": "{{topic}}",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Kafka Telemetry Consumption Rate (msg/s by Group)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(apex_kafka_messages_consumed_total[1m])) by (topic, group)",
+          "legendFormat": "{{topic}} ({{group}})",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "BullMQ / Redis Async Job Queue Depth",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "targets": [
+        {
+          "expr": "apex_job_queue_depth",
+          "legendFormat": "{{queue_name}} Pending Jobs",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "title": "Async Worker Job Execution Duration P95 (s)",
+      "type": "timeseries",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(apex_job_execution_duration_seconds_bucket[1m])) by (le, job_type))",
+          "legendFormat": "{{job_type}} P95 (s)",
+          "refId": "A"
+        }
+      ]
+    }
+  ],
+  "refresh": "5s",
+  "schemaVersion": 38,
+  "style": "dark",
+  "tags": ["f1", "apex", "kafka", "bullmq"],
+  "time": { "from": "now-15m", "to": "now" },
+  "title": "APEX — Kafka Streaming & BullMQ Job Queues",
+  "uid": "apex-streaming-and-queues",
+  "version": 1
+}
