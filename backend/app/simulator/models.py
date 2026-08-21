@@ -183,6 +183,15 @@ class CarState(BaseModel):
     health_state: VehicleHealthState | None = None
     risk_state: RiskState | None = None
 
+    # Modern Aerodynamics & ERS Telemetry
+    ers_battery_soc_pct: float = 85.0   # State of Charge 0.0 - 100.0%
+    ers_deploy_mode: str = "BALANCED"    # BALANCED, OVERTAKE, DEFEND, HOTLAP, HARVEST
+    in_dirty_air: bool = False
+    dirty_air_intensity: float = 0.0     # 0.0 (clean air) to 1.0 (severe wake turbulence)
+    slipstream_active: bool = False
+    speed_kmh: float = 295.0
+
+
 
 class WeatherState(BaseModel):
     schema_version: str = "v1.0"

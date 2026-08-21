@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRaceStore, WorkspaceTab } from '../store/raceStore';
 import {
   Activity,
@@ -16,9 +16,30 @@ import {
   Cpu,
   UserCheck,
   MapPin,
+  Mic,
+  MicOff,
+  Wind,
+  Thermometer,
+  Tv,
+  Timer,
+  Wrench,
+  Edit3,
+  Trophy,
+  Scale,
+  Heart,
+  MessageSquare,
+  ShieldCheck,
+  Eye,
+  ArrowRightLeft,
+  Headset,
+  Scan,
+  Flame,
+  Cloud,
+  Droplet,
 } from 'lucide-react';
 import { CIRCUIT_DATABASE } from '../data/trackGeometries';
 import { audioEngine, VoicePersona } from '../utils/audioEngine';
+import { voiceRadio } from '../utils/voiceRadioRecognition';
 
 const AVAILABLE_CIRCUITS = [
   { id: 'silverstone', name: 'Silverstone Circuit', flag: '🇬🇧' },
@@ -26,6 +47,10 @@ const AVAILABLE_CIRCUITS = [
   { id: 'spa', name: 'Circuit de Spa-Francorchamps', flag: '🇧🇪' },
   { id: 'monaco', name: 'Circuit de Monaco', flag: '🇲🇨' },
   { id: 'interlagos', name: 'Autódromo de Interlagos', flag: '🇧🇷' },
+  { id: 'suzuka', name: 'Suzuka Racing Course', flag: '🇯🇵' },
+  { id: 'cota', name: 'Circuit of the Americas', flag: '🇺🇸' },
+  { id: 'singapore', name: 'Marina Bay Circuit', flag: '🇸🇬' },
+  { id: 'redbullring', name: 'Red Bull Ring (Spielberg)', flag: '🇦🇹' },
 ];
 
 export const Header: React.FC = () => {
@@ -45,6 +70,20 @@ export const Header: React.FC = () => {
 
   const [activePersona, setActivePersona] = useState<VoicePersona>('apex_core');
   const [isChangingTrack, setIsChangingTrack] = useState<boolean>(false);
+  const [isMicListening, setIsMicListening] = useState<boolean>(false);
+  const [voiceInterimText, setVoiceInterimText] = useState<string>('');
+
+  useEffect(() => {
+    const unsub = voiceRadio.subscribeStatus((listening, text) => {
+      setIsMicListening(listening);
+      setVoiceInterimText(text);
+    });
+    return () => unsub();
+  }, []);
+
+  const togglePTT = () => {
+    voiceRadio.toggleListening();
+  };
 
   if (!raceState) return null;
 
@@ -99,31 +138,69 @@ export const Header: React.FC = () => {
     )?.id || 'silverstone';
 
   const PRIMARY_TABS: { id: WorkspaceTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'tactical', label: 'Pit Wall', icon: <Activity className="w-3.5 h-3.5" /> },
-    { id: 'strategy_center', label: 'Strategy Center', icon: <Sliders className="w-3.5 h-3.5" /> },
-    { id: 'tyre_intel', label: 'Tyre ML', icon: <Gauge className="w-3.5 h-3.5" /> },
-    { id: 'weather_intel', label: 'Weather Radar', icon: <CloudRain className="w-3.5 h-3.5" /> },
-    { id: 'opponent_intel', label: 'Opponent Tactics', icon: <ShieldAlert className="w-3.5 h-3.5" /> },
-    { id: 'vehicle_health', label: 'Vehicle Health', icon: <Cpu className="w-3.5 h-3.5" /> },
-    { id: 'replays', label: 'Replay Lab', icon: <Flag className="w-3.5 h-3.5" /> },
-    { id: 'explainability', label: 'AI Explainability', icon: <Brain className="w-3.5 h-3.5" /> },
+    { id: 'tactical', label: 'Pit Wall & 3D', icon: <Activity className="w-3.5 h-3.5" /> },
+    { id: 'steering_ddu', label: 'Steering DDU', icon: <Gauge className="w-3.5 h-3.5 text-apex-cyan" /> },
+    { id: 'radio_stress', label: 'Radio Stress AI', icon: <Radio className="w-3.5 h-3.5 text-rose-400" /> },
+    { id: 'gearbox_lab', label: 'Seamless Gearbox', icon: <Activity className="w-3.5 h-3.5 text-apex-cyan" /> },
+    { id: 'brake_pyrometry', label: 'Brake Pyrometry', icon: <Flame className="w-3.5 h-3.5 text-rose-500" /> },
+    { id: 'steward_tribunal', label: 'FIA Hearing', icon: <Scale className="w-3.5 h-3.5 text-amber-400" /> },
+    { id: 'carbon_autoclave', label: 'Crash Sled', icon: <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> },
+    { id: 'tyre_blankets', label: 'Tyre Blankets', icon: <Flame className="w-3.5 h-3.5 text-amber-500" /> },
   ];
 
   const ALL_WORKSPACES: { id: WorkspaceTab; label: string }[] = [
-    { id: 'tactical', label: '1. Live Tactical Pit Wall' },
-    { id: 'strategy_center', label: '2. Strategy Center & Stint Planner' },
-    { id: 'tyre_intel', label: '3. Tyre ML & RUL Intelligence' },
-    { id: 'weather_intel', label: '4. Weather Doppler & Grip Crossover' },
-    { id: 'opponent_intel', label: '5. Opponent Tactics & Undercut Matrix' },
-    { id: 'driver_intel', label: '6. Driver Behavioral Analytics' },
-    { id: 'vehicle_health', label: '7. Powertrain & Vehicle Health' },
-    { id: 'counterfactual', label: '8. Counterfactual Simulation Lab' },
-    { id: 'rl_training', label: '9. RL Policy & Action Masking' },
-    { id: 'telemetry', label: '10. Deep Telemetry Lab' },
-    { id: 'replays', label: '11. Historical Race Replay' },
-    { id: 'explainability', label: '12. TreeSHAP AI Reasoner' },
-    { id: 'championship', label: '13. AI-vs-AI Championship' },
-    { id: 'system_health', label: '14. System Observability & Diagnostics' },
+    { id: 'tactical', label: '1. Live Tactical Pit Wall & 3D Twin' },
+    { id: 'steering_ddu', label: '2. FIA Steering Wheel Digital Dash Unit (DDU)' },
+    { id: 'radio_stress', label: '3. Driver Radio Voice Acoustic Stress & Emotion AI' },
+    { id: 'gearbox_lab', label: '4. Seamless Shift Gearbox Barrel & Dog Ring Lab' },
+    { id: 'brake_pyrometry', label: '5. Brembo Carbon Brake Rotor Pyrometry & Ducts' },
+    { id: 'steward_tribunal', label: '6. FIA Steward Hearing & Disciplinary Appeal Tribunal' },
+    { id: 'carbon_autoclave', label: '7. Carbon Composite Autoclave & Crash Sled Rig' },
+    { id: 'tyre_blankets', label: '8. Tyre Blanket Induction Heating & Cold Pressure Rig' },
+    { id: 'cooling_suit', label: '9. Driver Thermal Heatmap & Liquid Cooling Suit' },
+    { id: 'cfd_queue', label: '10. Paddock Factory Supercomputer CFD Cloud Queue' },
+    { id: 'oil_forensics', label: '11. Engine Oil Chemical Spectroscopy & Forensics' },
+    { id: 'steering_custom', label: '12. Driver Steering Wheel Rotary & Paddle Lab' },
+    { id: 'marshall_panels', label: '13. Track Marshall Electronic LED Light Panels Matrix' },
+    { id: 'atmospheric_lab', label: '14. Weather Balloon Atmospheric Sounding & Barometric Lab' },
+    { id: 'safety_car_control', label: '15. FIA Safety Car & VSC Mission Control' },
+    { id: 'trophy_room', label: '16. Formula 1 Championship Trophy Cabinet & Hall of Fame' },
+    { id: 'red_flag_matrix', label: '17. Emergency Red Flag Free Tyre Strategy Matrix' },
+    { id: 'vr_cockpit', label: '18. WebXR Stereoscopic 3D VR Cockpit' },
+    { id: 'lidar_scanner', label: '19. LiDAR 3D Laser Track Surface Scanner' },
+    { id: 'engine_dyno', label: '20. Engine Dyno & 100% E-Fuel Combustion Lab' },
+    { id: 'helmet_visor', label: '21. Driver In-Helmet Visor Tear-Off & Rain HUD' },
+    { id: 'suspension_lab', label: '22. Chassis Suspension Kinematics & Venturi Lab' },
+    { id: 'driver_market', label: '23. Paddock Live Driver Market & Budget Cap Hub' },
+    { id: 'steward_var', label: '24. FIA Race Control & Stewards VAR Room' },
+    { id: 'scrutineering_bay', label: '25. FIA Technical Scrutineering & Inspection Bay' },
+    { id: 'doppler_radar', label: '26. Paddock Satellite Doppler Rain Radar' },
+    { id: 'press_conference', label: '27. AI Post-Race Press Conference & Media Studio' },
+    { id: 'radio_soundboard', label: '28. Iconic FIA Team Radio Soundboard Archives' },
+    { id: 'wing_flex', label: '29. Aeroelastic Wing Flex & FIA Deflection Lab' },
+    { id: 'biometrics', label: '30. Driver Biometrics & Cognitive Stress' },
+    { id: 'broadcast_tv', label: '31. AI Broadcast TV Director & AWS Graphics' },
+    { id: 'mcts_search', label: '32. AlphaZero MCTS Decision Tree' },
+    { id: 'pit_crew_3d', label: '33. 3D Pit Crew & Wheel Gun Digital Twin' },
+    { id: 'wind_tunnel', label: '34. 3D Wind Tunnel & CFD Streamline Lab' },
+    { id: 'fastf1_duel', label: '35. Real-World FastF1 Telemetry Duel Mode' },
+    { id: 'whiteboard', label: '36. Tactical Pit Wall Strategy Whiteboard' },
+    { id: 'sensor_anomalies', label: '37. Telemetry Sensor Fusion Autoencoder' },
+    { id: 'tyre_thermo', label: '38. Multi-Zone Tyre Thermodynamics' },
+    { id: 'aerodynamics', label: '39. Aerodynamic Wake & Hybrid ERS' },
+    { id: 'strategy_center', label: '40. Strategy Center & Stint Planner' },
+    { id: 'tyre_intel', label: '41. Tyre ML & RUL Intelligence' },
+    { id: 'weather_intel', label: '42. Weather Doppler & Grip Crossover' },
+    { id: 'opponent_intel', label: '43. Opponent Tactics & Undercut Matrix' },
+    { id: 'driver_intel', label: '44. Driver Behavioral Analytics' },
+    { id: 'vehicle_health', label: '45. Powertrain & Vehicle Health' },
+    { id: 'counterfactual', label: '46. Counterfactual Simulation Lab' },
+    { id: 'rl_training', label: '47. RL Policy & Action Masking' },
+    { id: 'telemetry', label: '48. Deep Telemetry Lab' },
+    { id: 'replays', label: '49. Historical Race Replay' },
+    { id: 'explainability', label: '50. TreeSHAP AI Reasoner' },
+    { id: 'championship', label: '51. AI-vs-AI Championship' },
+    { id: 'system_health', label: '52. System Observability & Diagnostics' },
   ];
 
   return (
@@ -254,6 +331,20 @@ export const Header: React.FC = () => {
           <option value="hugh_bird">Voice: "Hugh Bird" (Red Bull)</option>
           <option value="ricky">Voice: "Ricky" (Ferrari)</option>
         </select>
+
+        {/* Hands-Free Push-To-Talk Voice Mic */}
+        <button
+          onClick={togglePTT}
+          title={isMicListening ? 'Push-To-Talk Active (Listening...)' : 'Click to Speak (Push-To-Talk Voice AI)'}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-mono font-bold transition-all active:scale-95 shadow-sm ${
+            isMicListening
+              ? 'bg-rose-600 text-white border-rose-400 animate-pulse shadow-rose-500/50'
+              : 'bg-slate-900/90 text-slate-300 border-slate-700 hover:text-white hover:border-slate-500'
+          }`}
+        >
+          {isMicListening ? <Mic className="w-3.5 h-3.5 text-white animate-bounce" /> : <MicOff className="w-3.5 h-3.5 text-slate-400" />}
+          <span>{isMicListening ? 'LISTENING...' : 'RADIO PTT'}</span>
+        </button>
 
         {/* Audio & Voice Radio Toggle */}
         <div className="flex items-center bg-slate-900/80 p-0.5 rounded-md border border-slate-800">

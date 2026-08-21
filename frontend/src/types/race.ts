@@ -91,6 +91,55 @@ export interface CarState {
   driver_state?: DriverState | null;
   tyre_state?: TyreState | null;
   health_state?: VehicleHealthState | null;
+
+  // Modern Aerodynamics & ERS Telemetry
+  ers_battery_soc_pct?: number;
+  ers_deploy_mode?: string;
+  in_dirty_air?: boolean;
+  dirty_air_intensity?: number;
+  slipstream_active?: boolean;
+  speed_kmh?: number;
+}
+
+export interface MCTSNodeData {
+  node_id: string;
+  parent_id: string | null;
+  action_name: string;
+  lap: number;
+  visits: number;
+  value: number;
+  win_probability_pct: number;
+  prior: number;
+  uct_score: number;
+  compound: string;
+  tyre_wear_pct: number;
+  projected_position: number;
+  gap_to_leader_s: number;
+  is_optimal_path: boolean;
+  children: MCTSNodeData[];
+}
+
+export interface MCTSSummary {
+  recommended_action: string;
+  root_q_value: number;
+  simulations_executed: number;
+  explored_branches: number;
+  optimal_path_depth: number;
+  win_probability_pct: number;
+}
+
+export interface AerodynamicsCarData {
+  car_id: string;
+  driver_name: string;
+  position: number;
+  gap_to_car_ahead_s: number;
+  in_dirty_air: boolean;
+  dirty_air_intensity: number;
+  downforce_retention_pct: number;
+  slipstream_active: boolean;
+  ers_battery_soc_pct: number;
+  ers_deploy_mode: string;
+  speed_kmh: number;
 }
 
 export interface WeatherState {
@@ -179,3 +228,4 @@ export interface RaceState {
   opponents?: OpponentState[];
   global_risk?: any;
 }
+

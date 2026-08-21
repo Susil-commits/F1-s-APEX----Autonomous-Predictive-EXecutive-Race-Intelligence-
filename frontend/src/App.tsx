@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Header } from './components/Header';
 import { TimingTower } from './components/TimingTower';
 import { TrackMap } from './components/TrackMap';
@@ -42,6 +42,47 @@ import { HistoricalReplayView } from './components/HistoricalReplayView';
 import { ChampionshipTournamentView } from './components/ChampionshipTournamentView';
 import { SystemHealthView } from './components/SystemHealthView';
 import { PitWallConsensusModal } from './components/PitWallConsensusModal';
+import { MCTSVisualizer } from './components/MCTSVisualizer';
+import { AerodynamicWakeRadar } from './components/AerodynamicWakeRadar';
+import { WindTunnelCFDLab } from './components/WindTunnelCFDLab';
+import { TyreThermodynamicsView } from './components/TyreThermodynamicsView';
+import { GhostCarTelemetryOverlay } from './components/GhostCarTelemetryOverlay';
+import { PitStop3DCrewLab } from './components/PitStop3DCrewLab';
+import { SensorAnomalyDetector } from './components/SensorAnomalyDetector';
+import { BroadcastDirectorTV } from './components/BroadcastDirectorTV';
+import { SteeringWheelDDU } from './components/SteeringWheelDDU';
+import { FastF1TelemetryDuel } from './components/FastF1TelemetryDuel';
+import { PitWallStrategyWhiteboard } from './components/PitWallStrategyWhiteboard';
+import { StewardInvestigationRoom } from './components/StewardInvestigationRoom';
+import { DriverBiometricCockpit } from './components/DriverBiometricCockpit';
+import { HistoricalRadioSoundboard } from './components/HistoricalRadioSoundboard';
+import { PressConferenceStudio } from './components/PressConferenceStudio';
+import { AeroelasticWingFlexLab } from './components/AeroelasticWingFlexLab';
+import { FIAInspectionBay } from './components/FIAInspectionBay';
+import { SatelliteDopplerRadar } from './components/SatelliteDopplerRadar';
+import { HelmetVisorHUD } from './components/HelmetVisorHUD';
+import { ChassisSuspensionLab } from './components/ChassisSuspensionLab';
+import { DriverMarketHub } from './components/DriverMarketHub';
+import { StereoscopicVRCockpit } from './components/StereoscopicVRCockpit';
+import { LiDARSurfaceScanner } from './components/LiDARSurfaceScanner';
+import { EngineDynoCombustionLab } from './components/EngineDynoCombustionLab';
+import { SafetyCarMissionControl } from './components/SafetyCarMissionControl';
+import { HallOfFameTrophyRoom } from './components/HallOfFameTrophyRoom';
+import { RedFlagStrategyMatrix } from './components/RedFlagStrategyMatrix';
+import { SteeringCustomizationLab } from './components/SteeringCustomizationLab';
+import { TrackMarshallLightPanels } from './components/TrackMarshallLightPanels';
+import { AtmosphericSoundingLab } from './components/AtmosphericSoundingLab';
+import { DriverCoolingSuitCockpit } from './components/DriverCoolingSuitCockpit';
+import { CFDSupercomputerQueue } from './components/CFDSupercomputerQueue';
+import { OilSpectroscopyForensics } from './components/OilSpectroscopyForensics';
+import { StewardHearingTribunal } from './components/StewardHearingTribunal';
+import { CarbonCompositeAutoclave } from './components/CarbonCompositeAutoclave';
+import { TyreBlanketInductionRig } from './components/TyreBlanketInductionRig';
+import { RadioStressClassifier } from './components/RadioStressClassifier';
+import { GearboxShiftDynamicsLab } from './components/GearboxShiftDynamicsLab';
+import { BrakePyrometryLab } from './components/BrakePyrometryLab';
+import { RadioCommsHub } from './components/RadioCommsHub';
+import { CommandPalette } from './components/CommandPalette';
 import { useRaceStore } from './store/raceStore';
 import { audioEngine } from './utils/audioEngine';
 import {
@@ -61,6 +102,8 @@ import {
   BarChart2,
   Users,
   X,
+  Wind,
+  Command,
 } from 'lucide-react';
 
 export const App: React.FC = () => {
@@ -73,7 +116,22 @@ export const App: React.FC = () => {
   const [showStandingsModal, setShowStandingsModal] = useState<boolean>(false);
   const [showAeroTunerModal, setShowAeroTunerModal] = useState<boolean>(false);
   const [showBenchmarkModal, setShowBenchmarkModal] = useState<boolean>(false);
+  const [showCommandPalette, setShowCommandPalette] = useState<boolean>(false);
+  const [showRadioHubModal, setShowRadioHubModal] = useState<boolean>(false);
   const [engineAudioActive, setEngineAudioActive] = useState<boolean>(false);
+
+  // Global Ctrl+K / Cmd+K listener for Command Palette
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+        e.preventDefault();
+        setShowCommandPalette((prev) => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
 
 
   const events = raceState?.events_log || [];
@@ -97,9 +155,26 @@ export const App: React.FC = () => {
           {/* Time-Travel DVR Bar */}
           <RaceTimeTravelDVR />
 
-          {/* Quick Bar Action Buttons & Radio Waveform */}
+            {/* Quick Bar Action Buttons & Radio Waveform */}
           <div className="flex flex-wrap items-center justify-between gap-2 px-1 text-xs">
             <div className="flex flex-wrap items-center gap-2">
+              <button
+                onClick={() => setShowCommandPalette(true)}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold transition-all active:scale-95 shadow-sm"
+              >
+                <Command className="w-3.5 h-3.5 text-apex-cyan" />
+                <span>Command Palette</span>
+                <span className="text-[10px] px-1 py-0.2 rounded bg-slate-900 text-slate-400">Ctrl+K</span>
+              </button>
+
+              <button
+                onClick={() => setShowRadioHubModal(true)}
+                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-950/70 hover:bg-rose-900/90 text-rose-300 border border-rose-700/60 font-bold transition-all active:scale-95 shadow-sm shadow-rose-900/30"
+              >
+                <Radio className="w-3.5 h-3.5 text-rose-400" />
+                <span>Neural Pit Radio</span>
+              </button>
+
               <button
                 onClick={() => setShowConsensusModal(true)}
                 className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-950/70 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-700/60 font-bold transition-all active:scale-95 shadow-sm shadow-emerald-900/30"
@@ -115,7 +190,6 @@ export const App: React.FC = () => {
                 <Brain className="w-3.5 h-3.5 text-cyan-400" />
                 <span>RAG Race Debrief</span>
               </button>
-
 
               <button
                 onClick={() => setShowBenchmarkModal(true)}
@@ -185,17 +259,17 @@ export const App: React.FC = () => {
           </div>
         </div>
 
-        {/* Tab 1: Tactical Pit Wall Command Center */}
+        {/* Tab 1: Tactical Pit Wall Command Center & 3D Twin */}
         {activeTab === 'tactical' && (
           <div className="flex flex-col gap-4 flex-1">
-            {/* Top Tactical Row: Timing Tower + Track Map + Real-Time Telemetry */}
+            {/* Top Tactical Row: Timing Tower + 3D Track Map + Real-Time Telemetry */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
               {/* Timing Tower (Left 3 cols) */}
               <div className="lg:col-span-3">
                 <TimingTower />
               </div>
 
-              {/* Vector Circuit Geometry & GPS Telemetry (Center 6 cols) */}
+              {/* Vector Circuit Geometry & 3D Spatial Digital Twin (Center 6 cols) */}
               <div className="lg:col-span-6 flex flex-col gap-4">
                 <TrackMap />
                 <TelemetryCharts />
@@ -242,6 +316,292 @@ export const App: React.FC = () => {
                 <PitStopReactionSim />
               </div>
             </div>
+          </div>
+        )}
+
+        {/* Tab: FIA Steering Wheel Digital Dash Unit (DDU) */}
+        {activeTab === 'steering_ddu' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <SteeringWheelDDU />
+            <TrackMap />
+          </div>
+        )}
+
+        {/* Tab: Driver Radio Voice Acoustic Stress & Emotion AI */}
+        {activeTab === 'radio_stress' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <RadioStressClassifier />
+            <RadioCommsHub />
+          </div>
+        )}
+
+        {/* Tab: Seamless Shift Gearbox Barrel & Dog Ring Lab */}
+        {activeTab === 'gearbox_lab' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <GearboxShiftDynamicsLab />
+          </div>
+        )}
+
+        {/* Tab: Brembo Carbon Brake Rotor Pyrometry & Ducts */}
+        {activeTab === 'brake_pyrometry' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <BrakePyrometryLab />
+          </div>
+        )}
+
+        {/* Tab: FIA Steward Hearing & Disciplinary Appeal Tribunal */}
+        {activeTab === 'steward_tribunal' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <StewardHearingTribunal />
+            <StewardInvestigationRoom />
+          </div>
+        )}
+
+        {/* Tab: Carbon Composite Autoclave & Crash Sled Rig */}
+        {activeTab === 'carbon_autoclave' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <CarbonCompositeAutoclave />
+          </div>
+        )}
+
+        {/* Tab: Tyre Blanket Induction Heating & Cold Pressure Rig */}
+        {activeTab === 'tyre_blankets' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <TyreBlanketInductionRig />
+            <TyreThermodynamicsView />
+          </div>
+        )}
+
+        {/* Tab: Driver Thermal Heatmap & Liquid Cooling Suit */}
+        {activeTab === 'cooling_suit' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <DriverCoolingSuitCockpit />
+          </div>
+        )}
+
+        {/* Tab: Paddock Factory Supercomputer CFD Cloud Queue */}
+        {activeTab === 'cfd_queue' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <CFDSupercomputerQueue />
+            <WindTunnelCFDLab />
+          </div>
+        )}
+
+        {/* Tab: Engine Oil Chemical Spectroscopy & Forensics */}
+        {activeTab === 'oil_forensics' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <OilSpectroscopyForensics />
+          </div>
+        )}
+
+        {/* Tab: Driver Steering Wheel Rotary & Paddle Lab */}
+        {activeTab === 'steering_custom' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <SteeringCustomizationLab />
+            <SteeringWheelDDU />
+          </div>
+        )}
+
+        {/* Tab: Track Marshall Electronic LED Light Panels Matrix */}
+        {activeTab === 'marshall_panels' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <TrackMarshallLightPanels />
+            <TrackMap />
+          </div>
+        )}
+
+        {/* Tab: Weather Balloon Atmospheric Sounding & Barometric Lab */}
+        {activeTab === 'atmospheric_lab' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <AtmosphericSoundingLab />
+          </div>
+        )}
+
+        {/* Tab: FIA Safety Car & VSC Mission Control */}
+        {activeTab === 'safety_car_control' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <SafetyCarMissionControl />
+            <TrackMap />
+          </div>
+        )}
+
+        {/* Tab: Formula 1 Championship Trophy Cabinet & Hall of Fame */}
+        {activeTab === 'trophy_room' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <HallOfFameTrophyRoom />
+          </div>
+        )}
+
+        {/* Tab: Emergency Red Flag Free Tyre Strategy Matrix */}
+        {activeTab === 'red_flag_matrix' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <RedFlagStrategyMatrix />
+          </div>
+        )}
+
+        {/* Tab: WebXR Stereoscopic 3D VR Cockpit */}
+        {activeTab === 'vr_cockpit' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <StereoscopicVRCockpit />
+          </div>
+        )}
+
+        {/* Tab: LiDAR 3D Laser Track Surface Scanner */}
+        {activeTab === 'lidar_scanner' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <LiDARSurfaceScanner />
+          </div>
+        )}
+
+        {/* Tab: Engine Dyno & 100% E-Fuel Combustion Lab */}
+        {activeTab === 'engine_dyno' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <EngineDynoCombustionLab />
+          </div>
+        )}
+
+        {/* Tab: Driver In-Helmet Visor Tear-Off & Rain HUD */}
+        {activeTab === 'helmet_visor' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <HelmetVisorHUD />
+            <TrackMap />
+          </div>
+        )}
+
+        {/* Tab: Chassis Suspension Kinematics & Venturi Lab */}
+        {activeTab === 'suspension_lab' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <ChassisSuspensionLab />
+            <AerodynamicWakeRadar />
+          </div>
+        )}
+
+        {/* Tab: Paddock Live Driver Market & Budget Cap Hub */}
+        {activeTab === 'driver_market' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <DriverMarketHub />
+          </div>
+        )}
+
+        {/* Tab: FIA Race Control & Stewards VAR Room */}
+        {activeTab === 'steward_var' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <StewardInvestigationRoom />
+          </div>
+        )}
+
+        {/* Tab: FIA Technical Scrutineering & Inspection Bay */}
+        {activeTab === 'scrutineering_bay' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <FIAInspectionBay />
+          </div>
+        )}
+
+        {/* Tab: Paddock Satellite Doppler Rain Radar */}
+        {activeTab === 'doppler_radar' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <SatelliteDopplerRadar />
+          </div>
+        )}
+
+        {/* Tab: AI Post-Race Press Conference & Media Studio */}
+        {activeTab === 'press_conference' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <PressConferenceStudio />
+          </div>
+        )}
+
+        {/* Tab: Iconic FIA Team Radio Soundboard Archives */}
+        {activeTab === 'radio_soundboard' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <HistoricalRadioSoundboard />
+          </div>
+        )}
+
+        {/* Tab: Aeroelastic Wing Flex & FIA Deflection Lab */}
+        {activeTab === 'wing_flex' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <AeroelasticWingFlexLab />
+            <AerodynamicWakeRadar />
+          </div>
+        )}
+
+        {/* Tab: Driver Biometrics & Cognitive Stress */}
+        {activeTab === 'biometrics' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <DriverBiometricCockpit />
+            <TelemetryCharts />
+          </div>
+        )}
+
+        {/* Tab: AI Broadcast TV Director & Cinematic Graphics */}
+        {activeTab === 'broadcast_tv' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <BroadcastDirectorTV />
+            <TrackMap />
+          </div>
+        )}
+
+        {/* Tab: Real-World FastF1 Telemetry Duel Mode */}
+        {activeTab === 'fastf1_duel' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <FastF1TelemetryDuel />
+            <TelemetryCharts />
+          </div>
+        )}
+
+        {/* Tab: Tactical Pit Wall Strategy Whiteboard */}
+        {activeTab === 'whiteboard' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <PitWallStrategyWhiteboard />
+          </div>
+        )}
+
+        {/* Tab: AlphaZero-Style MCTS Decision Tree Search */}
+        {activeTab === 'mcts_search' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <MCTSVisualizer />
+            <MonteCarloStrategySim />
+          </div>
+        )}
+
+        {/* Tab: 3D Pit Crew & Sub-2.0s Wheel Gun Lab */}
+        {activeTab === 'pit_crew_3d' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <PitStop3DCrewLab />
+            <PitStopReactionSim />
+          </div>
+        )}
+
+        {/* Tab: 3D Wind Tunnel & Aerodynamic CFD Lab */}
+        {activeTab === 'wind_tunnel' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <WindTunnelCFDLab />
+            <AerodynamicWakeRadar />
+          </div>
+        )}
+
+        {/* Tab: Telemetry Sensor Fusion Autoencoder */}
+        {activeTab === 'sensor_anomalies' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <SensorAnomalyDetector />
+            <VehicleHealthView />
+          </div>
+        )}
+
+        {/* Tab: Multi-Zone Tyre Thermodynamics */}
+        {activeTab === 'tyre_thermo' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <TyreThermodynamicsView />
+            <TyreIntelligenceView />
+          </div>
+        )}
+
+        {/* Tab: Aerodynamic Wake & ERS Energy */}
+        {activeTab === 'aerodynamics' && (
+          <div className="flex flex-col gap-4 flex-1">
+            <AerodynamicWakeRadar />
+            <LapTimeDeltaTDecomposition />
           </div>
         )}
 
@@ -302,6 +662,7 @@ export const App: React.FC = () => {
         {/* Tab 10: Deep Telemetry Lab */}
         {activeTab === 'telemetry' && (
           <div className="flex flex-col gap-4 flex-1">
+            <GhostCarTelemetryOverlay />
             <TelemetryLab />
             <DualDriverTelemetryOverlay />
             <LapTimeDeltaTDecomposition />
@@ -437,6 +798,29 @@ export const App: React.FC = () => {
       {showDebriefModal && (
         <PostRaceDebriefModal onClose={() => setShowDebriefModal(false)} />
       )}
+
+      {/* Neural Pit Radio Hub Modal */}
+      {showRadioHubModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fadeIn">
+          <div className="relative w-full max-w-3xl max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => setShowRadioHubModal(false)}
+              className="absolute top-3 right-3 z-10 p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white transition-all"
+            >
+              <X className="w-5 h-5" />
+            </button>
+            <RadioCommsHub />
+          </div>
+        </div>
+      )}
+
+      {/* Global Command Palette (Ctrl+K) */}
+      <CommandPalette
+        isOpen={showCommandPalette}
+        onClose={() => setShowCommandPalette(false)}
+        onOpenConsensus={() => setShowConsensusModal(true)}
+        onOpenQA={() => setShowQAModal(true)}
+      />
     </div>
   );
 };

@@ -182,11 +182,30 @@ class CarPhysics:
 
         lap_time += weather_penalty
 
-        # 7. Dirty air / Traffic penalty
-        if in_traffic:
+        # 7. Modern Aerodynamic Dirty Air & Slipstream dynamics
+        if car.in_dirty_air:
+            # Trailing car loses corner downforce (wake turbulence penalty)
+            dirty_air_penalty = car.dirty_air_intensity * 0.55
+            lap_time += dirty_air_penalty
+        elif in_traffic:
             lap_time += 0.35
 
-        # 8. Micro-noise (driver variance ±0.15s)
+        if car.slipstream_active:
+            # Slipstream straight-line tow benefit
+            lap_time -= 0.22
+
+        # 8. Hybrid ERS (Energy Recovery System) Deployment
+        ers_soc = car.ers_battery_soc_pct
+        if car.ers_deploy_mode == "OVERTAKE" and ers_soc > 10.0:
+            lap_time -= 0.45
+        elif car.ers_deploy_mode == "HOTLAP" and ers_soc > 15.0:
+            lap_time -= 0.70
+        elif car.ers_deploy_mode == "DEFEND" and ers_soc > 10.0:
+            lap_time -= 0.20
+        elif car.ers_deploy_mode == "HARVEST":
+            lap_time += 0.35 # Engine braking & MGU-K harvesting
+
+        # 9. Micro-noise (driver variance ±0.15s)
         driver_variance = rng.normal(0.0, 0.12)
         lap_time += driver_variance
 
@@ -195,3 +214,62 @@ class CarPhysics:
             lap_time += track.pit_lane_delta_s
 
         return max(50.0, round(lap_time, 3))
+
+    @staticmethod
+    def update_ers_and_aerodynamics(
+        car: CarState,
+        gap_ahead_s: float,
+        is_in_drs_zone: bool = False,
+    ) -> None:
+        """Updates car aerodynamic wake state, ERS battery charge/discharge, and top speed."""
+        # 1. Aerodynamic wake turbulence calculation
+        if 0.0 < gap_ahead_s < 1.6 and not car.in_pit:
+            car.in_dirty_air = True
+            # Proximity function: highest turbulence at ~0.5s gap
+            intensity = max(0.0, min(1.0, 1.0 - (gap_ahead_s - 0.4) / 1.2))
+            car.dirty_air_intensity = round(intensity, 2)
+            # Slipstream active in high-speed draft zone
+            car.slipstream_active = 0.25 <= gap_ahead_s <= 0.95
+        else:
+            car.in_dirty_air = False
+            car.dirty_air_intensity = 0.0
+            car.slipstream_active = False
+
+        # 2. Hybrid ERS Battery SoC Simulation (0-100%)
+        mode = car.ers_deploy_mode
+        soc = car.ers_battery_soc_pct
+
+        if mode == "OVERTAKE":
+            soc_delta = -12.0
+        elif mode == "HOTLAP":
+            soc_delta = -18.0
+        elif mode == "DEFEND":
+            soc_delta = -7.5
+        elif mode == "HARVEST":
+            soc_delta = +16.0
+        else:  # BALANCED
+            soc_delta = +2.5 if car.driving_mode == DrivingMode.CONSERVE else -1.5
+
+        # Regenerative braking recovery per lap
+        soc_delta += 4.0
+        car.ers_battery_soc_pct = round(max(5.0, min(100.0, soc + soc_delta)), 1)
+
+        # 3. Dynamic instantaneous speed calculation (km/h)
+        base_speed = 300.0
+        if car.driving_mode == DrivingMode.PUSH:
+            base_speed += 12.0
+        elif car.driving_mode == DrivingMode.CONSERVE:
+            base_speed -= 10.0
+
+        if is_in_drs_zone:
+            base_speed += 16.0
+        if car.slipstream_active:
+            base_speed += 14.0
+        if mode in ("OVERTAKE", "HOTLAP") and car.ers_battery_soc_pct > 10.0:
+            base_speed += 11.0
+
+        if car.in_dirty_air:
+            base_speed -= car.dirty_air_intensity * 6.0
+
+        car.speed_kmh = round(base_speed + np.random.uniform(-3.0, 3.0), 1)
+

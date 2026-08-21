@@ -1,15 +1,16 @@
 import React, { useState, useMemo } from 'react';
 import { useRaceStore } from '../store/raceStore';
-import { Navigation, Flag, CloudRain, ShieldAlert, Sparkles, Activity, Layers } from 'lucide-react';
+import { Navigation, Flag, CloudRain, ShieldAlert, Sparkles, Activity, Layers, Box } from 'lucide-react';
 import { CIRCUIT_DATABASE, CircuitData } from '../data/trackGeometries';
 import { CarState } from '../types/race';
 import { LinearTrackRibbon } from './LinearTrackRibbon';
+import { Track3DDigitalTwin } from './Track3DDigitalTwin';
 
-export type TrackViewMode = 'circuit' | 'heatmap' | 'ribbon';
+export type TrackViewMode = 'circuit' | '3d_twin' | 'heatmap' | 'ribbon';
 
 export const TrackMap: React.FC = () => {
   const { raceState, selectedCarId, setSelectedCarId, setInspectedCar } = useRaceStore();
-  const [viewMode, setViewMode] = useState<TrackViewMode>('circuit');
+  const [viewMode, setViewMode] = useState<TrackViewMode>('3d_twin');
 
   if (!raceState) return null;
 
@@ -52,6 +53,46 @@ export const TrackMap: React.FC = () => {
     setInspectedCar(car);
   };
 
+  if (viewMode === '3d_twin') {
+    return (
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center justify-between px-1">
+          <span className="text-xs font-bold text-slate-400 font-mono flex items-center gap-1.5">
+            <Box className="w-3.5 h-3.5 text-apex-cyan" />
+            3D SPATIAL DIGITAL TWIN ACTIVE
+          </span>
+          <div className="flex items-center bg-slate-950 p-0.5 rounded-lg border border-slate-800 text-[10px] font-mono">
+            <button
+              onClick={() => setViewMode('3d_twin')}
+              className="px-2 py-1 rounded bg-apex-cyan text-black font-bold shadow"
+            >
+              3D WebGL
+            </button>
+            <button
+              onClick={() => setViewMode('circuit')}
+              className="px-2 py-1 rounded text-slate-400 hover:text-slate-200"
+            >
+              2D Vector
+            </button>
+            <button
+              onClick={() => setViewMode('heatmap')}
+              className="px-2 py-1 rounded text-slate-400 hover:text-slate-200"
+            >
+              Heatmap
+            </button>
+            <button
+              onClick={() => setViewMode('ribbon')}
+              className="px-2 py-1 rounded text-slate-400 hover:text-slate-200"
+            >
+              Ribbon
+            </button>
+          </div>
+        </div>
+        <Track3DDigitalTwin />
+      </div>
+    );
+  }
+
   return (
     <div className="glass-panel rounded-xl p-4 flex flex-col h-full border border-apex-border relative overflow-hidden shadow-2xl">
       {/* Title Bar & Mode Switcher */}
@@ -65,6 +106,13 @@ export const TrackMap: React.FC = () => {
 
         {/* View Mode Buttons */}
         <div className="flex items-center bg-slate-950/90 p-0.5 rounded-lg border border-slate-800 text-[10px] font-mono">
+          <button
+            onClick={() => setViewMode('3d_twin')}
+            className="px-2 py-1 rounded text-slate-400 hover:text-slate-200 flex items-center gap-1"
+          >
+            <Box className="w-3 h-3 text-apex-cyan" />
+            <span>3D WebGL</span>
+          </button>
           <button
             onClick={() => setViewMode('circuit')}
             className={`px-2 py-1 rounded transition-all ${

@@ -360,6 +360,13 @@ class RaceSimulator:
             else:
                 car.gap_to_car_behind_s = 0.0
 
+            # Update modern aerodynamic wake and ERS battery
+            CarPhysics.update_ers_and_aerodynamics(
+                car=car,
+                gap_ahead_s=car.gap_to_car_ahead_s,
+                is_in_drs_zone=(car.gap_to_car_ahead_s < 1.0 and car.position > 1),
+            )
+
             # Detect overtakes
             if old_pos != car.position and self.current_lap > 1:
                 if car.position < old_pos: # Gained position

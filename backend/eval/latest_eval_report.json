@@ -1,7 +1,7 @@
 {
-  "run_id": "EVAL-APEX-20260821-071544",
-  "timestamp_utc": "2026-08-21T07:15:44.477266+00:00",
-  "duration_seconds": 5.0,
+  "run_id": "EVAL-APEX-20260821-131417",
+  "timestamp_utc": "2026-08-21T13:14:17.639045+00:00",
+  "duration_seconds": 6.12,
   "overall_status": "PASS",
   "has_regressions": false,
   "metrics_evaluated": 8,
@@ -35,7 +35,7 @@
     },
     {
       "metric": "dqn_avg_blown_tyre_laps",
-      "value": 0.0,
+      "value": 0.2,
       "target": 0.0,
       "min_allowable": null,
       "max_allowable": 0.5,
@@ -93,9 +93,9 @@
       "dqn_win_rate_pct": 100.0,
       "dqn_podium_rate_pct": 100.0,
       "dqn_avg_gap_to_winner_s": 0.0,
-      "dqn_avg_blown_tyre_laps": 0.0,
+      "dqn_avg_blown_tyre_laps": 0.2,
       "rule_based_win_rate_pct": 60.0,
-      "random_win_rate_pct": 20.0
+      "random_win_rate_pct": 0.0
     },
     "pillar_2_shap": {
       "status": "PASS",

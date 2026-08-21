@@ -5,7 +5,7 @@ import logging
 import os
 import sys
 from datetime import UTC, datetime
-from typing import Any
+from typing import Any, Dict, List, Optional, Union
 
 from fastapi import APIRouter, HTTPException, Query, Request
 from pydantic import BaseModel, Field
@@ -827,5 +827,88 @@ async def get_fastf1_stream_status():
     """Returns real-time streaming status, message rate, and active laps."""
     from backend.app.streaming.fastf1_streamer import fastf1_streamer
     return fastf1_streamer.get_status()
+
+
+@router.get("/strategy/mcts-tree")
+async def get_mcts_strategy_tree(simulations: int = 150):
+    """
+    Executes deep AlphaZero-style Monte Carlo Tree Search (MCTS) exploration
+    and returns full serializable decision tree with UCT values and optimal path.
+    """
+    from backend.app.strategy.mcts_planner import MCTSStrategyPlanner
+    if not manager.sim:
+        raise HTTPException(status_code=400, detail="No active simulation")
+
+    state = manager.sim.get_state()
+    planner = MCTSStrategyPlanner(c_puct=1.414, rollout_depth=5)
+    best_action, tree_data, summary = await asyncio.to_thread(
+        planner.search,
+        current_state=state,
+        num_simulations=min(300, max(20, simulations)),
+    )
+
+    return {
+        "summary": summary,
+        "tree": tree_data.model_dump(),
+    }
+
+
+@router.get("/strategy/aerodynamics")
+async def get_aerodynamics_telemetry():
+    """
+    Returns real-time aerodynamic wake turbulence, downforce retention %,
+    slipstream proximity, and ERS battery status for all cars on track.
+    """
+    if not manager.sim:
+        raise HTTPException(status_code=400, detail="No active simulation")
+
+    state = manager.sim.get_state()
+    aero_data = []
+    for car in state.cars:
+        aero_data.append({
+            "car_id": car.car_id,
+            "driver_name": car.driver_name,
+            "position": car.position,
+            "gap_to_car_ahead_s": car.gap_to_car_ahead_s,
+            "in_dirty_air": car.in_dirty_air,
+            "dirty_air_intensity": car.dirty_air_intensity,
+            "downforce_retention_pct": round(max(60.0, 100.0 - car.dirty_air_intensity * 38.0), 1),
+            "slipstream_active": car.slipstream_active,
+            "ers_battery_soc_pct": car.ers_battery_soc_pct,
+            "ers_deploy_mode": car.ers_deploy_mode,
+            "speed_kmh": car.speed_kmh,
+        })
+
+    return {
+        "lap": state.current_lap,
+        "track": state.track.name,
+        "cars": aero_data,
+    }
+
+
+@router.get("/intelligence/sensor-anomalies")
+async def get_sensor_anomalies(car_id: Optional[str] = None):
+    """
+    Returns real-time 16-channel telemetry reconstruction anomalies,
+    residual errors, and predictive component failure risks.
+    """
+    from backend.app.intelligence.anomaly_detector import telemetry_anomaly_detector
+    
+    current_lap = 1
+    car_state = None
+    if manager.sim:
+        state = manager.sim.get_state()
+        current_lap = state.current_lap
+        if car_id:
+            car_state = next((c for c in state.cars if c.car_id == car_id), None)
+        else:
+            car_state = state.cars[0] if state.cars else None
+
+    report = telemetry_anomaly_detector.evaluate_telemetry(
+        car_state=car_state,
+        lap=current_lap,
+    )
+    return report.model_dump()
+
 
 
