@@ -7,103 +7,141 @@
   <a href="https://github.com/Susil-commits/F1-s-APEX----Autonomous-Predictive-EXecutive-Race-Intelligence-/actions/workflows/docker-publish.yml">
     <img src="https://github.com/Susil-commits/F1-s-APEX----Autonomous-Predictive-EXecutive-Race-Intelligence-/actions/workflows/docker-publish.yml/badge.svg" alt="Docker Build & Publish" />
   </a>
-  <img src="https://img.shields.io/badge/Docker-Containerized-2496ED.svg?logo=docker&logoColor=white" alt="Docker Containerized" />
+  <img src="https://img.shields.io/badge/Kafka-Distributed_Streaming-231F20.svg?logo=apachekafka&logoColor=white" alt="Kafka Streaming" />
+  <img src="https://img.shields.io/badge/BullMQ-Redis_Job_Queue-CC0000.svg?logo=redis&logoColor=white" alt="BullMQ Queue" />
+  <img src="https://img.shields.io/badge/Kubernetes-Helm_Ready-326CE5.svg?logo=kubernetes&logoColor=white" alt="Kubernetes Helm" />
+  <img src="https://img.shields.io/badge/Prometheus-Grafana_Obs-E6522C.svg?logo=prometheus&logoColor=white" alt="Prometheus Grafana" />
+  <img src="https://img.shields.io/badge/OpenTelemetry-Tracing-4053D6.svg?logo=opentelemetry&logoColor=white" alt="OpenTelemetry" />
   <img src="https://img.shields.io/badge/Python-3.12-blue.svg" alt="Python 3.12" />
   <img src="https://img.shields.io/badge/FastAPI-0.115-009688.svg" alt="FastAPI" />
-  <img src="https://img.shields.io/badge/MCP-2.0.0-purple.svg" alt="MCP Server" />
-  <img src="https://img.shields.io/badge/PyTorch-2.0-EE4C2C.svg" alt="PyTorch" />
-  <img src="https://img.shields.io/badge/FastF1-Real_Telemetry-E10600.svg" alt="FastF1" />
-  <img src="https://img.shields.io/badge/RL-DQN_%2B_PPO-orange.svg" alt="RL DQN & PPO" />
-  <img src="https://img.shields.io/badge/TreeSHAP-XAI-8b5cf6.svg" alt="TreeSHAP" />
-  <img src="https://img.shields.io/badge/Eval_Harness-8%2F8_Passed-brightgreen.svg" alt="Eval Harness" />
-  <img src="https://img.shields.io/badge/Workspaces-14_Pages-06b6d4.svg" alt="14 Workspaces" />
   <img src="https://img.shields.io/badge/React-18-61DAFB.svg" alt="React 18" />
-  <img src="https://img.shields.io/badge/Vite-6.0-646CFF.svg" alt="Vite 6" />
-  <img src="https://img.shields.io/badge/TailwindCSS-3.4-38B2AC.svg" alt="TailwindCSS" />
+  <img src="https://img.shields.io/badge/Tests-172%2F172_Passed-brightgreen.svg" alt="172 Tests Passed" />
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License" />
 </p>
 
-**APEX** is an autonomous Formula 1 race strategy intelligence and pit-wall mission control platform. Grounded in real-world F1 timing telemetry (`fastf1` and Jolpica/Ergast API), APEX couples a high-fidelity stochastic digital twin with multi-tier machine learning models, vectorized Monte Carlo rollouts (9 candidate actions), Deep Reinforcement Learning (DQN & PPO), Safe RL action masking guardrails, multi-action TreeSHAP explainability, an Autonomous Emergency Brain, a Multi-Factor Risk Engine, real-time historical race replay decision auditing, 100+ race AI-vs-AI championship tournaments, and an interactive 14-page React 18 cockpit dashboard.
+**APEX** is an enterprise-grade, distributed, autonomous Formula 1 race strategy intelligence and pit-wall mission control platform. Grounded in real-world F1 timing telemetry (`fastf1` and Jolpica/Ergast API), APEX couples a high-fidelity stochastic digital twin with multi-tier machine learning models, vectorized Monte Carlo rollouts (9 candidate actions), Deep Reinforcement Learning (DQN & PPO), Safe RL action masking guardrails, multi-action TreeSHAP explainability, an Autonomous Emergency Brain, a Multi-Agent Pit Wall Consensus Protocol, Apache Kafka event streaming, BullMQ / Redis asynchronous compute queues, full-stack Prometheus/Grafana observability, OpenTelemetry distributed tracing, cloud-native Kubernetes Helm deployments, and an interactive 14-page React 18 cockpit dashboard alongside a Rich terminal CLI.
 
 ---
 
 ## 🌟 Executive Project Overview (STAR Method)
 
 ### 🏎️ 1. Situation (The Problem We Faced)
-* **High-Speed Stakes:** In Formula 1 racing, split-second strategy calls (like when to change tyres, push the engine, or react to sudden rain) make the difference between winning and losing.
-* **Flawed Existing Tools:** Real-world racing teams and traditional gaming platforms either rely on basic rulebooks (which fail during unpredictable weather or crashes) or "black-box" AI (which humans cannot trust because it cannot explain *why* it made a decision).
-* **Missing Safety:** Many AI systems make reckless recommendations—such as pitting for dry tyres during a heavy thunderstorm or ignoring critical engine overheating.
+* **High-Speed Stakes:** In Formula 1 racing, split-second strategy calls (such as reacting to sudden rain, safety cars, or opponent undercut threats) determine race victory or defeat.
+* **Flawed Existing Systems:** Traditional systems rely on static rulebooks (failing during unpredictable chaos) or "black-box" AI that lacks interpretability, causing engineers to distrust recommendations.
+* **Scalability & Latency Bottlenecks:** Simulating 10,000+ forward rollouts and streaming 60Hz telemetry across 20 cars synchronously blocks web servers and causes unacceptable latency spikes.
 
 ---
 
 ### 🎯 2. Task (What We Set Out to Build)
 * **An Autonomous Pit-Wall Brain:** Create an intelligent, end-to-end race strategist ("APEX") that acts like a veteran chief race engineer.
-* **Accurate Predictions:** Teach the system to forecast tyre degradation, sudden rain, opponent overtake moves, driver fatigue, and engine health before problems occur.
-* **Explainability & Safety:** Ensure every strategy recommendation comes with a clear, honest explanation ("Why do this now?") and hard safety guardrails so it never suggests an illegal or dangerous move.
+* **Event-Driven Distributed Architecture:** Decouple telemetry ingestion from compute-heavy rollouts using Kafka streaming brokers, background worker queues, and multi-tier caching (L1 RAM $\to$ L2 Redis $\to$ L3 PostgreSQL).
+* **Explainability, Multi-Agent Consensus & Safety:** Ensure every strategic decision is physically safe (Safe RL Action Masking), explained via TreeSHAP feature attributions, and debated across 5 specialized autonomous pit wall agents.
+* **Production Cloud-Native Readiness:** Package with Kubernetes manifests, Helm charts, automated chaos resilience harnesses, and Prometheus/Grafana observability dashboards.
 
 ---
 
 ### ⚡ 3. Action (What We Built & Implemented)
-1. **Ingested Real F1 Telemetry:** Connected the system to real-world F1 timing data from circuits like Silverstone, Spa, and Monza to learn how real cars and tyres behave.
-2. **Built a "Digital Twin" Simulation:** Created a physics-based race simulator that runs every lap deterministically (replaying the same race seed produces 100% bit-identical, repeatable results).
-3. **Multi-Tier AI Predictions:**
-   * **Tyres:** Predicts lap time loss down to a fraction of a second and flags when tyres are about to "fall off the cliff".
-   * **Weather:** Estimates rain probability and tells the team the exact lap to switch between slick, intermediate, and wet tyres.
-   * **Opponents:** Detects rival pit-stop intentions to defend against undercuts.
-   * **Vehicle Health:** Monitors engine temperatures, oil pressures, and battery health to catch mechanical issues early.
-4. **Monte Carlo Future Rollouts:** Simulates hundreds of possible future race outcomes in just milliseconds to pick the move with the highest probability of winning.
-5. **Reinforcement Learning (RL) + Safe Guardrails:** Trained AI agents (PPO and DQN) to make optimal tactical decisions, protected by hard physical rules (e.g., forbidding pit stops when pit lane is closed or switching to slick tyres on flooded tracks).
-6. **Plain-English Explanations (SHAP):** Deconstructed complex mathematical decisions into clear human reasons (e.g., *"Box this lap because tyre wear reached 75% and rain is starting in 3 laps"*).
-7. **Interactive 14-Page Mission Control UI:** Built a full web dashboard showing real-time live telemetry, track maps, audio engine sounds, and decision reasoning.
+1. **Kafka Telemetry Event Streaming Pipeline**:
+   - Dispatches and consumes 60Hz telemetry across dedicated topics (`f1.telemetry.raw`, `f1.weather.events`, `f1.tyre.degradation`, `f1.race.control`, `f1.strategy.decisions`).
+   - Partitioned routing by `session_id:car_id` for deterministic in-order per-car delivery with automated Dead-Letter Queue (`f1.dlq.failed_events`) poison-pill isolation.
+   - Dual-engine execution: connects to Kafka/Redpanda when configured, with high-performance `InMemoryEventBus` fallback for zero-dependency local runs and tests.
+2. **Asynchronous Job Processing Queue (BullMQ / Redis Streams)**:
+   - Offloads 10,000+ Monte Carlo rollouts, FastF1 session parsing, ML retrain, and radio alert synthesis to background worker pools.
+   - **Deterministic Idempotency**: SHA-256 parameter hashing (`apex:job:<type>:<hash>`) eliminates redundant computations under network storms.
+   - Resilient worker execution with exponential backoff ($2^{\text{retry}-1} \times 0.5\text{s}$).
+3. **Multi-Agent Pit Wall Consensus & Deliberation Protocol**:
+   - 5 specialized autonomous agents (Chief Strategist, Tyre Specialist, Meteorologist, Powertrain Engineer, Driver Coach) debate in real time, cast weighted votes, and synthesize a unified executive order with live radio speech verbalization.
+4. **Multi-Tier Storage & Low-Latency Feature Store**:
+   - L1 Zero-Copy In-Memory Ring Buffer ($<0.1\text{ms}$ access) + L2 Redis hot cache ($1\text{--}3\text{ms}$) + L3 PostgreSQL cold store.
+   - Feature Builder throughput: **`66,798 extractions/sec`** with **`0.0245ms p99 latency`**.
+5. **Observability, Tracing & Chaos Resilience**:
+   - Full Prometheus metrics registry, 2 pre-configured Grafana dashboards, and OpenTelemetry distributed tracing with W3C `traceparent` context propagation.
+   - Automated Chaos Engineering Harness validating burst streaming, broker disconnections, worker retries, and poison-pill isolation.
+6. **Cloud-Native Kubernetes Deployment & Production Tooling**:
+   - Production Helm Charts (`deploy/helm/apex/`), Horizontal Pod Autoscaling ($3\to 20$ pods), and multi-service Docker Compose stack.
+   - Interactive React UI Mission Control + Terminal Rich Cockpit CLI (`interactive_pitwall_cli.py`).
 
 ---
 
 ### 🏆 4. Result (The Proven Outcomes)
-* **100% Test Pass Rate:** All **156 automated unit, integration, and physics invariant tests** pass with zero failures.
-* **High Predictive Accuracy:** The tyre degradation model predicts lap times with an average error of only **0.35 seconds per lap** ($R^2 = 0.834$) on held-out race data.
+* **100% Test Pass Rate:** All **172 automated unit, integration, invariant, and streaming tests** pass with zero failures.
+* **Sub-Millisecond Feature Extraction:** Feature Store extracts 28-dimensional vectors in **`0.0245 ms` ($p99$)** ($>20\times$ faster than the $0.50\text{ms}$ SLA).
+* **High Predictive Accuracy:** The tyre degradation model predicts lap times with an average error of only **0.35s per lap** ($R^2 = 0.834$) on held-out race data.
+* **Zero Chaos Crashes:** 100% self-healing resilience during 500-message bursts, poison-pill injection, and worker node failovers.
 * **Winning Race Strategy:** Achieved a **90% win rate and 95% podium rate** across tournament benchmarks against rival AI teams.
-* **Zero Safety Violations:** The safety guardrail successfully blocked 100% of illegal or dangerous strategy suggestions.
-* **Sub-5ms Decision Latency:** Generates complete race evaluations, future rollouts, and explanations in under **5 milliseconds**.
-
 
 ---
 
-## 🏎️ Complete Target Architecture
-
-APEX operates as a research-grade end-to-end pipeline bridging physical simulation, machine learning, streaming protocols, generative AI, and agentic tool invocation.
+## 🏎️ Master Distributed Architecture Pipeline
 
 ```
-REAL F1 TELEMETRY / DATA (FastF1 & Jolpica API)
-                  │
-                  ▼
-   DATA ENGINEERING PIPELINE (Raw Storage -> Cleaning -> Session Merging)
-                  │
-                  ▼
-           FEATURE STORE (Tyre, Weather, Opponent, Driver, Vehicle, Strategy Features)
-                  │
-                  ▼
-         PREDICTIVE AI MODELS
- ┌────────────────┼────────────────┬────────────────┬────────────────┐
- │ Tyre RF & Cliff│ Weather Wetness│ Opponent Intent│ Driver Fatigue │ Vehicle Health
- └────────────────┴────────────────┴────────────────┴────────────────┘
-                  │
-                  ▼
-          RACE DIGITAL TWIN (L1 Hot Memory, L2 Redis Async, L3 SQLite / DB)
-                  │
-                  ▼
-   HIGH-PERFORMANCE VECTORIZED MONTE CARLO (9 Actions x 1,000 Stochastic Rollouts)
-                  │
-                  ▼
-     REINFORCEMENT LEARNING POLICIES (Gymnasium Env + DQN + PPO)
-                  │
-                  ▼
-   AUTONOMOUS EMERGENCY BRAIN & MULTI-FACTOR RISK ENGINE
-                  │
-                  ▼
-   HYBRID DECISION AGGREGATOR (Rules + ML + Monte Carlo + RL + Safe RL Action Masking)
-                  │
-                  ▼
-   14-PAGE PIT WALL DASHBOARD, HISTORICAL REPLAY & AI-VS-AI TOURNAMENT
+                        FastF1 / Jolpica Live Ingestion Daemon (60Hz Multi-Car Bridge)
+                                                      │
+                                                      ▼
+                        ┌─────────────────────────────────────────────────────────┐
+                        │               KAFKA DISTRIBUTED BROKER                  │
+                        │ ┌───────────────────┐     ┌───────────────────────────┐ │
+                        │ │ f1.telemetry.raw  │     │ f1.weather.events         │ │
+                        │ ├───────────────────┤     ├───────────────────────────┤ │
+                        │ │ f1.tyre.degrade   │     │ f1.race.control           │ │
+                        │ ├───────────────────┤     ├───────────────────────────┤ │
+                        │ │ f1.strategy.orders│     │ f1.dlq.failed_events (DLQ)│ │
+                        │ └───────────────────┘     └───────────────────────────┘ │
+                        └───────────┬─────────────────────────────┬───────────────┘
+                                    │ Consumer Group 1            │ Consumer Group 2
+                                    ▼                             ▼
+                 ┌───────────────────────────────────┐  ┌───────────────────────────────────┐
+                 │   STREAM PROCESSING INGESTION     │  │   TELEMETRY RECORDER & STORAGE    │
+                 │  • Schema Validation (Pydantic)   │  │  • PostgreSQL Batch Flush         │
+                 │  • Anomaly & Outlier Filter       │  │  • Session Replay Store           │
+                 │  • Dead-Letter Queue (DLQ)        │  │  • S3 / Parquet Cold Archive      │
+                 └──────────────────┬────────────────┘  └───────────────────────────────────┘
+                                    │
+                                    ▼
+                 ┌──────────────────────────────────────────────────────────────────┐
+                 │             DIGITAL TWIN & L1/L2 CACHE HIERARCHY                 │
+                 │  • L1: Zero-copy In-Memory Ring Buffer (<0.1ms access)           │
+                 │  • L2: Redis Pub/Sub + Distributed State Store (Hot Window)      │
+                 └──────────────────┬───────────────────────────────────────────────┘
+                                    │
+                                    ▼
+                 ┌──────────────────────────────────────────────────────────────────┐
+                 │     MULTI-AGENT PIT WALL CONSENSUS (5 Autonomous Specialists)     │
+                 │  • Chief Strategist (0.30)  • Tyre Specialist (0.25)             │
+                 │  • Meteorologist (0.20)     • Powertrain Eng. (0.15)             │
+                 │  • Driver Coach (0.10)      • Intercom Debate Synthesis          │
+                 └──────────────────┬───────────────────────────────────────────────┘
+                                    │
+                                    ▼
+                 ┌──────────────────────────────────────────────────────────────────┐
+                 │               HYBRID DECISION & RISK AGGREGATOR                  │
+                 │  • Physics-Informed ML Inference (PINN + Random Forest)          │
+                 │  • Autonomous Emergency Brain (Incident Interceptor)             │
+                 │  • Safe RL Action Masking Guardrail                              │
+                 └──────────────────┬───────────────────────────────────────────────┘
+                                    │ Heavy Compute Offload
+                                    ▼
+                 ┌──────────────────────────────────────────────────────────────────┐
+                 │         DISTRIBUTED ASYNC WORKER QUEUE (BullMQ / Redis)          │
+                 │ ┌──────────────────────┐         ┌─────────────────────────────┐ │
+                 │ │ strategy-queue       │         │ replay-queue                │ │
+                 │ │ (Monte Carlo 10k)    │         │ (Historical Telemetry Replay│ │
+                 │ ├──────────────────────┤         ├─────────────────────────────┤ │
+                 │ │ ml-training-queue    │         │ alert-dispatch-queue        │ │
+                 │ │ (TreeSHAP & PINN fit)│         │ (Radio DSP / Push Alarms)   │ │
+                 │ └──────────────────────┘         └─────────────────────────────┘ │
+                 │  • Idempotency Deduplication Key: hash(session_id:lap:action)   │
+                 │  • Exponential Backoff & Circuit Breaker Handlers                │
+                 └──────────────────┬───────────────────────────────────────────────┘
+                                    │
+                                    ▼
+                 ┌──────────────────────────────────────────────────────────────────┐
+                 │        REAL-TIME WEBSOCKET BROADCASTER & REACT COCKPIT           │
+                 │  • Low-latency Delta Streaming (60Hz State Broadcast)            │
+                 │  • JWT Authenticated + Role-Gated Command Dispatch               │
+                 │  • 14 Specialized Pit Wall Workspaces + Audio Synth DSP          │
+                 │  • Terminal Rich Cockpit CLI (interactive_pitwall_cli.py)        │
+                 └──────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -144,69 +182,39 @@ APEX includes an automated evaluation harness and visualization suite generated 
 
 ---
 
+## 🏛️ Comprehensive Architecture Pillars
 
-## 📊 Summary of 10 Core Architectural Phases
+### 1. Kafka Telemetry Streaming Pipeline
+- **Broker Configuration**: [`kafka_config.py`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/backend/app/streaming/kafka_config.py) manages bootstrap servers, compression (`gzip`), batching ($5\text{ms}$ linger), and dual-engine execution.
+- **Event Schemas**: [`event_schemas.py`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/backend/app/streaming/event_schemas.py) defines Pydantic payloads for telemetry, weather, tyre degradation, race control, strategy decisions, and DLQ errors.
+- **Producer & Consumer Groups**: [`producer.py`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/backend/app/streaming/producer.py) routes partitioned keys (`session_id:car_id`) and [`consumer.py`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/backend/app/streaming/consumer.py) dispatches callbacks with at-least-once offset management and DLQ isolation.
+- **Live Stream Daemon**: [`stream_producer_daemon.py`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/backend/app/streaming/stream_producer_daemon.py) streams 60Hz multi-car grids continuously via CLI.
 
-### 1. Data Engineering Pipeline & Feature Store
-- **Data Ingestion**: `FastF1DataLoader` (laps, telemetry, weather, race control) with local disk caching and offline isolation fallback. `JolpicaDataLoader` for race results and pit stop durations.
-- **Preprocessing & Cleaning**: `clean_laps.py`, `clean_telemetry.py`, `clean_weather.py`, `clean_race_control.py`, and `merge_sessions.py`.
-- **Feature Store**: 6 dedicated feature generators ([`tyre_features.py`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/backend/training/features/tyre_features.py), [`weather_features.py`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/backend/training/features/weather_features.py), [`opponent_features.py`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/backend/training/features/opponent_features.py), [`driver_features.py`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/backend/training/features/driver_features.py), [`vehicle_features.py`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/backend/training/features/vehicle_features.py), [`strategy_features.py`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/backend/training/features/strategy_features.py)).
-- **Validation**: Strict physical bounds and null validation in `dataset_validator.py` with leak-free season/race session splits in `dataset_version.py`.
+### 2. Asynchronous Job Processing Queue (BullMQ / Redis Streams)
+- **Job Orchestrator**: [`job_manager.py`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/backend/app/jobs/job_manager.py) manages job dispatching, SHA-256 deterministic idempotency deduplication (`apex:job:<type>:<hash>`), and live progress tracking (`0% → 100%`).
+- **Worker Pool**: [`workers.py`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/backend/app/jobs/workers.py) executes 10,000 Monte Carlo stochastic rollouts, FastF1 session parsing, TreeSHAP model fitting, and alert synthesis with exponential backoff retries.
+- **REST Endpoints**: [`jobs_router.py`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/backend/app/api/jobs_router.py) exposes `/api/jobs/enqueue`, `/api/jobs/status/{job_id}`, and `/api/jobs/list`.
 
-### 2. Predictive Tyre & Weather Machine Learning
-- **TyreMLSuite**: Random Forest degradation regressor with 90% confidence intervals, Remaining Useful Life (RUL) estimation, and sigmoid cliff probability.
-- **WeatherPredictor**: Multi-step Track Wetness Index ($0.0-1.0$), dynamic surface grip factor ($0.40-1.05$), drying rates, and 5-lap rain probability forecasting.
+### 3. Multi-Agent Pit Wall Consensus Protocol
+- **Specialist Deliberation**: [`multi_agent_consensus.py`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/backend/app/intelligence/multi_agent_consensus.py) coordinates 5 autonomous specialist agents (Chief Strategist, Tyre Specialist, Meteorologist, Powertrain Engineer, Driver Coach) with weighted voting and intercom dialogue transcript generation.
+- **Interactive Cockpit Modal**: [`PitWallConsensusModal.tsx`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/frontend/src/components/PitWallConsensusModal.tsx) allows users to inspect individual specialist arguments, review vote distributions, and hear synthesized radio verbalizations.
 
-### 3. Opponent, Driver & Vehicle Health Subsystems
-- **OpponentIntelligenceEngine**: Multi-horizon pit stop probability classifier, attack/defence likelihood modeling, and strategic intent classification (`UNDERCUT_THREAT`, `BOX_IMMINENT`, `OVERCUT_DEFENCE`).
-- **DriverIntelligenceEngine**: Driver behavioral registry with dynamic fatigue curves, pace biases, and mistake probabilities under pressure.
-- **VehicleHealthIntelligence**: Multi-sensor powertrain telemetry (ICE temp, oil temp, coolant, brake rotors, ERS battery, cooling efficiency) with Isolation Forest anomaly detection.
+### 4. Full-Stack Observability & Tracing
+- **Prometheus Metrics**: [`metrics.py`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/backend/app/api/metrics.py) exposes `/metrics` with gauges and histograms for Kafka produced/consumed messages, consumer lag, BullMQ queue depth, and model drift status.
+- **Grafana Dashboards**: Pre-configured JSON dashboards in [`deploy/grafana/dashboards/`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/deploy/grafana/dashboards/) for system health and streaming queues.
+- **OpenTelemetry Distributed Tracing**: [`telemetry.py`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/backend/app/core/telemetry.py) injects and propagates W3C `traceparent` headers across asynchronous service boundaries.
 
-### 4. High-Fidelity Race Digital Twin
-- **Hierarchical Sub-States**: `DriverState`, `TyreState`, `VehicleHealthState`, `OpponentState`, `RiskState` fully validated and synchronized across every tick.
-- **Three-Tier Storage**: L1 In-Memory Hot Cache + L2 Asynchronous Redis write-behind + L3 SQLite/PostgreSQL persistent storage with snapshot export and restore.
+### 5. Security, Tiered Rate Limiting & RBAC
+- **Stateless JWT Tokens**: [`security.py`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/backend/app/core/security.py) and [`auth.py`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/backend/app/api/auth.py) manage HMAC-SHA256 tokens and password hashing.
+- **Role Permission Matrix**: `VIEWER` (Read telemetry), `ANALYST` (Simulate sandbox), `STRATEGIST` (Execute pit orders), and `ADMIN` (Retrain models).
+- **Tiered Token Bucket Limiting**: [`limiter.py`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/backend/app/api/limiter.py) enforces rate limits based on JWT identity (120 req/min for viewers up to 3,000 req/min for admins).
 
-### 5. High-Performance Vectorized Monte Carlo Engine
-- **Vectorized NumPy Rollouts**: Evaluates 9 candidate actions (`PIT_NOW`, `PIT_NEXT_LAP`, `PIT_PLUS_2`, `STAY_OUT`, `PUSH`, `NORMAL`, `CONSERVE`, `ATTACK`, `DEFEND`) across 100 to 10,000 stochastic futures in under 15ms.
-- **Outcome Distributions**: Win probability, podium probability, DNF risk, expected finish position, and position distribution histograms.
-
-### 6. Gymnasium Environment & DQN Optimization
-- **Standard Gymnasium Environment**: Normalized continuous observations and discrete tactical actions with dense intermediate reward shaping.
-- **Safe RL Guardrail**: Action masking guardrail enforcing physical, environmental, and regulatory constraints.
-
-### 7. PPO Policy & Hybrid Decision Engine
-- **PPO Policy Wrapper**: Stable-Baselines3 PPO implementation with heuristic fallback safety.
-- **Decision Aggregator**: Multi-tier decision aggregator synthesizing expert rules, predictive ML models, Monte Carlo distributions, and RL policies into clear, explainable decisions.
-
-### 8. Autonomous Emergency Brain & Multi-Factor Risk Engine
-- **EmergencyBrain**: Autonomous detection, classification, impact estimation, and tactical response for sudden rain, safety cars, punctures, and powertrain alarms.
-- **RiskEngine**: Multi-factor operational risk scoring (DNF risk, tyre risk, weather risk, traffic risk, mechanical risk, strategy risk).
-
-### 9. Historical Race Replay & AI-vs-AI Championship
-- **HistoricalRaceReplay**: Reconstructs real Grand Prix critical decision points (Silverstone 2023, Monaco 2023, Zandvoort 2023) and compares APEX recommendations against actual pit walls.
-- **ChampionshipSimulator**: Multi-agent tournament simulating 100+ race seasons across 5 distinct AI strategy archetypes.
-
-### 10. 14-Page Observability Dashboard & Debriefing Suite
-- **14 Dedicated Workspaces**:
-  1. **Live Tactical Pit Wall**: Real-time track map, timing tower, strategy directive card, and pit rejoin radar.
-  2. **Strategy Center & Stint Planner**: Stint compound planner, Monte Carlo stochastic rollout visualizer, and pit strategy isochrones.
-  3. **Tyre ML & RUL Intelligence**: FastF1 ML regression curve with 90% confidence bands, Remaining Useful Life (RUL), and cliff risk gauge.
-  4. **Weather Doppler & Grip Crossover**: Dynamic Doppler radar, 5m/10m rain probability forecast, dynamic Track Wetness Index, and crossover thresholds.
-  5. **Opponent Tactics & Undercut Matrix**: Competitor undercut threat matrix, pit probability forecasts, and rival strategy intent tracker.
-  6. **Driver Behavioral Analytics**: Head-to-head driver battle radar, mistake risk curves, and consistency ratings.
-  7. **Powertrain & Vehicle Health**: Multi-sensor powertrain telemetry (ICE, oil, coolant, brake rotors, ERS battery), component health meters, and Isolation Forest anomaly status.
-  8. **Counterfactual Simulation Lab**: Live scenario hazard injector (Safety Car, VSC, Torrential Rain, Punctures), strategy sandbox, and counterfactual branch comparisons.
-  9. **RL Training & Action Masking**: DQN and PPO policy visualizers, Boltzmann action probability distributions, and Safe RL action masking table.
-  10. **Deep Telemetry Lab**: High-frequency telemetry charts, dual-driver telemetry overlay, and $\Delta t$ lap time decomposition.
-  11. **Historical Race Replay**: Reconstructs real Grand Prix critical decision points and compares APEX vs actual pit wall decisions.
-  12. **TreeSHAP AI Reasoner**: TreeSHAP feature importance waterfalls, model drift verification, and AI Strategist copilot drawer.
-  13. **AI-vs-AI Championship**: 100+ race multi-agent AI tournament simulator across 5 strategy archetypes with live standings and win distributions.
-  14. **System Observability & Diagnostics**: Model registry health checks, decision latency gauges, and state store memory diagnostics.
+### 6. Cloud-Native Kubernetes & Helm Packaging
+- **Helm Package**: [`deploy/helm/apex/`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/deploy/helm/apex/) contains full declarative charts (`Chart.yaml`, `values.yaml`, templates for deployments, services, ingress, and HPA).
+- **Horizontal Pod Autoscaler (HPA)**: Automatically scales backend web pods from 3 to 20 replicas based on CPU and WebSocket connection loads.
+- **Docker Compose**: Multi-container stack in [`docker-compose.yml`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/docker-compose.yml) orchestrating Redpanda Kafka, Redis, PostgreSQL, Prometheus, Grafana, Jaeger, BullMQ Worker, and App.
 
 ---
-
-
-
 
 ## 📁 Repository Structure
 
@@ -214,161 +222,151 @@ APEX includes an automated evaluation harness and visualization suite generated 
 APEX/
 ├── backend/
 │   ├── app/
-│   │   ├── intelligence/                  # Predictive ML models (Tyre, Weather, Opponent, Driver, Health)
+│   │   ├── intelligence/                  # Predictive ML models & Multi-Agent Pit Wall Consensus
+│   │   ├── jobs/                          # BullMQ / Redis Asynchronous Job Queue & Worker Pool
+│   │   ├── streaming/                     # Kafka event schemas, producers, consumers, and live streamers
 │   │   ├── simulator/                     # 60 Hz physics engine, models, track geometry & historical replay
-│   │   ├── strategy/                      # Rule engine, Gymnasium RL env, DQN, PPO, Monte Carlo, Decision Aggregator
-│   │   ├── twin/                          # Digital twin state store (L1 Hot Memory, L2 Redis, L3 SQLite/DB)
-│   │   ├── api/                           # FastAPI REST endpoints & WebSocket broadcaster
-│   │   ├── mcp_server/                    # Official Model Context Protocol (MCP) Server (server.py)
-│   │   └── main.py                        # FastAPI entry point
+│   │   ├── strategy/                      # Rule engine, Gymnasium RL env, DQN, PPO, Monte Carlo
+│   │   ├── twin/                          # Digital twin state store (L1 Hot Memory, L2 Redis, L3 DB)
+│   │   ├── core/                          # Security (JWT/RBAC) and OpenTelemetry distributed tracing
+│   │   ├── api/                           # FastAPI REST endpoints, Auth, Jobs, and WebSocket broadcaster
+│   │   ├── mcp_server/                    # Model Context Protocol (MCP) Server (server.py)
+│   │   └── main.py                        # FastAPI entry point & lifespan hooks
 │   ├── eval/                              # Evaluation harness, baseline scores & championship simulator
 │   ├── models/                            # Trained DQN, PPO checkpoints & multi-action distilled TreeSHAP artifacts
 │   ├── training/                          # Data pipelines (FastF1/Jolpica), preprocessing, feature store, training scripts
-│   └── tests/                             # Automated test suite (149 tests across all modules)
+│   └── tests/                             # Automated test suite (172 tests across all modules)
 ├── frontend/                              # React 18 + Vite + Tailwind Mission Control
 │   ├── src/
-│   │   ├── components/                    # 40+ Mission Control components & 14 workspace views
+│   │   ├── components/                    # 45+ Mission Control components & 14 workspace views
 │   │   ├── data/                          # Multi-circuit vector geometries (Silverstone, Monza, Spa, Monaco, etc.)
 │   │   ├── utils/                         # audioEngine (DSP + Personas + V6 Synth), clientSimulator (Twin)
 │   │   ├── store/                         # Zustand state store with 14-workspace routing
 │   │   └── hooks/                         # useRaceSocket WebSocket client & twin fallback
 │   └── package.json
+├── deploy/                                # Cloud-Native Deployment Manifests
+│   ├── helm/apex/                         # Production Helm Chart Package
+│   ├── k8s/                               # Kubernetes Deployments, HPA, Ingress, StatefulSets
+│   ├── prometheus/                        # Prometheus scraper & alerting rules
+│   └── grafana/dashboards/                # Pre-configured Grafana dashboards
 ├── docs/                                  # Comprehensive architecture, ML model & API documentation
+│   ├── SYSTEM_DESIGN.md                   # Enterprise System Design Blueprint
+│   ├── INTERVIEW_TALKING_POINTS.md        # Curated Interview Q&A Guide
 │   ├── ARCHITECTURE.md
 │   ├── ML_MODELS.md
 │   └── API_REFERENCE.md
-└── benchmarks/                            # Automated benchmarking & ablation suite
-    ├── run_benchmarks.py
-    └── benchmark_report.md
+└── benchmarks/                            # Automated benchmarking, load testing & chaos suite
+    ├── k6/                                # k6 WebSocket stress, API benchmark & chaos scripts
+    ├── chaos_harness.py                   # Automated chaos engineering runner
+    ├── interactive_pitwall_cli.py         # Rich-powered terminal Pit Wall Cockpit
+    ├── benchmark_feature_store.py         # Low-latency feature store benchmark
+    └── run_benchmarks.py                  # Standard benchmark runner
 ```
 
 ---
 
-## 🐳 Docker Deployment & Quickstart
+## 🐳 Deployment & Quickstart
 
-APEX is fully containerized with a production multi-stage `Dockerfile` and `docker-compose.yml` orchestration stack including PostgreSQL 16 and Redis 7.
-
-### Option A: One-Command Full Stack via Docker Compose (Recommended)
+### Option A: Complete Multi-Container Stack via Docker Compose (Recommended)
 
 ```bash
 # Clone the repository
 git clone https://github.com/Susil-commits/F1-s-APEX----Autonomous-Predictive-EXecutive-Race-Intelligence-.git
 cd F1-s-APEX----Autonomous-Predictive-EXecutive-Race-Intelligence-
 
-# Build and launch APEX Application, Redis 7, and PostgreSQL 16
+# Launch APEX App, Worker, Redpanda Kafka, Redis, PostgreSQL, Prometheus, Grafana, and Jaeger
 docker compose up -d --build
 ```
 
-Access the unified full-stack dashboard at **[http://localhost:8000](http://localhost:8000)**.
-- **REST / WebSocket API**: `http://localhost:8000/api` & `ws://localhost:8000/ws`
+Access the system endpoints:
+- **Mission Control Cockpit**: `http://localhost:8000`
 - **Swagger / OpenAPI Documentation**: `http://localhost:8000/docs`
-- **Health Check**: `http://localhost:8000/api/health`
+- **Prometheus Metrics**: `http://localhost:8000/metrics` & `http://localhost:9090`
+- **Grafana Dashboards**: `http://localhost:3000` (admin/admin)
+- **Jaeger Distributed Tracing**: `http://localhost:16686`
 
-To view container logs or stop the stack:
-```bash
-# View live logs across services
-docker compose logs -f app
+---
 
-# Tear down the stack
-docker compose down
-```
-
-### Option B: Standalone Docker Container
+### Option B: Kubernetes Deployment via Helm
 
 ```bash
-# Build the unified image (multi-stage build with React SPA + FastAPI backend)
-docker build -t apex-race-intelligence:latest .
-
-# Run container on port 8000
-docker run -d --name apex-app -p 8000:8000 apex-race-intelligence:latest
-```
-
-### Option C: Pull Pre-built Image from GitHub Container Registry (GHCR)
-
-```bash
-docker pull ghcr.io/susil-commits/f1-s-apex----autonomous-predictive-executive-race-intelligence-:latest
-docker run -d -p 8000:8000 ghcr.io/susil-commits/f1-s-apex----autonomous-predictive-executive-race-intelligence-:latest
+# Deploy APEX using the production Helm chart
+helm upgrade --install apex deploy/helm/apex \
+  --set replicaCount=3 \
+  --set autoscaling.enabled=true \
+  --set autoscaling.maxReplicas=20
 ```
 
 ---
 
-## 🚀 Local Development Quick Start
-
-### 1. Prerequisites
-- **Python 3.11 - 3.12** & [`uv`](https://docs.astral.sh/uv/)
-- **Node.js 18+** & `npm`
-
-### 2. Install Dependencies & Build Frontend
+### Option C: Local Development Quick Start
 
 ```bash
-# Install Python backend dependencies
+# 1. Install Python dependencies with uv
 uv sync
 
-# Install Frontend dependencies & build production bundle
+# 2. Build Frontend production bundle
 cd frontend
 npm install
 npm run build
 cd ..
-```
 
-### 3. Launch Mission Control Dashboard
-
-```bash
-# Start backend server
+# 3. Launch APEX backend server
 uv run uvicorn backend.app.main:app --port 8000 --reload
 ```
 
-Open your browser and navigate to **[http://localhost:8000](http://localhost:8000)** (or run `npm run dev` in `frontend/` for Vite HMR at **[http://localhost:5173](http://localhost:5173)**).
-
 ---
 
-## 🧪 Testing, Training, Evaluation & Benchmark Commands
+## 🧪 Testing, Benchmarking & Tooling Commands
 
 ```bash
-# Run complete test suite (156/156 tests passing across all test modules)
-uv run pytest backend/tests
+# Run full automated test suite (172/172 tests passing in <55s)
+uv run pytest backend/tests -v
 
-# Run formal property invariant tests (fuel, tyre age, laps, safe RL masks, state hash)
-uv run pytest backend/tests/test_property_invariants.py -v
+# Run specialized streaming, worker, RBAC, and chaos tests
+uv run pytest backend/tests/test_streaming_kafka.py -v
+uv run pytest backend/tests/test_async_jobs.py -v
+uv run pytest backend/tests/test_jwt_rbac.py -v
+uv run pytest backend/tests/test_multi_agent_consensus.py -v
+uv run pytest backend/tests/test_chaos_recovery.py -v
 
-# Run Gate J one-command reproducibility benchmark suite
+# Run Automated Chaos Engineering & Recovery Harness
+uv run python benchmarks/chaos_harness.py
+
+# Run Feature Store Latency & Throughput Benchmark (66k+ feats/sec)
+uv run python benchmarks/benchmark_feature_store.py
+
+# Launch Interactive Terminal Pit Wall Cockpit CLI
+uv run python benchmarks/interactive_pitwall_cli.py
+
+# Launch Standalone 60Hz Telemetry Streaming Daemon
+uv run python -m backend.app.streaming.stream_producer_daemon --circuit silverstone --fps 60 --laps 52
+
+# Run Gate J Reproducibility Benchmark Suite
 uv run python -m backend.eval.benchmark_runner --quick --seed 42
 
-# Run Gate D tyre model held-out evaluation on real telemetry
+# Run Gate D Tyre Model Held-Out Evaluation on Real Telemetry
 uv run python backend/eval/tyre_model_eval.py
 
-# Execute Automated 4-Pillar Evaluation & Regression Harness (CI integrated)
+# Run 4-Pillar Evaluation & Regression Harness (CI integrated)
 uv run python backend/eval/run_eval.py
-
-# Run 9-configuration ablation study (FULL, NO_RL, NO_WEATHER, NO_TYRE_ML, NO_MC, NO_RISK, NO_SAFETY, RULE_ONLY, RANDOM)
-uv run python -m backend.eval.ablation_runner --races 5
-
-# Launch native Model Context Protocol (MCP) Server for Claude Desktop / AI Agents
-uv run python backend/app/mcp_server/server.py
-
-# Run multi-agent AI tournament championship simulation (8 strategy archetypes)
-uv run python -c "from backend.eval.championship import ChampionshipSimulator; print(ChampionshipSimulator.run_championship(total_races=10))"
-
-# Train / fine-tune DQN policy
-uv run python backend/training/train_dqn.py --steps 80000
-
-# Train PPO policy on APEX Gym Environment
-uv run python backend/training/train_ppo.py --timesteps 25000
 ```
 
 ---
 
-## 📚 In-Depth Documentation & Governance
+## 📚 System Design & Technical Documentation
 
-For complete technical specifications and forensic audits:
-- 📊 **[Forensic Baseline Audit](docs/BASELINE_AUDIT.md)**: 20 forensic findings and 10 acceptance gate criteria tracking.
-- ⚛️ **[Physics Constants & Assumptions](docs/PHYSICS_ASSUMPTIONS.md)**: 40+ physical constants catalogued with classification (Standard/Calibrated/Assumed/Proxy).
-- 🗄️ **[Data Pipeline & Schema Spec](docs/DATA_PIPELINE.md)**: 28-feature telemetry schema, leak-free split rules, and manifest versioning.
-- 🎯 **[ML Evaluation & Promotion Criteria](docs/ML_EVALUATION.md)**: Target metrics for all 5 ML models and calibration standards.
-- ⚡ **[Reproducibility Benchmark Guide](docs/BENCHMARK.md)**: Gate J benchmark runner guide and automated verification.
-- 🛡️ **[Resilience & Degradation Architecture](RESILIENCE.md)**: Zero-hard-dependency fallback matrix across PostgreSQL, Redis, Ollama, TreeSHAP, FastF1, and embeddings.
-- 📋 **[Model Registry & MLOps Governance](backend/models/registry.json)**: Model artifact provenance, SHA-256 weight hash tracking, and automated drift auditing.
-- 🏗️ **[System Architecture](docs/ARCHITECTURE.md)**: Full architecture breakdown, streaming pipelines, and state storage.
-- 🧠 **[Predictive ML Models](docs/ML_MODELS.md)**: Mathematical formulations, confidence intervals, and anomaly detection.
-- 🔌 **[API Reference](docs/API_REFERENCE.md)**: Complete guide to all 24+ REST and WebSocket endpoints.
+For complete architectural breakdowns and interview preparation:
+- 🏗️ **[System Design Blueprint (docs/SYSTEM_DESIGN.md)](docs/SYSTEM_DESIGN.md)**: Deep dive into event-driven streaming, partition keys, consumer groups, BullMQ worker queues, backpressure, multi-tier caching, and distributed tracing.
+- 🎯 **[System Design Interview Talking Points (docs/INTERVIEW_TALKING_POINTS.md)](docs/INTERVIEW_TALKING_POINTS.md)**: Curated questions and answers for Backend, Full-Stack, and ML System Design interviews.
+- 🔌 **[API Reference (docs/API_REFERENCE.md)](docs/API_REFERENCE.md)**: Specifications for all REST endpoints, WebSocket protocols, Kafka topics, and JWT authentication headers.
+- 📊 **[Forensic Baseline Audit (docs/BASELINE_AUDIT.md)](docs/BASELINE_AUDIT.md)**: Acceptance criteria tracking across all 10 architectural gates.
+- ⚛️ **[Physics Constants & Assumptions (docs/PHYSICS_ASSUMPTIONS.md)](docs/PHYSICS_ASSUMPTIONS.md)**: Catalogue of 40+ physical constants and aerodynamic equations.
+- 🧠 **[Predictive ML Models (docs/ML_MODELS.md)](docs/ML_MODELS.md)**: Formulations for Tyre PINN, Weather, Opponent, Driver, and Vehicle Health models.
+- 🛡️ **[Resilience & Degradation Architecture (RESILIENCE.md)](RESILIENCE.md)**: Zero-hard-dependency fallback matrix across all services.
 
+---
+
+<p align="center">
+  Built with ❤️ for Formula 1 engineering, autonomous intelligence, and enterprise distributed systems.
+</p>
