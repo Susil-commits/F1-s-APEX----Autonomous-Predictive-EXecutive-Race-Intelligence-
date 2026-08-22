@@ -7,6 +7,7 @@ from typing import Any
 
 import redis.asyncio as aioredis
 from sqlalchemy import select
+from sqlalchemy.exc import IntegrityError
 
 from backend.app.simulator.models import DecisionExplanation, RaceState
 from backend.app.twin.database import get_db_session, init_db
@@ -147,21 +148,27 @@ class RaceStore:
         try:
             await self.ensure_db_ready()
             async with get_db_session() as session:
-                # Upsert RaceSession
+                # Upsert RaceSession with race-condition safety
                 db_session = await session.get(RaceSessionModel, state.race_id)
                 now = datetime.now(UTC)
                 if not db_session:
-                    db_session = RaceSessionModel(
-                        race_id=state.race_id,
-                        track_name=state.track.name if hasattr(state.track, "name") else "silverstone",
-                        total_laps=state.total_laps,
-                        current_lap=state.current_lap,
-                        is_finished=state.is_finished,
-                        winner_car_id=state.winner_car_id,
-                        created_at=now,
-                    )
-                    session.add(db_session)
-                else:
+                    try:
+                        async with session.begin_nested():
+                            db_session = RaceSessionModel(
+                                race_id=state.race_id,
+                                track_name=state.track.name if hasattr(state.track, "name") else "silverstone",
+                                total_laps=state.total_laps,
+                                current_lap=state.current_lap,
+                                is_finished=state.is_finished,
+                                winner_car_id=state.winner_car_id,
+                                created_at=now,
+                            )
+                            session.add(db_session)
+                            await session.flush()
+                    except IntegrityError:
+                        db_session = await session.get(RaceSessionModel, state.race_id)
+                
+                if db_session:
                     db_session.current_lap = state.current_lap
                     db_session.is_finished = state.is_finished
                     db_session.winner_car_id = state.winner_car_id
@@ -229,16 +236,20 @@ class RaceStore:
                     active = self.active_races.get(race_id)
                     track_name = (active.track.name if hasattr(active.track, "name") else "silverstone") if active else "silverstone"
                     total_laps = active.total_laps if active else 52
-                    db_session = RaceSessionModel(
-                        race_id=race_id,
-                        track_name=track_name,
-                        total_laps=total_laps,
-                        current_lap=lap,
-                        is_finished=False,
-                        created_at=now,
-                    )
-                    session.add(db_session)
-                    await session.flush()
+                    try:
+                        async with session.begin_nested():
+                            db_session = RaceSessionModel(
+                                race_id=race_id,
+                                track_name=track_name,
+                                total_laps=total_laps,
+                                current_lap=lap,
+                                is_finished=False,
+                                created_at=now,
+                            )
+                            session.add(db_session)
+                            await session.flush()
+                    except IntegrityError:
+                        db_session = await session.get(RaceSessionModel, race_id)
 
                 rec_val = (
                     decision.recommendation.value
