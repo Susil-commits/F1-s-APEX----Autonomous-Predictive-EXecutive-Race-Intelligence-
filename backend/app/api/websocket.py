@@ -116,10 +116,10 @@ class ConnectionManager:
             await websocket.send_text(json.dumps({
                 "type": "STATE_UPDATE",
                 "session_id": session.session_id,
-                "state": state.model_dump(),
+                "state": state.model_dump(mode="json"),
                 "is_running": session.is_running,
                 "sim_speed": session.sim_speed,
-            }))
+            }, default=str))
 
     def disconnect(self, websocket: WebSocket, session_id: str = "default"):
         sid = session_id or self._default_session_id
@@ -140,7 +140,7 @@ class ConnectionManager:
         session = self.sessions.get(session_id or self._default_session_id)
         if not session or not session.active_connections:
             return
-        payload = json.dumps(message)
+        payload = json.dumps(message, default=str)
         dead = []
         for connection in list(session.active_connections):
             try:
@@ -251,7 +251,7 @@ class ConnectionManager:
                     {
                         "type": "STATE_UPDATE",
                         "session_id": session.session_id,
-                        "state": state.model_dump(),
+                        "state": state.model_dump(mode="json"),
                         "is_running": session.is_running,
                         "sim_speed": session.sim_speed,
                     },
@@ -268,7 +268,7 @@ class ConnectionManager:
                 {
                     "type": "RACE_FINISHED",
                     "session_id": session.session_id,
-                    "state": session.sim.get_state().model_dump(),
+                    "state": session.sim.get_state().model_dump(mode="json"),
                 },
                 session_id=session.session_id,
             )

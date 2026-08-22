@@ -85,28 +85,16 @@ app = FastAPI(
 app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, cast(Any, _rate_limit_exceeded_handler))
 
-# Enable CORS with configurable origins via environment variable
-allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
-if allowed_origins_env.strip():
-    allowed_origins = [orig.strip() for orig in allowed_origins_env.split(",") if orig.strip()]
-else:
-    allowed_origins = [
-        "http://localhost:5173",
-        "http://localhost:8000",
-        "http://127.0.0.1:5173",
-        "http://127.0.0.1:8000",
-        "http://localhost:3000",
-    ]
-
+# Enable CORS for all environments (Vercel production, Railway, Localhost)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=allowed_origins if "*" not in allowed_origins else ["*"],
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Register REST & WebSocket routers
+# Register REST routers
 app.include_router(auth_router)
 app.include_router(jobs_router)
 app.include_router(router)
@@ -120,12 +108,24 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str = "default"):
     token = websocket.query_params.get("token")
     user_info = None
     if token:
-        user_info = decode_access_token(token)
+        try:
+            user_info = decode_access_token(token)
+        except Exception:
+            pass
 
     query_session = websocket.query_params.get("race_id") or websocket.query_params.get("session_id")
     effective_session = query_session or session_id or "default"
 
-    await manager.connect(websocket, session_id=effective_session)
+    try:
+        await manager.connect(websocket, session_id=effective_session)
+    except Exception as err:
+        print(f"[APEX WS] Connect handshake error: {err}")
+        try:
+            await websocket.close()
+        except Exception:
+            pass
+        return
+
     try:
         while True:
             data = await websocket.receive_json()
@@ -146,7 +146,8 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str = "default"):
                 manager.inject_incident(data.get("event"), session_id=target_sid)
     except WebSocketDisconnect:
         manager.disconnect(websocket, session_id=effective_session)
-    except Exception:
+    except Exception as e:
+        print(f"[APEX WS] Session {effective_session} closed: {e}")
         manager.disconnect(websocket, session_id=effective_session)
 
 
