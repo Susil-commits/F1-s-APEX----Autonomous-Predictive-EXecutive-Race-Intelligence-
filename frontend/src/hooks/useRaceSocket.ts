@@ -54,8 +54,9 @@ export function useRaceSocket() {
 
     try {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
-      const host = window.location.host;
-      const wsUrl = `${protocol}//${host}/ws`;
+      const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1';
+      const defaultHost = isLocal ? window.location.host : 'f1-s-apex-autonomous-predictive-executive-rac-production.up.railway.app';
+      const wsUrl = (import.meta as any).env?.VITE_WS_URL || `${protocol}//${defaultHost}/ws`;
 
       const ws = new WebSocket(wsUrl);
 
