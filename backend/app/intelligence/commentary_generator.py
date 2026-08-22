@@ -109,7 +109,7 @@ class CommentaryGenerator:
             system_prompt=system_prompt,
             temperature=0.15,
             max_tokens=64,
-            timeout=2.5,
+            timeout=8.0,
         )
 
         if raw_text:
