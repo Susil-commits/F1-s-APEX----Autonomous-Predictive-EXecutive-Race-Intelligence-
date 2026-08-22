@@ -112,19 +112,7 @@ app.include_router(jobs_router)
 app.include_router(router)
 app.include_router(metrics_router)
 
-# Mount frontend static build if present
-frontend_dist = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")
-if os.path.exists(frontend_dist):
-    from fastapi.responses import FileResponse
-    from fastapi.staticfiles import StaticFiles
-
-    @app.get("/")
-    async def serve_spa_root():
-        return FileResponse(os.path.join(frontend_dist, "index.html"))
-
-    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
-
-
+# Register WebSocket endpoints (must be defined BEFORE catch-all static mounts)
 @app.websocket("/ws")
 @app.websocket("/ws/{session_id}")
 async def websocket_endpoint(websocket: WebSocket, session_id: str = "default"):
@@ -160,6 +148,19 @@ async def websocket_endpoint(websocket: WebSocket, session_id: str = "default"):
         manager.disconnect(websocket, session_id=effective_session)
     except Exception:
         manager.disconnect(websocket, session_id=effective_session)
+
+
+# Mount frontend static build if present (catch-all for SPA must be LAST)
+frontend_dist = os.path.join(os.path.dirname(__file__), "..", "..", "frontend", "dist")
+if os.path.exists(frontend_dist):
+    from fastapi.responses import FileResponse
+    from fastapi.staticfiles import StaticFiles
+
+    @app.get("/")
+    async def serve_spa_root():
+        return FileResponse(os.path.join(frontend_dist, "index.html"))
+
+    app.mount("/", StaticFiles(directory=frontend_dist, html=True), name="frontend")
 
 
 if __name__ == "__main__":
