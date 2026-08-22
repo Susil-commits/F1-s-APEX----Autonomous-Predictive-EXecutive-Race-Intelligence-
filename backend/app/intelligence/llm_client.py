@@ -6,6 +6,7 @@ local Ollama and offline deterministic persona engines.
 import logging
 import os
 import time
+import unicodedata
 from typing import Optional
 
 import httpx
@@ -37,17 +38,41 @@ _last_ollama_check: float = 0.0
 _OLLAMA_RETRY_INTERVAL: float = 60.0
 
 
+def _sanitize_text(text: str) -> str:
+    """Normalizes Unicode non-breaking spaces/hyphens and smart quotes to standard characters."""
+    if not text:
+        return text
+    cleaned = (
+        text.replace("\u2011", "-")
+        .replace("\u2012", "-")
+        .replace("\u2013", "-")
+        .replace("\u2014", "-")
+        .replace("\u2018", "'")
+        .replace("\u2019", "'")
+        .replace("\u201c", '"')
+        .replace("\u201d", '"')
+        .replace("\u00a0", " ")
+    )
+    return unicodedata.normalize("NFKD", cleaned)
+
+
+def _get_groq_provider_name(model_name: str) -> str:
+    if model_name.startswith("groq/"):
+        return model_name
+    return f"groq/{model_name}"
+
+
 def call_llm_sync(
     prompt: str,
     system_prompt: str = "You are the APEX F1 Race Strategy Intelligence Assistant.",
     temperature: float = 0.15,
     max_tokens: int = 256,
-    timeout: float = 4.0,
+    timeout: float = 8.0,
 ) -> tuple[Optional[str], str]:
     """Synchronous multi-tier LLM invocation: Groq -> OpenAI -> Ollama -> None."""
     global _ollama_available, _last_ollama_check
 
-    # Tier 1: Groq Cloud API (Free, ultrafast Llama 3.3 / 3.1)
+    # Tier 1: Groq Cloud API (Free, ultrafast Llama 3.3 / Compound / Qwen)
     if GROQ_API_KEY.strip():
         try:
             with httpx.Client(timeout=timeout) as client:
@@ -69,8 +94,8 @@ def call_llm_sync(
                 )
                 if res.status_code == 200:
                     data = res.json()
-                    content = data["choices"][0]["message"]["content"].strip()
-                    return content, f"groq/{GROQ_MODEL}"
+                    content = _sanitize_text(data["choices"][0]["message"]["content"].strip())
+                    return content, _get_groq_provider_name(GROQ_MODEL)
                 else:
                     logger.warning(f"[APEX LLM] Groq API returned status {res.status_code}: {res.text}")
         except Exception as e:
@@ -98,7 +123,7 @@ def call_llm_sync(
                 )
                 if res.status_code == 200:
                     data = res.json()
-                    content = data["choices"][0]["message"]["content"].strip()
+                    content = _sanitize_text(data["choices"][0]["message"]["content"].strip())
                     return content, f"openai/{OPENAI_MODEL}"
         except Exception as e:
             logger.warning(f"[APEX LLM] OpenAI cloud inference error: {e}")
@@ -120,7 +145,7 @@ def call_llm_sync(
             options={"temperature": temperature, "top_p": 0.9},
         )
         _ollama_available = True
-        raw_text = response.get("message", {}).get("content", "").strip()
+        raw_text = _sanitize_text(response.get("message", {}).get("content", "").strip())
         if raw_text:
             return raw_text, f"ollama/{DEFAULT_OLLAMA_MODEL}"
     except Exception as e:
@@ -136,7 +161,7 @@ async def call_llm_async(
     system_prompt: str = "You are the APEX F1 Race Strategy Intelligence Assistant.",
     temperature: float = 0.15,
     max_tokens: int = 350,
-    timeout: float = 6.0,
+    timeout: float = 10.0,
 ) -> tuple[Optional[str], str]:
     """Asynchronous multi-tier LLM invocation: Groq -> OpenAI -> Ollama -> None."""
     global _ollama_available, _last_ollama_check
@@ -163,8 +188,8 @@ async def call_llm_async(
                 )
                 if res.status_code == 200:
                     data = res.json()
-                    content = data["choices"][0]["message"]["content"].strip()
-                    return content, f"groq/{GROQ_MODEL}"
+                    content = _sanitize_text(data["choices"][0]["message"]["content"].strip())
+                    return content, _get_groq_provider_name(GROQ_MODEL)
                 else:
                     logger.warning(f"[APEX LLM] Groq async API returned status {res.status_code}: {res.text}")
         except Exception as e:
@@ -192,7 +217,7 @@ async def call_llm_async(
                 )
                 if res.status_code == 200:
                     data = res.json()
-                    content = data["choices"][0]["message"]["content"].strip()
+                    content = _sanitize_text(data["choices"][0]["message"]["content"].strip())
                     return content, f"openai/{OPENAI_MODEL}"
         except Exception as e:
             logger.warning(f"[APEX LLM] OpenAI async cloud inference error: {e}")
@@ -214,7 +239,7 @@ async def call_llm_async(
             options={"temperature": temperature, "top_p": 0.9},
         )
         _ollama_available = True
-        raw_text = response.get("message", {}).get("content", "").strip()
+        raw_text = _sanitize_text(response.get("message", {}).get("content", "").strip())
         if raw_text:
             return raw_text, f"ollama/{DEFAULT_OLLAMA_MODEL}"
     except Exception as e:
