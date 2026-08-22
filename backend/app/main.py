@@ -100,6 +100,15 @@ app.include_router(jobs_router)
 app.include_router(router)
 app.include_router(metrics_router)
 
+@app.get("/api/version")
+async def get_version():
+    return {
+        "version": "1.0.0",
+        "theme": "Formula 1 Red & Carbon",
+        "ws_ready": True,
+        "status": "ready"
+    }
+
 # Register WebSocket endpoints (must be defined BEFORE catch-all static mounts)
 @app.websocket("/ws")
 @app.websocket("/ws/{session_id}")
