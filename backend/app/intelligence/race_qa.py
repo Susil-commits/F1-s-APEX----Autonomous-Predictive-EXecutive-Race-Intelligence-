@@ -139,7 +139,7 @@ class RaceQAEngine:
             "Answer (concise, factual, professional):"
         )
 
-        answer_text, model_used = self._call_llm_or_fallback(prompt, query, top_sources)
+        answer_text, model_used = await self._call_llm_or_fallback(prompt, query, top_sources)
 
         # Sanitize source records for frontend display
         sources_payload = []
@@ -167,26 +167,28 @@ class RaceQAEngine:
             "embedding_source": embedding_source,
         }
 
-    def _call_llm_or_fallback(
+    async def _call_llm_or_fallback(
         self,
         prompt: str,
         query: str,
         sources: list[dict[str, Any]],
     ) -> tuple[str, str]:
-        """Attempts Ollama inference first, falling back to grounded rule extraction."""
-        try:
-            import ollama
-            client = ollama.Client(host=self.host, timeout=2.0)
-            response = client.chat(
-                model=self.model_name,
-                messages=[{"role": "user", "content": prompt}],
-                options={"temperature": 0.1, "top_p": 0.8},
-            )
-            ans = response.get("message", {}).get("content", "").strip()
-            if ans:
-                return ans, f"ollama/{self.model_name}"
-        except Exception as e:
-            logger.debug(f"[RaceQA] Ollama offline or timed out ({e}). Using deterministic grounding fallback.")
+        """Attempts Cloud LLM (Groq / OpenAI) or local Ollama, falling back to grounded rule extraction."""
+        from backend.app.intelligence.llm_client import call_llm_async
+
+        system_prompt = (
+            "You are the APEX F1 Race Strategy Intelligence Assistant. "
+            "Answer natural language questions grounded strictly in verified digital twin decision logs."
+        )
+        raw_text, provider = await call_llm_async(
+            prompt=prompt,
+            system_prompt=system_prompt,
+            temperature=0.1,
+            max_tokens=256,
+            timeout=5.0,
+        )
+        if raw_text:
+            return raw_text, provider
 
         # Deterministic grounded fallback
         top = sources[0]

@@ -97,32 +97,26 @@ class CommentaryGenerator:
         explanation: DecisionExplanation,
         persona: str = "apex_core",
     ) -> str:
-        """Invokes Ollama local LLM with circuit-breaker protection, falling back to persona template."""
-        now = time.time()
-        if CommentaryGenerator._ollama_available is False:
-            if now - CommentaryGenerator._last_ollama_check < CommentaryGenerator._OLLAMA_RETRY_INTERVAL:
-                return self.get_template_fallback(explanation, persona)
+        """Invokes multi-tier LLM (Groq cloud -> OpenAI -> local Ollama), falling back to persona template."""
+        from backend.app.intelligence.llm_client import call_llm_sync
 
-        try:
-            import ollama
-            client = ollama.Client(host=self.host, timeout=0.5)
-            response = client.chat(
-                model=self.model_name,
-                messages=[{"role": "user", "content": prompt}],
-                options={"temperature": 0.15, "top_p": 0.9},
-            )
-            CommentaryGenerator._ollama_available = True
-            raw_text = response.get("message", {}).get("content", "").strip()
-            if raw_text:
-                # Sanity check for invented numbers
-                if self.is_fact_consistent(raw_text, explanation):
-                    return raw_text
-                else:
-                    logger.warning(f"[Commentary] LLM response violated fact constraints: '{raw_text}'. Using fallback template.")
-        except Exception as e:
-            CommentaryGenerator._ollama_available = False
-            CommentaryGenerator._last_ollama_check = now
-            logger.debug(f"[Commentary] Ollama offline or timed out ({e}). Using deterministic template fallback.")
+        system_prompt = (
+            "You are an F1 race engineer speaking over team radio. "
+            "Say ONE concise radio transmission line (under 20 words) based strictly on verified strategy telemetry."
+        )
+        raw_text, provider = call_llm_sync(
+            prompt=prompt,
+            system_prompt=system_prompt,
+            temperature=0.15,
+            max_tokens=64,
+            timeout=2.5,
+        )
+
+        if raw_text:
+            if self.is_fact_consistent(raw_text, explanation):
+                return raw_text
+            else:
+                logger.warning(f"[Commentary] {provider} violated fact constraints: '{raw_text}'. Using fallback template.")
 
         return self.get_template_fallback(explanation, persona)
 
