@@ -12,26 +12,22 @@ export const TrackMap: React.FC = () => {
   const { raceState, selectedCarId, setSelectedCarId, setInspectedCar } = useRaceStore();
   const [viewMode, setViewMode] = useState<TrackViewMode>('3d_twin');
 
-  if (!raceState) return null;
-
-  const { cars, track, weather, safety_car } = raceState;
-
-  // Resolve circuit geometry based on track name
   const circuitKey =
     Object.keys(CIRCUIT_DATABASE).find(
       (k) =>
-        track.name.toLowerCase().includes(k) ||
-        CIRCUIT_DATABASE[k].name.toLowerCase().includes(track.name.toLowerCase())
+        raceState?.track?.name?.toLowerCase().includes(k) ||
+        CIRCUIT_DATABASE[k].name.toLowerCase().includes(raceState?.track?.name?.toLowerCase() || '')
     ) || 'silverstone';
 
   const circuit: CircuitData = CIRCUIT_DATABASE[circuitKey] || CIRCUIT_DATABASE.silverstone;
 
   // Interpolate car positions along circuit waypoints
   const carCoordinates = useMemo(() => {
+    if (!raceState?.cars) return [];
     const waypoints = circuit.waypoints;
     const nWaypoints = waypoints.length;
 
-    return cars.map((car: CarState) => {
+    return raceState.cars.map((car: CarState) => {
       const wpIndex = (car.position - 1) % nWaypoints;
       const wp = waypoints[wpIndex];
       const laneOffset = ((car.car_number % 3) - 1) * 4;
@@ -44,8 +40,11 @@ export const TrackMap: React.FC = () => {
         speedKmh: wp.speedKmh || 290,
       };
     });
-  }, [cars, circuit]);
+  }, [raceState?.cars, circuit]);
 
+  if (!raceState) return null;
+
+  const { cars, track, weather, safety_car } = raceState;
   const isRaining = weather.condition === 'WET' || weather.condition === 'DAMP';
 
   const handleCarClick = (car: CarState) => {

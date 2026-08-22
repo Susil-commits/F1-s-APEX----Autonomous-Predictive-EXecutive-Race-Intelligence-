@@ -1,14 +1,16 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useCallback } from 'react';
 import { useRaceStore } from '../store/raceStore';
 import { StrategyAction } from '../types/race';
 import { ClientRaceSimulator } from '../utils/clientSimulator';
 
-export function useRaceSocket() {
-  const wsRef = useRef<WebSocket | null>(null);
-  const reconnectTimeoutRef = useRef<number | null>(null);
-  const simTimerRef = useRef<number | null>(null);
-  const localSimRef = useRef<ClientRaceSimulator>(new ClientRaceSimulator('silverstone', 42));
+// Module-level singleton state across all component hook subscribers
+let globalWs: WebSocket | null = null;
+let globalReconnectTimer: number | null = null;
+let globalSimTimer: number | null = null;
+const globalLocalSim = new ClientRaceSimulator('silverstone', 42);
+let subscriberCount = 0;
 
+export function useRaceSocket() {
   const {
     setRaceState,
     setRunning,
@@ -21,36 +23,45 @@ export function useRaceSocket() {
     simSpeed,
   } = useRaceStore();
 
-  // Initialize initial local state if empty
+  // Initialize initial state if empty
   useEffect(() => {
     if (!raceState) {
-      setRaceState(localSimRef.current.getState());
+      setRaceState(globalLocalSim.getState());
       setIsLocalTwin(true);
     }
   }, [raceState, setRaceState, setIsLocalTwin]);
 
-  // Local simulation tick loop when running in local twin mode
+  // Local simulation tick loop when offline or in client twin mode
   useEffect(() => {
-    if (isRunning && !wsRef.current?.readyState) {
+    if (isRunning && (!globalWs || globalWs.readyState !== WebSocket.OPEN)) {
+      if (globalSimTimer) clearInterval(globalSimTimer);
       const intervalMs = Math.max(100, Math.floor(1000 / simSpeed));
-      simTimerRef.current = window.setInterval(() => {
-        const nextState = localSimRef.current.step();
+      globalSimTimer = window.setInterval(() => {
+        const nextState = globalLocalSim.step();
         setRaceState(nextState);
         if (nextState.is_finished) {
           setRunning(false);
         }
       }, intervalMs);
     } else {
-      if (simTimerRef.current) clearInterval(simTimerRef.current);
+      if (globalSimTimer) {
+        clearInterval(globalSimTimer);
+        globalSimTimer = null;
+      }
     }
 
     return () => {
-      if (simTimerRef.current) clearInterval(simTimerRef.current);
+      if (globalSimTimer) {
+        clearInterval(globalSimTimer);
+        globalSimTimer = null;
+      }
     };
   }, [isRunning, simSpeed, setRaceState, setRunning]);
 
   const connect = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    if (globalWs && (globalWs.readyState === WebSocket.OPEN || globalWs.readyState === WebSocket.CONNECTING)) {
+      return;
+    }
 
     try {
       const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -85,33 +96,53 @@ export function useRaceSocket() {
       };
 
       ws.onclose = () => {
-        console.log('[APEX WS] Backend offline. Operating on high-fidelity client digital twin.');
         setConnected(false);
         setIsLocalTwin(true);
-        reconnectTimeoutRef.current = window.setTimeout(connect, 5000);
+        if (!globalReconnectTimer) {
+          globalReconnectTimer = window.setTimeout(() => {
+            globalReconnectTimer = null;
+            connect();
+          }, 5000);
+        }
       };
 
       ws.onerror = () => {
-        ws.close();
+        try {
+          ws.close();
+        } catch {}
       };
 
-      wsRef.current = ws;
+      globalWs = ws;
     } catch {
       setIsLocalTwin(true);
     }
   }, [setRaceState, setRunning, setSpeed, setConnected, setIsLocalTwin]);
 
   useEffect(() => {
+    subscriberCount += 1;
     connect();
+
     return () => {
-      if (reconnectTimeoutRef.current) clearTimeout(reconnectTimeoutRef.current);
-      wsRef.current?.close();
+      subscriberCount -= 1;
+      if (subscriberCount <= 0) {
+        subscriberCount = 0;
+        if (globalReconnectTimer) {
+          clearTimeout(globalReconnectTimer);
+          globalReconnectTimer = null;
+        }
+        if (globalWs) {
+          try {
+            globalWs.close();
+          } catch {}
+          globalWs = null;
+        }
+      }
     };
   }, [connect]);
 
   const send = useCallback((payload: object) => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
-      wsRef.current.send(JSON.stringify(payload));
+    if (globalWs && globalWs.readyState === WebSocket.OPEN) {
+      globalWs.send(JSON.stringify(payload));
     }
   }, []);
 
@@ -132,14 +163,13 @@ export function useRaceSocket() {
   }, [send, setRunning]);
 
   const step = useCallback(async () => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) {
+    if (globalWs && globalWs.readyState === WebSocket.OPEN) {
       send({ type: 'STEP' });
       try {
         await fetch('/api/race/step', { method: 'POST' });
       } catch {}
     } else {
-      // Local step
-      const nextState = localSimRef.current.step();
+      const nextState = globalLocalSim.step();
       setRaceState(nextState);
     }
   }, [send, setRaceState]);
@@ -161,7 +191,7 @@ export function useRaceSocket() {
 
   const applyAction = useCallback(
     async (action: StrategyAction) => {
-      localSimRef.current.setAction(action);
+      globalLocalSim.setAction(action);
       send({ type: 'ACTION', action });
       try {
         await fetch('/api/race/action', {
@@ -176,8 +206,8 @@ export function useRaceSocket() {
 
   const injectIncident = useCallback(
     async (event: 'SAFETY_CAR' | 'VSC' | 'RAIN') => {
-      localSimRef.current.injectIncident(event);
-      setRaceState(localSimRef.current.getState());
+      globalLocalSim.injectIncident(event);
+      setRaceState(globalLocalSim.getState());
       send({ type: 'INJECT_EVENT', event });
       try {
         await fetch('/api/race/inject', {
@@ -193,7 +223,7 @@ export function useRaceSocket() {
   const initRace = useCallback(
     async (trackName: string = 'silverstone', seed: number = 42) => {
       resetHistory();
-      const fresh = localSimRef.current.reset(trackName, seed);
+      const fresh = globalLocalSim.reset(trackName, seed);
       setRaceState(fresh);
       try {
         const res = await fetch('/api/race/init', {
@@ -201,11 +231,13 @@ export function useRaceSocket() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ track_name: trackName, seed }),
         });
-        const data = await res.json();
-        if (data.state) setRaceState(data.state);
-      } catch {
-        // Fallback to local reset
-      }
+        if (res.ok) {
+          const data = await res.json();
+          if (data.state) {
+            setRaceState(data.state);
+          }
+        }
+      } catch {}
     },
     [resetHistory, setRaceState]
   );
@@ -218,5 +250,7 @@ export function useRaceSocket() {
     applyAction,
     injectIncident,
     initRace,
+    isRunning,
+    simSpeed,
   };
 }

@@ -1,26 +1,27 @@
 import React, { useMemo } from 'react';
 import { useRaceStore } from '../store/raceStore';
-import { ShieldCheck, AlertTriangle, ArrowDownRight, Wind, Clock, Users } from 'lucide-react';
+import { ShieldCheck, AlertTriangle, Wind } from 'lucide-react';
 import { CarState } from '../types/race';
 
 export const PitRejoinRadar: React.FC = () => {
   const { raceState } = useRaceStore();
 
-  if (!raceState) return null;
+  const playerCar = raceState?.cars?.find((c) => c.is_player) || raceState?.cars?.[0];
+  const track = raceState?.track;
+  const safety_car = raceState?.safety_car;
+  const cars = raceState?.cars || [];
 
-  const { cars, track, safety_car } = raceState;
-  const playerCar = cars.find((c) => c.is_player) || cars[0];
-
-  // Calculate dynamic pit delta
-  let effectivePitDelta = track.pit_lane_delta_s;
-  if (safety_car === 'SAFETY_CAR') {
-    effectivePitDelta -= track.sc_pit_advantage_s;
-  } else if (safety_car === 'VSC') {
-    effectivePitDelta -= track.vsc_pit_advantage_s;
-  }
-
-  // Compute re-emergence position and gaps
   const rejoinAnalysis = useMemo(() => {
+    if (!raceState || !playerCar || !track) return null;
+
+    // Calculate dynamic pit delta
+    let effectivePitDelta = track.pit_lane_delta_s;
+    if (safety_car === 'SAFETY_CAR') {
+      effectivePitDelta -= track.sc_pit_advantage_s;
+    } else if (safety_car === 'VSC') {
+      effectivePitDelta -= track.vsc_pit_advantage_s;
+    }
+
     const projectedPlayerTotalTime = playerCar.total_race_time_s + effectivePitDelta;
     
     // Sort all other cars by their current total race time
@@ -57,7 +58,9 @@ export const PitRejoinRadar: React.FC = () => {
       gapBehind: gapBehind === 999 ? 0 : gapBehind,
       inDirtyAir,
     };
-  }, [cars, playerCar, effectivePitDelta]);
+  }, [raceState, playerCar, track, safety_car, cars]);
+
+  if (!raceState || !playerCar || !rejoinAnalysis) return null;
 
   return (
     <div className="glass-panel rounded-xl p-4 flex flex-col border border-apex-border shadow-2xl">
