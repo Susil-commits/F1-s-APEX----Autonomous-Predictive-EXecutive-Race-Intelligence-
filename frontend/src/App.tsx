@@ -160,24 +160,24 @@ export const App: React.FC = () => {
             <div className="flex flex-wrap items-center gap-2">
               <button
                 onClick={() => setShowCommandPalette(true)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 font-bold transition-all active:scale-95 shadow-sm"
+                className="flex items-center gap-1.5 px-3 py-1 rounded bg-[#12151E] hover:bg-[#1A1F2C] text-white border border-[#2A3042] font-bold transition-all active:scale-95 shadow-sm hover:border-[#E10600]"
               >
-                <Command className="w-3.5 h-3.5 text-apex-cyan" />
+                <Command className="w-3.5 h-3.5 text-[#E10600]" />
                 <span>Command Palette</span>
-                <span className="text-[10px] px-1 py-0.2 rounded bg-slate-900 text-slate-400">Ctrl+K</span>
+                <span className="text-[10px] px-1 py-0.2 rounded bg-black text-slate-400 border border-slate-800">Ctrl+K</span>
               </button>
 
               <button
                 onClick={() => setShowRadioHubModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-rose-950/70 hover:bg-rose-900/90 text-rose-300 border border-rose-700/60 font-bold transition-all active:scale-95 shadow-sm shadow-rose-900/30"
+                className="flex items-center gap-1.5 px-3 py-1 rounded bg-red-950/80 hover:bg-red-900 text-white border border-red-700/80 font-bold transition-all active:scale-95 shadow-sm shadow-red-900/40"
               >
-                <Radio className="w-3.5 h-3.5 text-rose-400" />
+                <Radio className="w-3.5 h-3.5 text-white animate-pulse" />
                 <span>Neural Pit Radio</span>
               </button>
 
               <button
                 onClick={() => setShowConsensusModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-950/70 hover:bg-emerald-900/90 text-emerald-300 border border-emerald-700/60 font-bold transition-all active:scale-95 shadow-sm shadow-emerald-900/30"
+                className="flex items-center gap-1.5 px-3 py-1 rounded bg-[#12151E] hover:bg-[#1A1F2C] text-white border border-[#2A3042] font-bold transition-all active:scale-95 shadow-sm hover:border-[#E10600]"
               >
                 <Users className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Pit Wall 5-Agent Consensus</span>
@@ -185,15 +185,15 @@ export const App: React.FC = () => {
 
               <button
                 onClick={() => setShowQAModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-cyan-950/70 hover:bg-cyan-900/90 text-cyan-300 border border-cyan-700/60 font-bold transition-all active:scale-95 shadow-sm shadow-cyan-900/30"
+                className="flex items-center gap-1.5 px-3 py-1 rounded bg-[#12151E] hover:bg-[#1A1F2C] text-white border border-[#2A3042] font-bold transition-all active:scale-95 shadow-sm hover:border-[#E10600]"
               >
-                <Brain className="w-3.5 h-3.5 text-cyan-400" />
+                <Brain className="w-3.5 h-3.5 text-[#E10600]" />
                 <span>RAG Race Debrief</span>
               </button>
 
               <button
                 onClick={() => setShowBenchmarkModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-purple-950/70 hover:bg-purple-900/90 text-purple-300 border border-purple-700/60 font-bold transition-all active:scale-95 shadow-sm shadow-purple-900/30"
+                className="flex items-center gap-1.5 px-3 py-1 rounded bg-[#12151E] hover:bg-[#1A1F2C] text-white border border-[#2A3042] font-bold transition-all active:scale-95 shadow-sm hover:border-[#E10600]"
               >
                 <BarChart2 className="w-3.5 h-3.5 text-purple-400" />
                 <span>Strategy Benchmarks</span>
@@ -201,15 +201,15 @@ export const App: React.FC = () => {
 
               <button
                 onClick={() => setShowCopilotModal(!showCopilotModal)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-cyan-950/60 hover:bg-cyan-900/80 text-cyan-300 border border-cyan-700/50 font-bold transition-all active:scale-95 shadow-sm shadow-cyan-900/20"
+                className="flex items-center gap-1.5 px-3 py-1 rounded bg-[#12151E] hover:bg-[#1A1F2C] text-white border border-[#2A3042] font-bold transition-all active:scale-95 shadow-sm hover:border-[#E10600]"
               >
-                <Bot className="w-3.5 h-3.5 text-cyan-400" />
+                <Bot className="w-3.5 h-3.5 text-[#E10600]" />
                 <span>AI Strategist Copilot</span>
               </button>
 
               <button
                 onClick={() => setShowAeroTunerModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-blue-950/60 hover:bg-blue-900/80 text-blue-300 border border-blue-700/50 font-bold transition-all active:scale-95 shadow-sm shadow-blue-900/20"
+                className="flex items-center gap-1.5 px-3 py-1 rounded bg-[#12151E] hover:bg-[#1A1F2C] text-white border border-[#2A3042] font-bold transition-all active:scale-95 shadow-sm hover:border-[#E10600]"
               >
                 <Wrench className="w-3.5 h-3.5 text-blue-400" />
                 <span>Chassis Aero Tuner</span>
@@ -217,7 +217,7 @@ export const App: React.FC = () => {
 
               <button
                 onClick={() => setShowPitSimModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-emerald-950/60 hover:bg-emerald-900/80 text-emerald-300 border border-emerald-700/50 font-bold transition-all active:scale-95 shadow-sm shadow-emerald-900/20"
+                className="flex items-center gap-1.5 px-3 py-1 rounded bg-[#12151E] hover:bg-[#1A1F2C] text-white border border-[#2A3042] font-bold transition-all active:scale-95 shadow-sm hover:border-[#E10600]"
               >
                 <Timer className="w-3.5 h-3.5 text-emerald-400" />
                 <span>Pit Stop Reaction Drill</span>
@@ -225,15 +225,15 @@ export const App: React.FC = () => {
 
               <button
                 onClick={() => setShowStandingsModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-purple-950/60 hover:bg-purple-900/80 text-purple-300 border border-purple-700/50 font-bold transition-all active:scale-95 shadow-sm shadow-purple-900/20"
+                className="flex items-center gap-1.5 px-3 py-1 rounded bg-[#12151E] hover:bg-[#1A1F2C] text-white border border-[#2A3042] font-bold transition-all active:scale-95 shadow-sm hover:border-[#E10600]"
               >
-                <Trophy className="w-3.5 h-3.5 text-purple-400" />
+                <Trophy className="w-3.5 h-3.5 text-amber-400" />
                 <span>Live Standings</span>
               </button>
 
               <button
                 onClick={() => setShowDebriefModal(true)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-lg bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-700/50 font-bold transition-all active:scale-95 shadow-sm shadow-amber-900/20"
+                className="flex items-center gap-1.5 px-3 py-1 rounded bg-[#12151E] hover:bg-[#1A1F2C] text-white border border-[#2A3042] font-bold transition-all active:scale-95 shadow-sm hover:border-[#E10600]"
               >
                 <Trophy className="w-3.5 h-3.5 text-yellow-400" />
                 <span>Podium Debrief</span>
@@ -241,10 +241,10 @@ export const App: React.FC = () => {
 
               <button
                 onClick={toggleEngineSynth}
-                className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-mono font-bold transition-all active:scale-95 ${
+                className={`flex items-center gap-1 px-2.5 py-1 rounded border text-[11px] font-mono font-bold transition-all active:scale-95 ${
                   engineAudioActive
-                    ? 'bg-rose-500 text-black border-rose-400 shadow-sm shadow-rose-500/30'
-                    : 'bg-slate-900 text-slate-400 border-slate-800 hover:text-slate-200'
+                    ? 'bg-[#E10600] text-white border-white shadow-md shadow-red-600/40'
+                    : 'bg-[#12151E] text-slate-300 border-[#2A3042] hover:text-white hover:border-[#E10600]'
                 }`}
                 title="Toggle V6 Turbo Hybrid Audio Synthesizer"
               >

@@ -4,92 +4,121 @@
 
 @layer base {
   body {
-    background-color: #06090e;
-    color: #f1f5f9;
+    background-color: #08090C;
+    color: #FFFFFF;
     font-family: 'Inter', system-ui, -apple-system, sans-serif;
     overflow-x: hidden;
     background-image: 
-      radial-gradient(ellipse at top, rgba(14, 165, 233, 0.08) 0%, transparent 60%),
-      radial-gradient(ellipse at bottom right, rgba(168, 85, 247, 0.05) 0%, transparent 50%),
-      linear-gradient(rgba(255, 255, 255, 0.015) 1px, transparent 1px),
-      linear-gradient(90deg, rgba(255, 255, 255, 0.015) 1px, transparent 1px);
-    background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
+      radial-gradient(ellipse 90% 40% at 50% -10%, rgba(225, 6, 0, 0.22) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 40% at 100% 100%, rgba(225, 6, 0, 0.08) 0%, transparent 60%),
+      linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 28px 28px, 28px 28px;
   }
 }
 
-/* Custom telemetry scrollbar */
+/* Formula 1 Precision Scrollbar */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #080d1a;
+  background: #060709;
 }
 ::-webkit-scrollbar-thumb {
-  background: #1e293b;
-  border-radius: 4px;
+  background: #2A1010;
+  border: 1px solid #E10600;
+  border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #334155;
+  background: #E10600;
+  box-shadow: 0 0 8px #E10600;
 }
 
-/* Modern Motorsport Glassmorphism */
+/* Formula 1 Carbon Pit-Wall Glass Panels */
 .glass-panel {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.82) 0%, rgba(10, 16, 30, 0.9) 100%);
-  backdrop-filter: blur(16px);
-  -webkit-backdrop-filter: blur(16px);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.4);
+  background: linear-gradient(145deg, rgba(16, 18, 26, 0.94) 0%, rgba(10, 11, 16, 0.98) 100%);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.09);
+  box-shadow: 0 10px 35px 0 rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.glass-panel:hover {
+  border-color: rgba(225, 6, 0, 0.35);
 }
 
 .glass-panel-glow {
-  background: linear-gradient(135deg, rgba(15, 23, 42, 0.9) 0%, rgba(8, 14, 28, 0.95) 100%);
-  backdrop-filter: blur(16px);
-  border: 1px solid rgba(0, 240, 255, 0.35);
-  box-shadow: 0 0 25px rgba(0, 240, 255, 0.12), inset 0 0 15px rgba(0, 240, 255, 0.04);
+  background: linear-gradient(145deg, rgba(22, 18, 22, 0.95) 0%, rgba(10, 11, 16, 0.98) 100%);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(225, 6, 0, 0.45);
+  box-shadow: 0 0 30px rgba(225, 6, 0, 0.18), inset 0 0 15px rgba(225, 6, 0, 0.06);
 }
 
 .glass-panel-subtle {
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(14, 16, 23, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
 }
 
-/* High-tech Neon & Typography */
+/* Formula 1 Racing Red & High-Contrast Glow Effects */
+.glow-f1-red {
+  text-shadow: 0 0 10px rgba(225, 6, 0, 0.8), 0 0 25px rgba(225, 6, 0, 0.4);
+}
+
+.glow-white {
+  text-shadow: 0 0 10px rgba(255, 255, 255, 0.75);
+}
+
 .glow-cyan {
-  text-shadow: 0 0 10px rgba(0, 240, 255, 0.65), 0 0 20px rgba(0, 240, 255, 0.3);
+  text-shadow: 0 0 10px rgba(0, 240, 255, 0.65);
 }
-.glow-red {
-  text-shadow: 0 0 10px rgba(239, 68, 68, 0.65);
-}
+
 .glow-amber {
-  text-shadow: 0 0 10px rgba(245, 158, 11, 0.65);
+  text-shadow: 0 0 10px rgba(255, 140, 0, 0.65);
 }
+
 .glow-green {
-  text-shadow: 0 0 10px rgba(16, 185, 129, 0.65);
-}
-.glow-purple {
-  text-shadow: 0 0 10px rgba(192, 132, 252, 0.75);
+  text-shadow: 0 0 10px rgba(0, 230, 118, 0.65);
 }
 
-.border-glow-cyan {
-  border-color: rgba(0, 240, 255, 0.45);
-  box-shadow: 0 0 15px rgba(0, 240, 255, 0.15);
+.border-glow-f1-red {
+  border-color: rgba(225, 6, 0, 0.6);
+  box-shadow: 0 0 20px rgba(225, 6, 0, 0.25);
 }
 
-/* Carbon fiber grid pattern */
+/* F1 Carbon Fiber Weave Texture */
 .bg-carbon {
-  background-color: #0b0f19;
+  background-color: #0A0C11;
   background-image: 
-    linear-gradient(45deg, #070a12 25%, transparent 25%), 
-    linear-gradient(-45deg, #070a12 25%, transparent 25%), 
-    linear-gradient(45deg, transparent 75%, #070a12 75%), 
-    linear-gradient(-45deg, transparent 75%, #070a12 75%);
-  background-size: 8px 8px;
-  background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+    linear-gradient(45deg, #050608 25%, transparent 25%), 
+    linear-gradient(-45deg, #050608 25%, transparent 25%), 
+    linear-gradient(45deg, transparent 75%, #050608 75%), 
+    linear-gradient(-45deg, transparent 75%, #050608 75%);
+  background-size: 6px 6px;
+  background-position: 0 0, 0 3px, 3px -3px, -3px 0px;
 }
 
-/* Radar scanline animation for circuit */
+/* Authentic F1 Speed Diagonal Stripe */
+.f1-stripe {
+  background: repeating-linear-gradient(
+    -45deg,
+    #E10600,
+    #E10600 8px,
+    #000000 8px,
+    #000000 16px
+  );
+}
+
+.f1-badge {
+  background: linear-gradient(135deg, #E10600 0%, #B30000 100%);
+  color: #FFFFFF;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+/* Active CRT Telemetry Scanline */
 .radar-sweep {
   position: relative;
   overflow: hidden;
@@ -98,7 +127,7 @@
   content: "";
   position: absolute;
   top: 0; left: 0; right: 0; height: 100%;
-  background: linear-gradient(180deg, transparent 0%, rgba(0, 240, 255, 0.06) 50%, transparent 100%);
-  animation: scanline 4s linear infinite;
+  background: linear-gradient(180deg, transparent 0%, rgba(225, 6, 0, 0.08) 50%, transparent 100%);
   pointer-events: none;
+  animation: scanline 4s linear infinite;
 }

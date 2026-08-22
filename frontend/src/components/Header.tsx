@@ -5,37 +5,18 @@ import {
   CloudRain,
   Sun,
   ShieldAlert,
-  Flag,
   Wifi,
   Radio,
   Volume2,
   VolumeX,
   Gauge,
-  Brain,
-  Sliders,
-  Cpu,
-  UserCheck,
   MapPin,
   Mic,
   MicOff,
-  Wind,
-  Thermometer,
-  Tv,
-  Timer,
-  Wrench,
-  Edit3,
-  Trophy,
-  Scale,
-  Heart,
-  MessageSquare,
-  ShieldCheck,
-  Eye,
-  ArrowRightLeft,
-  Headset,
-  Scan,
   Flame,
-  Cloud,
-  Droplet,
+  Scale,
+  ShieldCheck,
+  Zap,
 } from 'lucide-react';
 import { CIRCUIT_DATABASE } from '../data/trackGeometries';
 import { audioEngine, VoicePersona } from '../utils/audioEngine';
@@ -58,7 +39,6 @@ export const Header: React.FC = () => {
     raceState,
     setRaceState,
     connected,
-    isLocalTwin,
     isRunning,
     activeTab,
     setActiveTab,
@@ -71,12 +51,10 @@ export const Header: React.FC = () => {
   const [activePersona, setActivePersona] = useState<VoicePersona>('apex_core');
   const [isChangingTrack, setIsChangingTrack] = useState<boolean>(false);
   const [isMicListening, setIsMicListening] = useState<boolean>(false);
-  const [voiceInterimText, setVoiceInterimText] = useState<string>('');
 
   useEffect(() => {
-    const unsub = voiceRadio.subscribeStatus((listening, text) => {
+    const unsub = voiceRadio.subscribeStatus((listening) => {
       setIsMicListening(listening);
-      setVoiceInterimText(text);
     });
     return () => unsub();
   }, []);
@@ -85,9 +63,13 @@ export const Header: React.FC = () => {
     voiceRadio.toggleListening();
   };
 
-  if (!raceState) return null;
-
-  const { track, current_lap, total_laps, race_time_s, weather, safety_car } = raceState;
+  const current_lap = raceState?.current_lap || 1;
+  const total_laps = raceState?.total_laps || 52;
+  const race_time_s = raceState?.race_time_s || 0;
+  const weather = raceState?.weather || { condition: 'DRY', track_temp_c: 32, air_temp_c: 24, rain_intensity: 0 };
+  const safety_car = raceState?.safety_car || 'NONE';
+  const trackName = raceState?.track?.name || 'Silverstone Circuit';
+  const trackDistance = raceState?.track?.lap_distance_km || 5.89;
 
   // Format race clock
   const minutes = Math.floor(race_time_s / 60);
@@ -95,12 +77,6 @@ export const Header: React.FC = () => {
   const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.padStart(4, '0')}`;
 
   const isRain = weather.condition === 'WET' || weather.condition === 'DAMP';
-  const circuitMeta =
-    Object.values(CIRCUIT_DATABASE).find(
-      (c) =>
-        c.name.toLowerCase().includes(track.name.toLowerCase()) ||
-        track.name.toLowerCase().includes(c.id)
-    ) || CIRCUIT_DATABASE.silverstone;
 
   const handlePersonaChange = (p: VoicePersona) => {
     setActivePersona(p);
@@ -134,14 +110,14 @@ export const Header: React.FC = () => {
 
   const currentTrackKey =
     AVAILABLE_CIRCUITS.find((c) =>
-      track.name.toLowerCase().includes(c.id) || track.name.toLowerCase().includes(c.name.toLowerCase())
+      trackName.toLowerCase().includes(c.id) || trackName.toLowerCase().includes(c.name.toLowerCase())
     )?.id || 'silverstone';
 
   const PRIMARY_TABS: { id: WorkspaceTab; label: string; icon: React.ReactNode }[] = [
     { id: 'tactical', label: 'Pit Wall & 3D', icon: <Activity className="w-3.5 h-3.5" /> },
-    { id: 'steering_ddu', label: 'Steering DDU', icon: <Gauge className="w-3.5 h-3.5 text-apex-cyan" /> },
+    { id: 'steering_ddu', label: 'Steering DDU', icon: <Gauge className="w-3.5 h-3.5 text-white" /> },
     { id: 'radio_stress', label: 'Radio Stress AI', icon: <Radio className="w-3.5 h-3.5 text-rose-400" /> },
-    { id: 'gearbox_lab', label: 'Seamless Gearbox', icon: <Activity className="w-3.5 h-3.5 text-apex-cyan" /> },
+    { id: 'gearbox_lab', label: 'Seamless Gearbox', icon: <Activity className="w-3.5 h-3.5 text-white" /> },
     { id: 'brake_pyrometry', label: 'Brake Pyrometry', icon: <Flame className="w-3.5 h-3.5 text-rose-500" /> },
     { id: 'steward_tribunal', label: 'FIA Hearing', icon: <Scale className="w-3.5 h-3.5 text-amber-400" /> },
     { id: 'carbon_autoclave', label: 'Crash Sled', icon: <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> },
@@ -204,71 +180,76 @@ export const Header: React.FC = () => {
   ];
 
   return (
-    <header className="w-full glass-panel border-b border-apex-border px-4 lg:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-50">
+    <header className="w-full bg-[#0B0D13]/95 backdrop-blur-xl border-b border-[#232736] px-4 lg:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-50 shadow-2xl shadow-black/80">
       {/* Brand & Track Info */}
       <div className="flex items-center gap-3">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-cyan-400 via-blue-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-cyan-500/25 border border-cyan-300/30">
-            <Activity className="w-4 h-4 text-black stroke-[2.8]" />
+        <div className="flex items-center gap-3">
+          {/* Official F1 Red Angle Box */}
+          <div className="h-9 px-3 rounded bg-gradient-to-r from-[#E10600] to-[#B30000] flex items-center justify-center shadow-lg shadow-red-600/30 border-t border-white/20 -skew-x-12">
+            <span className="font-black text-sm tracking-tighter text-white uppercase skew-x-12 flex items-center gap-1.5">
+              <Zap className="w-3.5 h-3.5 fill-white" />
+              F1 APEX
+            </span>
           </div>
+
           <div>
             <div className="flex items-center gap-1.5">
-              <span className="font-black text-base tracking-wider text-white">APEX</span>
-              <span className="text-[9px] font-mono font-bold uppercase px-1.5 py-0.2 rounded bg-cyan-500/20 text-apex-cyan border border-cyan-500/30">
-                RACE INTEL
+              <span className="font-black text-sm tracking-wider text-white">RACE INTELLIGENCE</span>
+              <span className="text-[9px] font-mono font-black uppercase px-1.5 py-0.5 rounded bg-red-950 text-red-400 border border-red-800">
+                PROD
               </span>
             </div>
-            <p className="text-[11px] text-slate-400 font-medium">Digital Twin & Strategy Engine</p>
+            <p className="text-[10px] text-slate-400 font-mono tracking-tight">Mission Control & Digital Twin</p>
           </div>
         </div>
 
-        <div className="h-6 w-px bg-slate-800 hidden md:block" />
+        <div className="h-6 w-px bg-[#232736] hidden md:block" />
 
         {/* Interactive Circuit Switcher */}
-        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-slate-900/80 border border-slate-800 text-xs font-mono">
-          <MapPin className="w-3.5 h-3.5 text-cyan-400" />
+        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#131722] border border-[#232736] text-xs font-mono">
+          <MapPin className="w-3.5 h-3.5 text-[#E10600]" />
           <select
             value={currentTrackKey}
             onChange={(e) => handleTrackChange(e.target.value)}
             disabled={isChangingTrack}
-            className="bg-transparent text-slate-200 font-bold focus:outline-none cursor-pointer text-xs"
+            className="bg-transparent text-white font-bold focus:outline-none cursor-pointer text-xs"
             title="Switch Active Grand Prix Circuit"
           >
             {AVAILABLE_CIRCUITS.map((c) => (
-              <option key={c.id} value={c.id} className="bg-slate-950 text-slate-200">
+              <option key={c.id} value={c.id} className="bg-[#0B0D13] text-white">
                 {c.flag} {c.name}
               </option>
             ))}
           </select>
-          <span className="text-slate-500 text-[10px]">({track.lap_distance_km} km)</span>
+          <span className="text-slate-400 text-[10px]">({trackDistance} km)</span>
         </div>
       </div>
 
       {/* Center Navigation Tabs & Dropdown */}
-      <div className="flex items-center gap-1.5 bg-slate-950/80 p-1 rounded-lg border border-slate-800/80 text-xs font-mono order-3 lg:order-2 overflow-x-auto max-w-full">
+      <div className="flex items-center gap-1.5 bg-[#07090E] p-1 rounded-lg border border-[#232736] text-xs font-mono order-3 lg:order-2 overflow-x-auto max-w-full">
         {PRIMARY_TABS.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md transition-all whitespace-nowrap ${
+            className={`flex items-center gap-1.5 px-2.5 py-1 rounded transition-all whitespace-nowrap ${
               activeTab === tab.id
-                ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-black font-bold shadow-md shadow-cyan-500/20'
-                : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900/60'
+                ? 'bg-[#E10600] text-white font-black shadow-md shadow-red-600/30'
+                : 'text-slate-300 hover:text-white hover:bg-[#161B28]'
             }`}
           >
             {tab.icon}
-            <span className="hidden sm:inline font-sans font-semibold text-[11px]">{tab.label}</span>
+            <span className="hidden sm:inline font-sans font-bold text-[11px]">{tab.label}</span>
           </button>
         ))}
 
-        {/* Workspace Dropdown for all 14 views */}
+        {/* Workspace Dropdown for all views */}
         <select
           value={activeTab}
           onChange={(e) => setActiveTab(e.target.value as WorkspaceTab)}
-          className="bg-slate-900 text-cyan-300 font-bold text-[11px] border border-cyan-800/60 rounded px-2 py-1 focus:outline-none cursor-pointer"
+          className="bg-[#131722] text-white font-bold text-[11px] border border-red-800/80 rounded px-2 py-1 focus:outline-none cursor-pointer hover:border-red-600"
         >
           {ALL_WORKSPACES.map((w) => (
-            <option key={w.id} value={w.id} className="bg-slate-950 text-slate-200">
+            <option key={w.id} value={w.id} className="bg-[#0B0D13] text-white">
               {w.label}
             </option>
           ))}
@@ -276,19 +257,19 @@ export const Header: React.FC = () => {
       </div>
 
       {/* Right Session Status & Audio Controls */}
-      <div className="flex items-center gap-3 order-2 lg:order-3">
+      <div className="flex items-center gap-2.5 order-2 lg:order-3">
         {/* Lap Progress */}
-        <div className="flex flex-col items-center px-3 py-1 rounded bg-slate-900/90 border border-slate-800 text-xs font-mono">
-          <span className="text-[9px] text-slate-500 uppercase font-sans font-bold">Lap</span>
-          <span className="font-extrabold text-apex-cyan text-sm">
-            {current_lap} <span className="text-[10px] text-slate-500">/ {total_laps}</span>
+        <div className="flex flex-col items-center px-2.5 py-0.5 rounded bg-[#131722] border border-[#232736] text-xs font-mono">
+          <span className="text-[9px] text-slate-400 uppercase font-sans font-bold">Lap</span>
+          <span className="font-black text-white text-sm">
+            {current_lap} <span className="text-[10px] text-slate-400">/ {total_laps}</span>
           </span>
         </div>
 
         {/* Race Time */}
-        <div className="hidden sm:flex flex-col items-center px-3 py-1 rounded bg-slate-900/90 border border-slate-800 text-xs font-mono">
-          <span className="text-[9px] text-slate-500 uppercase font-sans font-bold">Session</span>
-          <span className="font-bold text-slate-200 text-sm">{formattedTime}</span>
+        <div className="hidden sm:flex flex-col items-center px-2.5 py-0.5 rounded bg-[#131722] border border-[#232736] text-xs font-mono">
+          <span className="text-[9px] text-slate-400 uppercase font-sans font-bold">Time</span>
+          <span className="font-bold text-white text-sm">{formattedTime}</span>
         </div>
 
         {/* Safety Car Status */}
@@ -298,20 +279,20 @@ export const Header: React.FC = () => {
             <span>{safety_car === 'SAFETY_CAR' ? 'SAFETY CAR' : 'VSC'}</span>
           </div>
         ) : (
-          <div className="hidden md:flex items-center gap-1.5 px-2.5 py-1 rounded bg-emerald-500/10 border border-emerald-500/20 text-emerald-400 font-sans font-medium text-[10px]">
+          <div className="hidden md:flex items-center gap-1.5 px-2 py-1 rounded bg-emerald-950/60 border border-emerald-800 text-emerald-300 font-sans font-bold text-[10px]">
             <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping" />
             <span>TRACK CLEAR</span>
           </div>
         )}
 
         {/* Weather Indicator */}
-        <div className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-slate-900/90 border border-slate-800 text-xs">
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#131722] border border-[#232736] text-xs">
           {isRain ? (
             <CloudRain className="w-3.5 h-3.5 text-cyan-400 animate-bounce" />
           ) : (
             <Sun className="w-3.5 h-3.5 text-amber-400" />
           )}
-          <span className="text-[10px] text-slate-300 font-mono font-semibold">
+          <span className="text-[10px] text-white font-mono font-bold">
             {weather.track_temp_c.toFixed(0)}°C
           </span>
         </div>
@@ -320,7 +301,7 @@ export const Header: React.FC = () => {
         <select
           value={activePersona}
           onChange={(e) => handlePersonaChange(e.target.value as VoicePersona)}
-          className="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-[10.5px] font-mono text-cyan-300 font-bold focus:outline-none focus:border-cyan-500 cursor-pointer hidden xl:inline-block"
+          className="bg-[#0B0D13] border border-[#232736] rounded px-2 py-1 text-[10.5px] font-mono text-slate-200 font-bold focus:outline-none focus:border-red-600 cursor-pointer hidden xl:inline-block"
           title="Select Race Engineer Voice Persona"
         >
           <option value="apex_core">AI: APEX Core</option>
@@ -328,58 +309,44 @@ export const Header: React.FC = () => {
           <option value="gp">Voice: "GP" (Red Bull)</option>
           <option value="xavi">Voice: "Xavi" (Ferrari)</option>
           <option value="guenther">Voice: "Guenther" (Haas)</option>
-          <option value="hugh_bird">Voice: "Hugh Bird" (Red Bull)</option>
-          <option value="ricky">Voice: "Ricky" (Ferrari)</option>
         </select>
 
-        {/* Hands-Free Push-To-Talk Voice Mic */}
+        {/* Push-To-Talk Voice Mic */}
         <button
           onClick={togglePTT}
-          title={isMicListening ? 'Push-To-Talk Active (Listening...)' : 'Click to Speak (Push-To-Talk Voice AI)'}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-xs font-mono font-bold transition-all active:scale-95 shadow-sm ${
+          title={isMicListening ? 'Push-To-Talk Active' : 'Click to Speak (Push-To-Talk)'}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded border text-xs font-mono font-bold transition-all active:scale-95 shadow-sm ${
             isMicListening
-              ? 'bg-rose-600 text-white border-rose-400 animate-pulse shadow-rose-500/50'
-              : 'bg-slate-900/90 text-slate-300 border-slate-700 hover:text-white hover:border-slate-500'
+              ? 'bg-[#E10600] text-white border-white animate-pulse shadow-red-600/50'
+              : 'bg-[#131722] text-slate-200 border-[#232736] hover:text-white hover:border-red-600'
           }`}
         >
           {isMicListening ? <Mic className="w-3.5 h-3.5 text-white animate-bounce" /> : <MicOff className="w-3.5 h-3.5 text-slate-400" />}
-          <span>{isMicListening ? 'LISTENING...' : 'RADIO PTT'}</span>
+          <span>{isMicListening ? 'LISTENING' : 'RADIO PTT'}</span>
         </button>
 
-        {/* Audio & Voice Radio Toggle */}
-        <div className="flex items-center bg-slate-900/80 p-0.5 rounded-md border border-slate-800">
-          <button
-            onClick={toggleAudioMute}
-            title={audioMuted ? 'Unmute pit wall audio' : 'Mute pit wall audio'}
-            className={`p-1.5 rounded transition-all ${
-              audioMuted ? 'text-rose-400 bg-rose-500/10' : 'text-slate-300 hover:text-white'
-            }`}
-          >
-            {audioMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
-          </button>
-          <button
-            onClick={toggleVoiceRadio}
-            title={voiceRadioEnabled ? 'Voice Radio Enabled' : 'Voice Radio Disabled'}
-            className={`px-1.5 py-0.5 rounded text-[9px] font-mono font-bold flex items-center gap-1 transition-all ${
-              voiceRadioEnabled ? 'text-apex-cyan bg-cyan-500/10' : 'text-slate-500'
-            }`}
-          >
-            <Radio className="w-2.5 h-2.5" />
-            <span>VOICE</span>
-          </button>
-        </div>
+        {/* Audio Mute */}
+        <button
+          onClick={toggleAudioMute}
+          title={audioMuted ? 'Unmute' : 'Mute'}
+          className={`p-1.5 rounded border transition-all ${
+            audioMuted ? 'text-rose-400 bg-rose-950 border-rose-800' : 'text-slate-300 bg-[#131722] border-[#232736] hover:text-white hover:border-slate-500'
+          }`}
+        >
+          {audioMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
+        </button>
 
-        {/* Connection Mode */}
-        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-slate-900/60 border border-slate-800 text-[10px] font-mono">
-          <Wifi className={`w-3 h-3 ${connected ? 'text-emerald-400' : 'text-cyan-400'}`} />
-          <span className={connected ? 'text-emerald-400 font-bold' : 'text-cyan-400 font-medium'}>
+        {/* Connection Status */}
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#131722] border border-[#232736] text-[10px] font-mono">
+          <Wifi className={`w-3 h-3 ${connected ? 'text-emerald-400' : 'text-red-400'}`} />
+          <span className={connected ? 'text-emerald-400 font-bold' : 'text-red-400 font-bold'}>
             {connected ? 'LIVE' : 'DIGITAL TWIN'}
           </span>
         </div>
 
         {isRunning && (
-          <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[9px] font-bold uppercase tracking-wider animate-pulse">
-            <span className="w-1.5 h-1.5 rounded-full bg-rose-500" />
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-red-600 text-white font-black text-[9px] uppercase tracking-wider animate-pulse">
+            <span className="w-1.5 h-1.5 rounded-full bg-white" />
             SIM
           </div>
         )}
