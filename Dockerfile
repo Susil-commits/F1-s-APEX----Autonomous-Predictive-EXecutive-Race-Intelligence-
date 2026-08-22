@@ -8,8 +8,7 @@ FROM node:20-alpine AS frontend-builder
 WORKDIR /app/frontend
 
 COPY frontend/package.json frontend/package-lock.json ./
-RUN --mount=type=cache,target=/root/.npm \
-    npm ci --prefer-offline --no-audit
+RUN npm ci --prefer-offline --no-audit
 
 COPY frontend/ ./
 RUN npm run build
@@ -40,20 +39,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 # Copy uv binary for fast, reproducible dependency installation
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
-# Step 1: Copy dependency manifests and install dependencies ONLY (cached layer)
-COPY pyproject.toml uv.lock ./
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-install-project
+# Step 1: Copy dependency manifests and project docs required by pyproject.toml
+COPY pyproject.toml uv.lock APEX_Architecture_and_Design.md README.md ./
+RUN uv sync --frozen --no-install-project --no-dev
 
 # Step 2: Copy application source code and benchmarks
 COPY backend/ /app/backend/
 COPY benchmarks/ /app/benchmarks/
-COPY README.md /app/README.md
 
-# Step 3: Install the project itself (fast, reuses pre-built dependency cache)
-RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen && \
-    uv pip uninstall -y nvidia-nccl-cu13 nvidia-nccl-cu12 nvidia-cudnn-cu13 nvidia-cublas-cu13 nvidia-cuda-nvrtc-cu13 nvidia-cuda-runtime-cu13 nvidia-cufft-cu13 nvidia-cufile-cu13 nvidia-curand-cu13 nvidia-cusolver-cu13 nvidia-cusparse-cu13 nvidia-nvjitlink-cu13 nvidia-nvtx-cu13 nvidia-nvshmem-cu13 triton cuda-bindings cuda-pathfinder cuda-toolkit || true
+# Step 3: Install the project
+RUN uv sync --frozen --no-dev
 
 # Step 4: Copy compiled frontend from Stage 1 into FastAPI's static mount directory
 COPY --from=frontend-builder /app/frontend/dist /app/frontend/dist
