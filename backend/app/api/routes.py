@@ -1329,7 +1329,70 @@ async def execute_hero_decision_query(car_id: Optional[str] = None):
                 "[Step 7] Executive Recommendation synthesized: BOX THIS LAP.",
             ],
         },
+        "context_provenance": {
+            "dataset_version": "fastf1_2018_2024_gold_v1.0",
+            "feature_schema": "race_features_v3",
+            "model_version": "tyre_degradation_xgb_v1.4",
+            "model_r2_score": 0.8342,
+            "model_mae": 0.3597,
+            "source": "fastf1_live_telemetry_60hz",
+            "lineage_trail": "FastF1 Telemetry -> Feature Set v3 -> XGBoost v1.4 -> Safe RL Action Mask -> Decision BOX -> Outcome P1",
+            "context_trust_score": 0.964,
+            "metadata_completeness_pct": 96.4,
+            "lineage_coverage_pct": 94.2,
+        },
     }
+
+
+# ============================================================================
+# APEX RACE INTELLIGENCE CONTEXT LAYER & AGENT EVALUATION ENDPOINTS
+# ============================================================================
+
+@router.get("/context/graph")
+async def get_race_context_graph():
+    """Retrieve complete serialized APEX Race Intelligence Context Graph."""
+    from backend.app.context.lineage.tracer import lineage_tracer
+    graph = lineage_tracer.get_graph()
+    return graph.to_schema().dict()
+
+
+@router.get("/context/models")
+async def get_context_model_metadata():
+    """Retrieve metadata cards for all validated ML model assets."""
+    from backend.app.context.metadata.model_metadata import list_all_model_metadata
+    return [m.dict() for m in list_all_model_metadata()]
+
+
+@router.get("/context/datasets")
+async def get_context_dataset_metadata():
+    """Retrieve metadata cards for all registered datasets and corpus splits."""
+    from backend.app.context.metadata.dataset_metadata import list_all_dataset_metadata
+    return [d.dict() for d in list_all_dataset_metadata()]
+
+
+@router.get("/context/lineage/{decision_id}")
+async def get_decision_lineage(decision_id: str):
+    """Retrieve full upstream data, feature, and model lineage for a specific decision."""
+    from backend.app.context.retrieval.context_retriever import context_retriever
+    trail = context_retriever.get_decision_evidence(decision_id)
+    if not trail:
+        raise HTTPException(status_code=404, detail=f"Lineage trail for decision '{decision_id}' not found")
+    return trail.dict()
+
+
+@router.get("/context/quality")
+async def get_context_quality_metrics():
+    """Retrieve real-time context quality, lineage coverage, and citation grounding metrics."""
+    from backend.app.context.quality.quality_metrics import context_quality_engine
+    return context_quality_engine.compute_quality_report().dict()
+
+
+@router.get("/agents/eval-report")
+async def get_agent_evaluation_report():
+    """Retrieve the formal Agent Reliability, Groundedness, and Hallucination Prevention Report."""
+    from backend.app.agents.evaluation.eval_suite import agent_evaluator
+    return agent_evaluator.run_comprehensive_evaluation().dict()
+
 
 
 

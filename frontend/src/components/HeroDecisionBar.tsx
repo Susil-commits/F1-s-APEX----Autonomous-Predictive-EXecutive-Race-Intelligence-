@@ -244,20 +244,20 @@ export const HeroDecisionBar: React.FC = () => {
         </div>
       </div>
 
-      {/* Expandable Evidence Drawer (SHAP, Grounding & Agent Trace) */}
+      {/* Expandable Evidence & Context Lineage Drawer */}
       {showEvidence && (
-        <div className="mt-4 pt-4 border-t border-[#1F2537] grid grid-cols-1 md:grid-cols-2 gap-4 animate-in fade-in duration-200">
-          {/* TreeSHAP Feature Attributions */}
+        <div className="mt-4 pt-4 border-t border-[#1F2537] grid grid-cols-1 md:grid-cols-3 gap-4 animate-in fade-in duration-200">
+          {/* 1. TreeSHAP Feature Attributions */}
           <div className="bg-[#0D101A] border border-[#1C2234] rounded-lg p-3">
             <div className="text-xs font-mono font-bold text-slate-200 flex items-center gap-2 mb-2">
               <Sparkles className="w-3.5 h-3.5 text-cyan-400" />
-              <span>TreeSHAP Feature Attributions on Pit Decision</span>
+              <span>TreeSHAP Feature Attributions</span>
             </div>
             <div className="space-y-2 text-xs font-mono">
               <div>
                 <div className="flex justify-between text-[11px] text-slate-300 mb-0.5">
                   <span>+ Tyre Age ({tyreAge} laps)</span>
-                  <span className="text-red-400">+0.38 φ</span>
+                  <span className="text-red-400 font-bold">+0.38 φ</span>
                 </div>
                 <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                   <div className="bg-red-500 h-full rounded-full" style={{ width: '76%' }} />
@@ -266,7 +266,7 @@ export const HeroDecisionBar: React.FC = () => {
               <div>
                 <div className="flex justify-between text-[11px] text-slate-300 mb-0.5">
                   <span>+ Track Temperature (38.5°C)</span>
-                  <span className="text-red-400">+0.22 φ</span>
+                  <span className="text-red-400 font-bold">+0.22 φ</span>
                 </div>
                 <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                   <div className="bg-red-500 h-full rounded-full" style={{ width: '44%' }} />
@@ -274,8 +274,8 @@ export const HeroDecisionBar: React.FC = () => {
               </div>
               <div>
                 <div className="flex justify-between text-[11px] text-slate-300 mb-0.5">
-                  <span>+ Fuel Load / Stint Horizon</span>
-                  <span className="text-red-400">+0.15 φ</span>
+                  <span>+ Fuel Load / Horizon</span>
+                  <span className="text-red-400 font-bold">+0.15 φ</span>
                 </div>
                 <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                   <div className="bg-red-500 h-full rounded-full" style={{ width: '30%' }} />
@@ -284,7 +284,7 @@ export const HeroDecisionBar: React.FC = () => {
               <div>
                 <div className="flex justify-between text-[11px] text-slate-300 mb-0.5">
                   <span>- Rejoin Traffic Gap ({gapP2}s clear)</span>
-                  <span className="text-emerald-400">-0.19 φ</span>
+                  <span className="text-emerald-400 font-bold">-0.19 φ</span>
                 </div>
                 <div className="w-full bg-slate-800 h-1.5 rounded-full overflow-hidden">
                   <div className="bg-emerald-500 h-full rounded-full" style={{ width: '38%' }} />
@@ -293,11 +293,53 @@ export const HeroDecisionBar: React.FC = () => {
             </div>
           </div>
 
-          {/* Planner Agent Reasoning Trace */}
+          {/* 2. Context Provenance & Model Metadata */}
+          <div className="bg-[#0D101A] border border-[#1C2234] rounded-lg p-3 flex flex-col justify-between">
+            <div>
+              <div className="text-xs font-mono font-bold text-slate-200 flex items-center justify-between mb-2">
+                <span className="flex items-center gap-1.5">
+                  <Layers className="w-3.5 h-3.5 text-purple-400" />
+                  <span>Context & Model Provenance</span>
+                </span>
+                <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-1.5 py-0.5 rounded font-mono">
+                  Trust: 96.4%
+                </span>
+              </div>
+              <div className="space-y-1.5 text-[11px] font-mono text-slate-300">
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Model:</span>
+                  <span className="text-slate-200 font-bold">tyre_degradation_xgb (v1.4)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Held-Out Eval:</span>
+                  <span className="text-cyan-300">R² = 0.8342, MAE = 0.3597s</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Training Corpus:</span>
+                  <span className="text-slate-300">FastF1 2018-2024 (6,999 laps)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Feature Schema:</span>
+                  <span className="text-slate-300">race_features_v3 (28-D)</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-slate-400">Lineage Coverage:</span>
+                  <span className="text-emerald-400 font-bold">94.2% Complete</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-2 pt-2 border-t border-slate-800/80 text-[10px] font-mono text-slate-400">
+              <span className="text-purple-400 font-bold">Lineage: </span>
+              <span>FastF1 60Hz → Features v3 → XGBoost v1.4 → Safe RL Mask → Decision BOX</span>
+            </div>
+          </div>
+
+          {/* 3. Planner Agent Reasoning Trace */}
           <div className="bg-[#0D101A] border border-[#1C2234] rounded-lg p-3">
             <div className="text-xs font-mono font-bold text-slate-200 flex items-center gap-2 mb-2">
               <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
-              <span>Planner Agent Reasoning & Tool Trace</span>
+              <span>Planner Agent Reasoning Trace</span>
             </div>
             <div className="space-y-1.5 text-[11px] font-mono text-slate-300 max-h-36 overflow-y-auto pr-1">
               <div className="text-slate-400">

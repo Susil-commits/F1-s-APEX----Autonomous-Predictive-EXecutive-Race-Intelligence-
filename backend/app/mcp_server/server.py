@@ -463,17 +463,41 @@ def get_system_ablation_study() -> str:
 
 
 @mcp.tool()
+def get_model_metadata(model_key: str = "tyre_degradation_xgb") -> str:
+    """Returns the formal governance card, training dataset, feature schema, and held-out metrics for a model."""
+    from backend.app.context.metadata.model_metadata import get_model_metadata, list_all_model_metadata
+    if model_key == "all":
+        return json.dumps([m.dict() for m in list_all_model_metadata()], indent=2)
+    card = get_model_metadata(model_key)
+    if not card:
+        return json.dumps({"error": f"Model '{model_key}' not found in registry"}, indent=2)
+    return json.dumps(card.dict(), indent=2)
+
+
+@mcp.tool()
+def get_decision_lineage(decision_id: str = "decision:box_lap_32_car_4") -> str:
+    """Traces upstream telemetry, feature sets, predictive models, uncertainty bounds, and safe RL masks for a decision."""
+    from backend.app.context.retrieval.context_retriever import context_retriever
+    trail = context_retriever.get_decision_evidence(decision_id)
+    if not trail:
+        return json.dumps({"error": f"Lineage trail for '{decision_id}' not found"}, indent=2)
+    return json.dumps(trail.dict(), indent=2)
+
+
+@mcp.tool()
+def get_context_quality() -> str:
+    """Returns real-time context completeness, lineage coverage, citation grounding, and trust metrics."""
+    from backend.app.context.quality.quality_metrics import context_quality_engine
+    return json.dumps(context_quality_engine.compute_quality_report().dict(), indent=2)
+
+
+@mcp.tool()
 def get_system_metrics() -> str:
-    """Returns a real-time observability snapshot of APEX Prometheus telemetry and health counters.
-    
-    Includes active concurrent sessions count, connected WebSocket clients, total simulated laps,
-    model drift status flags, and decision latency percentiles.
-    """
+    """Returns a real-time observability snapshot of APEX Prometheus telemetry and health counters."""
     try:
         from prometheus_client import REGISTRY, generate_latest
         raw_metrics = generate_latest(REGISTRY).decode("utf-8")
 
-        # Parse APEX custom metrics into structured JSON
         lines = [line for line in raw_metrics.splitlines() if line.startswith("apex_")]
         parsed_metrics: dict[str, Any] = {}
         for line in lines:
@@ -496,4 +520,6 @@ def get_system_metrics() -> str:
 if __name__ == "__main__":
     # Standard stdio MCP server execution
     mcp.run()
+
+
 
