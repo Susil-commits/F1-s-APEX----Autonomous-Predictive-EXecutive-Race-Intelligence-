@@ -2,7 +2,7 @@
 from typing import Dict, List, Any, Optional
 import time
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 from backend.app.context.schemas import ContextNode, ContextEdge, EntityType, RelationType, ProvenanceMetadata
 from backend.app.context.lineage.graph import RaceContextGraph, build_default_race_context_graph
 
@@ -26,7 +26,7 @@ class LineageTracer:
         node = ContextNode(
             id=pred_id,
             name=f"Inference Output ({model_id}) Lap {lap}",
-            entity_type=EntityType.PREDICTION_NODE,
+            entity_type=EntityType.PREDICTION,
             description="Live model inference event",
             properties=prediction_payload,
         )
@@ -38,7 +38,7 @@ class LineageTracer:
             "event": "PREDICTION_RECORDED",
             "model_id": model_id,
             "pred_id": pred_id,
-            "timestamp": datetime.utcnow().isoformat() + "Z",
+            "timestamp": datetime.now(timezone.utc).isoformat(),
         })
         return pred_id
 

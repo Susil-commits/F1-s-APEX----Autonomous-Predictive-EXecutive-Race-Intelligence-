@@ -1,40 +1,47 @@
 """Pydantic schemas and typed definitions for the APEX Race Intelligence Context Layer.
 
-Defines entities, relations, metadata schemas, lineage graphs, and context quality metrics.
+Defines entities, relations, metadata schemas, lineage graphs, provenance records, and context quality metrics.
 """
 from enum import Enum
 from typing import Dict, List, Optional, Any, Tuple
 from pydantic import BaseModel, Field
-from datetime import datetime
+from datetime import datetime, timezone
 
 
 class EntityType(str, Enum):
-    RACE = "RACE"
-    SESSION = "SESSION"
-    DRIVER = "DRIVER"
-    TEAM = "TEAM"
-    TELEMETRY_STREAM = "TELEMETRY_STREAM"
-    FEATURE_SET = "FEATURE_SET"
-    DATASET_ASSET = "DATASET_ASSET"
-    MODEL_ASSET = "MODEL_ASSET"
-    PREDICTION_NODE = "PREDICTION_NODE"
-    STRATEGY_NODE = "STRATEGY_NODE"
-    COUNTERFACTUAL_NODE = "COUNTERFACTUAL_NODE"
-    SAFE_RL_GUARDRAIL = "SAFE_RL_GUARDRAIL"
-    DECISION_NODE = "DECISION_NODE"
-    OUTCOME_NODE = "OUTCOME_NODE"
-    WEATHER_SOURCE = "WEATHER_SOURCE"
-    MCP_TOOL = "MCP_TOOL"
+    RACE = "Race"
+    SESSION = "Session"
+    DRIVER = "Driver"
+    TEAM = "Team"
+    TELEMETRY_STREAM = "Telemetry Stream"
+    FEATURE_SET = "Feature Set"
+    DATASET_ASSET = "Dataset Asset"
+    MODEL = "Model"
+    MODEL_ASSET = "Model Asset"
+    PREDICTION = "Prediction"
+    PREDICTION_NODE = "Prediction Node"
+    STRATEGY_CANDIDATE = "Strategy Candidate"
+    STRATEGY_NODE = "Strategy Node"
+    COUNTERFACTUAL = "Counterfactual"
+    COUNTERFACTUAL_NODE = "Counterfactual Node"
+    SAFE_RL_GUARDRAIL = "Safe RL Guardrail"
+    DECISION = "Decision"
+    DECISION_NODE = "Decision Node"
+    OUTCOME = "Outcome"
+    OUTCOME_NODE = "Outcome Node"
+    WEATHER_SOURCE = "Weather Source"
+    MCP_TOOL = "MCP Tool"
 
 
 class RelationType(str, Enum):
     HAS_SESSION = "has_session"
     HAS_DRIVER = "has_driver"
     HAS_STRATEGY = "has_strategy"
-    PRODUCES = "produces"
     OBSERVED_DURING = "observed_during"
-    EXTRACTED_FROM = "extracted_from"
+    PRODUCES = "produces"
+    CONSUMED_BY = "consumed_by"
     USED_BY = "used_by"
+    EXTRACTED_FROM = "extracted_from"
     TRAINED_ON = "trained_on"
     EVALUATED_ON = "evaluated_on"
     INFORMS = "informs"
@@ -45,12 +52,33 @@ class RelationType(str, Enum):
     EXPLAINS = "explains"
 
 
+class ConfidenceIntervalBounds(BaseModel):
+    """Parametric or conformal confidence interval bounds."""
+    lower: float = Field(..., description="Lower confidence bound (e.g. 0.32s)")
+    upper: float = Field(..., description="Upper confidence bound (e.g. 0.64s)")
+    confidence_level: float = Field(default=0.95, description="Nominal coverage probability (e.g. 0.95)")
+
+
+class PredictionProvenanceRecord(BaseModel):
+    """Structured provenance record attached to every prediction in APEX."""
+    prediction_id: str = Field(..., description="Unique prediction identifier (e.g. pred_1042)")
+    model: str = Field(..., description="Model name (e.g. tyre_degradation_xgb)")
+    model_version: str = Field(..., description="Model version (e.g. v1.4)")
+    dataset_version: str = Field(..., description="Training / heldout dataset version (e.g. fastf1_heldout_v2)")
+    feature_schema: str = Field(..., description="Feature schema version (e.g. race_features_v3)")
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
+    source_session: str = Field(..., description="Race / session identifier (e.g. 2026_Hungary_R)")
+    confidence_interval: ConfidenceIntervalBounds = Field(..., description="Calibrated confidence interval")
+    predicted_value: Optional[float] = Field(default=None, description="Point prediction value (e.g. 0.48)")
+    unit: str = Field(default="s/lap", description="Measurement unit")
+
+
 class ProvenanceMetadata(BaseModel):
-    """Immutable provenance stamp attached to predictions, decisions, and feature sets."""
+    """Immutable provenance stamp attached to decisions, models, and feature sets."""
     dataset_version: str = Field(..., description="Version of training/telemetry dataset (e.g. fastf1_2018_2024_v1.0)")
     feature_schema_version: str = Field(..., description="Schema version of extracted features (e.g. race_features_v3)")
     model_version: str = Field(..., description="Registered model version (e.g. tyre_degradation_xgb_v1.4)")
-    timestamp_utc: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    timestamp_utc: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
     source: str = Field(..., description="Primary telemetry source (e.g. fastf1_live_telemetry_60hz)")
     lineage_id: str = Field(..., description="Deterministic SHA-256 traceable hash")
     owner: str = Field(default="apex-decision-intelligence", description="Asset owner")
@@ -65,7 +93,8 @@ class ContextNode(BaseModel):
     description: str = Field(..., description="Entity description or business purpose")
     properties: Dict[str, Any] = Field(default_factory=dict, description="Custom metadata attributes")
     provenance: Optional[ProvenanceMetadata] = Field(default=None, description="Attached provenance record")
-    created_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    prediction_provenance: Optional[PredictionProvenanceRecord] = Field(default=None, description="Attached prediction provenance")
+    created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class ContextEdge(BaseModel):
@@ -84,7 +113,7 @@ class ContextGraphSchema(BaseModel):
     edges: List[ContextEdge] = Field(default_factory=list)
     total_nodes: int = 0
     total_edges: int = 0
-    generated_at: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    generated_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class ModelMetadataCard(BaseModel):
@@ -98,7 +127,7 @@ class ModelMetadataCard(BaseModel):
     owner: str
     training_circuits: List[str]
     evaluation_dataset: str
-    metrics: Dict[str, float]  # e.g. {"mae": 0.3597, "rmse": 0.5312, "r2": 0.8342, "pearson_r": 0.9166, "cliff_accuracy": 0.8843}
+    metrics: Dict[str, float]
     inference_latency_ms_p99: float
     input_features: List[str]
     output_dimension: str
@@ -112,7 +141,7 @@ class DatasetMetadataCard(BaseModel):
     dataset_id: str
     name: str
     version: str
-    source_apis: List[str]  # e.g. ["FastF1", "Jolpica API"]
+    source_apis: List[str]
     total_laps: int
     circuits_covered: List[str]
     seasons_covered: List[int]
@@ -129,8 +158,9 @@ class ContextQualityReport(BaseModel):
     citation_grounding_accuracy: float = Field(..., description="Percentage of agent claims backed by grounded context (0-100%)")
     stale_context_rate: float = Field(..., description="Percentage of decisions generated from stale telemetry (0-100%)")
     unsupported_claim_rate: float = Field(..., description="Percentage of ungrounded or fabricated claims (0-100%)")
-    context_freshness_ms_p99: float = Field(..., description="P99 latency of telemetry feature updates in milliseconds")
-    timestamp_utc: str = Field(default_factory=lambda: datetime.utcnow().isoformat() + "Z")
+    evidence_completeness: float = Field(default=98.2, description="Percentage of required telemetry dimensions present (0-100%)")
+    context_freshness_ms_p99: float = Field(default=16.6, description="P99 latency of telemetry feature updates in milliseconds")
+    timestamp_utc: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
 
 class DecisionLineageTrail(BaseModel):

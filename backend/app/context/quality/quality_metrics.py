@@ -4,7 +4,7 @@ Monitors metadata completeness, lineage coverage, citation grounding accuracy,
 stale context rates, and ungrounded claim frequency.
 """
 from typing import Dict, Any, List
-from datetime import datetime
+from datetime import datetime, timezone
 from backend.app.context.schemas import ContextQualityReport
 from backend.app.context.metadata.model_metadata import MODEL_REGISTRY
 from backend.app.context.metadata.dataset_metadata import DATASET_REGISTRY
@@ -49,7 +49,7 @@ class ContextQualityEngine:
             stale_context_rate=round(stale_rate, 2),
             unsupported_claim_rate=round(unsupported_rate, 2),
             context_freshness_ms_p99=16.6,
-            timestamp_utc=datetime.utcnow().isoformat() + "Z",
+            timestamp_utc=datetime.now(timezone.utc).isoformat(),
         )
 
     def record_decision_eval(

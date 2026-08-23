@@ -5,7 +5,7 @@ Constructs and manages the directed acyclic graph (DAG) linking:
 """
 from typing import Dict, List, Optional, Set, Any
 import hashlib
-from datetime import datetime
+from datetime import datetime, timezone
 
 from backend.app.context.schemas import (
     ContextNode,
@@ -13,6 +13,8 @@ from backend.app.context.schemas import (
     EntityType,
     RelationType,
     ProvenanceMetadata,
+    PredictionProvenanceRecord,
+    ConfidenceIntervalBounds,
     ContextGraphSchema,
     DecisionLineageTrail,
 )
@@ -116,7 +118,7 @@ class RaceContextGraph:
                 telemetry_source = u.properties.get("stream_url", u.name)
             elif u.entity_type == EntityType.FEATURE_SET:
                 features_used = u.properties.get("feature_names", [])
-            elif u.entity_type == EntityType.MODEL_ASSET:
+            elif u.entity_type in (EntityType.MODEL, EntityType.MODEL_ASSET):
                 models_invoked.append({
                     "model_id": u.id,
                     "name": u.name,
@@ -124,9 +126,9 @@ class RaceContextGraph:
                     "algorithm": u.properties.get("algorithm_family", "ML"),
                     "r2_score": u.properties.get("metrics", {}).get("r2", 0.834),
                 })
-            elif u.entity_type == EntityType.PREDICTION_NODE:
+            elif u.entity_type in (EntityType.PREDICTION, EntityType.PREDICTION_NODE):
                 predictions_produced[u.name] = u.properties
-            elif u.entity_type == EntityType.COUNTERFACTUAL_NODE:
+            elif u.entity_type in (EntityType.COUNTERFACTUAL, EntityType.COUNTERFACTUAL_NODE):
                 branches = u.properties.get("branches")
                 if branches and isinstance(branches, list):
                     counterfactuals.extend(branches)
@@ -187,7 +189,7 @@ class RaceContextGraph:
             edges=self.edges,
             total_nodes=len(self.nodes),
             total_edges=len(self.edges),
-            generated_at=datetime.utcnow().isoformat() + "Z",
+            generated_at=datetime.now(timezone.utc).isoformat(),
         )
 
 
@@ -297,11 +299,11 @@ def build_default_race_context_graph(
         graph.add_node(m_node)
         graph.add_edge(ContextEdge(source_id=feature_node.id, target_id=m_node.id, relation_type=RelationType.USED_BY))
 
-    # 5. Prediction Nodes
+    # 5. Prediction Nodes with Structured Provenance Records
     tyre_pred_node = ContextNode(
         id=f"pred:tyre_deg_car_{car_id}_lap_{lap}",
         name="Tyre Degradation Forecast (XGBoost)",
-        entity_type=EntityType.PREDICTION_NODE,
+        entity_type=EntityType.PREDICTION,
         description="Predicted lap time bleed and thermal cliff onset probability",
         properties={
             "expected_degradation_s": 0.48,
@@ -309,24 +311,58 @@ def build_default_race_context_graph(
             "cliff_probability_pct": 78.0,
             "laps_to_cliff": 3,
         },
+        prediction_provenance=PredictionProvenanceRecord(
+            prediction_id=f"pred_{car_id}_{lap}",
+            model="tyre_degradation_xgb",
+            model_version="v1.4",
+            dataset_version="fastf1_heldout_v2",
+            feature_schema="race_features_v3",
+            source_session=f"2023_{circuit_name}_R",
+            confidence_interval=ConfidenceIntervalBounds(lower=0.32, upper=0.64, confidence_level=0.95),
+            predicted_value=0.48,
+            unit="s/lap",
+        ),
     )
     weather_pred_node = ContextNode(
         id=f"pred:weather_radar_lap_{lap}",
         name="Doppler Weather Rain Prediction",
-        entity_type=EntityType.PREDICTION_NODE,
+        entity_type=EntityType.PREDICTION,
         description="Rain onset likelihood in next 5 laps",
         properties={"rain_probability_pct": 72.0, "track_wetness_index": 0.35},
+        prediction_provenance=PredictionProvenanceRecord(
+            prediction_id=f"pred_weather_{lap}",
+            model="weather_predictor_radar",
+            model_version="v2.1",
+            dataset_version="f1_weather_barometric_v2",
+            feature_schema="weather_features_v2",
+            source_session=f"2023_{circuit_name}_R",
+            confidence_interval=ConfidenceIntervalBounds(lower=0.65, upper=0.79, confidence_level=0.95),
+            predicted_value=0.72,
+            unit="probability",
+        ),
     )
     graph.add_node(tyre_pred_node)
     graph.add_node(weather_pred_node)
     graph.add_edge(ContextEdge(source_id="model:tyre_degradation_xgb_v1.4", target_id=tyre_pred_node.id, relation_type=RelationType.PRODUCES))
     graph.add_edge(ContextEdge(source_id="model:weather_predictor_radar_v2.1", target_id=weather_pred_node.id, relation_type=RelationType.PRODUCES))
 
-    # 6. Counterfactual Rollout Nodes
+    # 6. Strategy Candidate Node
+    strat_candidate_node = ContextNode(
+        id=f"strategy:candidate_box_lap_{lap}",
+        name="Strategy Candidate: Undercut Box Window (Lap 32-34)",
+        entity_type=EntityType.STRATEGY_CANDIDATE,
+        description="Candidate tactical pit window informed by tyre degradation and weather radar",
+        properties={"candidate_actions": ["PIT_NOW", "PIT_PLUS_2", "STAY_OUT"], "target_compound": "HARD"},
+    )
+    graph.add_node(strat_candidate_node)
+    graph.add_edge(ContextEdge(source_id=tyre_pred_node.id, target_id=strat_candidate_node.id, relation_type=RelationType.INFORMS))
+    graph.add_edge(ContextEdge(source_id=weather_pred_node.id, target_id=strat_candidate_node.id, relation_type=RelationType.INFORMS))
+
+    # 7. Counterfactual Rollout Nodes
     cf_node = ContextNode(
         id=f"cf:monte_carlo_rollout_lap_{lap}",
         name="Monte Carlo Counterfactual Branching (1,000 Rollouts)",
-        entity_type=EntityType.COUNTERFACTUAL_NODE,
+        entity_type=EntityType.COUNTERFACTUAL,
         description="Stochastic outcome distributions across candidate strategies",
         properties={
             "rollouts": 1000,
@@ -338,8 +374,7 @@ def build_default_race_context_graph(
         },
     )
     graph.add_node(cf_node)
-    graph.add_edge(ContextEdge(source_id=tyre_pred_node.id, target_id=cf_node.id, relation_type=RelationType.INFORMS))
-    graph.add_edge(ContextEdge(source_id=weather_pred_node.id, target_id=cf_node.id, relation_type=RelationType.INFORMS))
+    graph.add_edge(ContextEdge(source_id=strat_candidate_node.id, target_id=cf_node.id, relation_type=RelationType.EVALUATED_BY))
 
     # 7. Safe RL Guardrail Node
     guardrail_node = ContextNode(

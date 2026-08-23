@@ -1,4 +1,4 @@
-"""Tests for APEX Agent Evaluation Suite, citation grounding, and insufficient evidence handling."""
+"""Tests for APEX Agent Evaluation Suite, citation grounding, trajectory evaluation, and insufficient evidence refusal."""
 import pytest
 from backend.app.agents.evaluation.eval_suite import ContextAgentEvaluator
 
@@ -26,41 +26,96 @@ def test_agent_decision_grounding_eval():
     assert len(res_invalid["unsupported_claims"]) == 1
 
 
-def test_insufficient_evidence_safe_refusal():
-    """Verify that the agent refuses to hallucinate when telemetry or weather streams are missing."""
+def test_all_seven_insufficient_evidence_refusal_scenarios():
+    """Verify that APEX refuses to hallucinate across all 7 edge-case scenarios:
+    1. missing_telemetry
+    2. stale_weather
+    3. missing_opponent_state
+    4. model_unavailable
+    5. counterfactual_timeout
+    6. conflicting_model_outputs
+    7. unknown_driver
+    """
     evaluator = ContextAgentEvaluator()
 
-    # Case 1: Missing telemetry
-    res_missing_tel = evaluator.evaluate_insufficient_evidence_handling(
-        scenario="Telemetry Loss",
-        available_state={},
-    )
-    assert res_missing_tel["passed"] is True
-    assert res_missing_tel["response"]["decision"] == "INSUFFICIENT_EVIDENCE"
-    assert res_missing_tel["response"]["status"] == "REFUSED_TO_HALLUCINATE"
-    assert "telemetry_tyre_wear" in res_missing_tel["response"]["missing_context"]
+    # 1. Missing Telemetry
+    res1 = evaluator.evaluate_insufficient_evidence_handling("missing_telemetry", {})
+    assert res1["passed"] is True
+    assert res1["refusal_triggered"] is True
+    assert res1["response"]["decision"] == "INSUFFICIENT_EVIDENCE"
+    assert res1["response"]["status"] == "REFUSED_TO_HALLUCINATE"
+    assert "current tyre state" in res1["response"]["message"]
+    assert res1["response"]["safe_fallback_active"] is True
 
-    # Case 2: Complete state
-    res_complete = evaluator.evaluate_insufficient_evidence_handling(
-        scenario="Green Flag Pit Window",
-        available_state={"tyre_age_laps": 31, "wear_pct": 68.4, "weather_rain_prob": 0.72},
-    )
-    assert res_complete["passed"] is True
-    assert res_complete["response"]["decision"] == "PROCEED"
+    # 2. Stale Weather
+    res2 = evaluator.evaluate_insufficient_evidence_handling("stale_weather", {"tyre_age_laps": 25, "weather_stale": True})
+    assert res2["passed"] is True
+    assert res2["refusal_triggered"] is True
+    assert "latest weather forecast" in res2["response"]["message"]
+
+    # 3. Missing Opponent State
+    res3 = evaluator.evaluate_insufficient_evidence_handling("missing_opponent_state", {"tyre_age_laps": 25, "weather_rain_prob": 0.1, "opponent_missing": True})
+    assert res3["passed"] is True
+    assert res3["refusal_triggered"] is True
+    assert "opponent gap" in res3["response"]["message"]
+
+    # 4. Model Unavailable
+    res4 = evaluator.evaluate_insufficient_evidence_handling("model_unavailable", {"tyre_age_laps": 25, "weather_rain_prob": 0.1, "model_unavailable": True})
+    assert res4["passed"] is True
+    assert res4["refusal_triggered"] is True
+    assert "tyre_degradation_xgb" in res4["response"]["message"]
+
+    # 5. Counterfactual Timeout
+    res5 = evaluator.evaluate_insufficient_evidence_handling("counterfactual_timeout", {"tyre_age_laps": 25, "weather_rain_prob": 0.1, "counterfactual_timeout": True})
+    assert res5["passed"] is True
+    assert res5["refusal_triggered"] is True
+    assert "counterfactual simulation" in res5["response"]["message"]
+
+    # 6. Conflicting Model Outputs
+    res6 = evaluator.evaluate_insufficient_evidence_handling("conflicting_model_outputs", {"tyre_age_laps": 25, "weather_rain_prob": 0.1, "conflicting_models": True})
+    assert res6["passed"] is True
+    assert res6["refusal_triggered"] is True
+    assert "consensus resolution" in res6["response"]["message"]
+
+    # 7. Unknown Driver
+    res7 = evaluator.evaluate_insufficient_evidence_handling("unknown_driver", {"driver_id": 999, "unknown_driver": True})
+    assert res7["passed"] is True
+    assert res7["refusal_triggered"] is True
+    assert "Driver #999 not on grid" in res7["response"]["message"]
 
 
-def test_full_agent_evaluation_suite():
+def test_agent_trajectory_evaluation():
+    """Verify trajectory-level evaluation checks step-by-step reasoning discipline."""
+    evaluator = ContextAgentEvaluator()
+    traj = evaluator.evaluate_strategy_trajectory("Should we pit this lap?")
+
+    assert traj.passed is True
+    assert traj.trajectory_adherence_pct == 100.0
+    assert traj.all_steps_grounded is True
+    assert "inspect_tyre_forecast" in traj.observed_trajectory
+    assert "inspect_weather" in traj.observed_trajectory
+    assert "inspect_opponent_gap" in traj.observed_trajectory
+    assert "run_counterfactual" in traj.observed_trajectory
+    assert "cite_evidence" in traj.observed_trajectory
+    assert "recommend_or_refuse" in traj.observed_trajectory
+
+
+def test_full_agent_evaluation_suite_comprehensive():
     """Verify that the comprehensive evaluation report passes all SLA targets."""
     evaluator = ContextAgentEvaluator()
     report = evaluator.run_comprehensive_evaluation()
 
     assert report.overall_pass_rate_pct == 100.0
     assert report.insufficient_evidence_tests_passed is True
-    assert len(report.metrics) >= 6
+    assert len(report.metrics) >= 8
+    assert len(report.trajectories_evaluated) >= 1
 
-    # Verify key SLA metric values
     metric_map = {m.eval_name: m.measured_value for m in report.metrics}
+    assert metric_map["Tool Selection Accuracy"] >= 95.0
     assert metric_map["Citation Grounding Accuracy"] >= 95.0
     assert metric_map["Unsupported Claim Rate (Hallucination)"] == 0.0
-    assert metric_map["Tool Failure & Timeout Recovery"] == 100.0
+    assert metric_map["Missing Context Rate (Unflagged Gaps)"] == 0.0
+    assert metric_map["Lineage Coverage"] >= 90.0
+    assert metric_map["Evidence Completeness"] >= 95.0
+    assert metric_map["Tool Failure Recovery"] == 100.0
     assert metric_map["Agent Decision Latency (p99)"] < 100.0

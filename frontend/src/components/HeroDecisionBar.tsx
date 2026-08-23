@@ -293,45 +293,58 @@ export const HeroDecisionBar: React.FC = () => {
             </div>
           </div>
 
-          {/* 2. Context Provenance & Model Metadata */}
+          {/* 2. Race Intelligence Context Panel */}
           <div className="bg-[#0D101A] border border-[#1C2234] rounded-lg p-3 flex flex-col justify-between">
             <div>
               <div className="text-xs font-mono font-bold text-slate-200 flex items-center justify-between mb-2">
                 <span className="flex items-center gap-1.5">
                   <Layers className="w-3.5 h-3.5 text-purple-400" />
-                  <span>Context & Model Provenance</span>
+                  <span className="text-purple-300 font-bold uppercase tracking-wider text-[11px]">CONTEXT</span>
                 </span>
                 <span className="text-[10px] bg-emerald-950 text-emerald-300 border border-emerald-800 px-1.5 py-0.5 rounded font-mono">
                   Trust: 96.4%
                 </span>
               </div>
-              <div className="space-y-1.5 text-[11px] font-mono text-slate-300">
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Model:</span>
-                  <span className="text-slate-200 font-bold">tyre_degradation_xgb (v1.4)</span>
+              <div className="space-y-2 text-[11px] font-mono text-slate-300">
+                <div>
+                  <span className="text-slate-400 font-semibold block mb-0.5">Data:</span>
+                  <div className="text-slate-300 pl-1 space-y-0.5">
+                    <div>• FastF1 telemetry (60Hz live)</div>
+                    <div>• Weather feed (Doppler radar)</div>
+                    <div>• Opponent stint history</div>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Held-Out Eval:</span>
-                  <span className="text-cyan-300">R² = 0.8342, MAE = 0.3597s</span>
+
+                <div className="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800/60">
+                  <div>
+                    <span className="text-slate-400 font-semibold block mb-0.5">Models:</span>
+                    <div className="text-slate-300 pl-1 space-y-0.5 text-[10px]">
+                      <div>• tyre_degradation_xgb v1.4</div>
+                      <div>• weather_model v2.1</div>
+                    </div>
+                  </div>
+                  <div>
+                    <span className="text-slate-400 font-semibold block mb-0.5">Feature Set:</span>
+                    <div className="text-cyan-300 pl-1 text-[10px]">
+                      • race_features_v3 (28-D)
+                    </div>
+                  </div>
                 </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Training Corpus:</span>
-                  <span className="text-slate-300">FastF1 2018-2024 (6,999 laps)</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Feature Schema:</span>
-                  <span className="text-slate-300">race_features_v3 (28-D)</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-slate-400">Lineage Coverage:</span>
-                  <span className="text-emerald-400 font-bold">94.2% Complete</span>
+
+                <div className="pt-1 border-t border-slate-800/60">
+                  <span className="text-slate-400 font-semibold block mb-0.5">Evidence Freshness:</span>
+                  <div className="flex flex-wrap gap-2 text-[10px] text-emerald-400 font-mono">
+                    <span>✓ current lap</span>
+                    <span>✓ current weather</span>
+                    <span>✓ latest tyre state</span>
+                  </div>
                 </div>
               </div>
             </div>
 
             <div className="mt-2 pt-2 border-t border-slate-800/80 text-[10px] font-mono text-slate-400">
               <span className="text-purple-400 font-bold">Lineage: </span>
-              <span>FastF1 60Hz → Features v3 → XGBoost v1.4 → Safe RL Mask → Decision BOX</span>
+              <span className="text-slate-300">Telemetry → Features → Tyre Model → Counterfactual → Decision</span>
             </div>
           </div>
 
