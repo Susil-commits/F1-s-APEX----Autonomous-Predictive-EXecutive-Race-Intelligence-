@@ -4,40 +4,61 @@ APEX (Autonomous Predictive & EXecutive Race Intelligence) is composed of modula
 
 ---
 
-## 1. Master System Architecture
+## 1. Master System Architecture: Decision Intelligence Pipeline
 
 ```
-REAL F1 TELEMETRY / DATA (FastF1 & Jolpica API)
-                  │
-                  ▼
-   DATA ENGINEERING PIPELINE (Raw Storage -> Cleaning -> Session Merging)
-                  │
-                  ▼
-           FEATURE STORE (Tyre, Weather, Opponent, Driver, Vehicle, Strategy Features)
-                  │
-                  ▼
-         PREDICTIVE AI MODELS
- ┌────────────────┼────────────────┬────────────────┬────────────────┐
- │ Tyre RF & Cliff│ Weather Wetness│ Opponent Intent│ Driver Fatigue │ Vehicle Health
- └────────────────┴────────────────┴────────────────┴────────────────┘
-                  │
-                  ▼
-          RACE DIGITAL TWIN (L1 Hot Memory, L2 Redis Async, L3 SQLite / DB)
-                  │
-                  ▼
-   HIGH-PERFORMANCE VECTORIZED MONTE CARLO (9 Actions x 1,000 Stochastic Rollouts)
-                  │
-                  ▼
-     REINFORCEMENT LEARNING POLICIES (Gymnasium Env + DQN + PPO)
-                  │
-                  ▼
-   AUTONOMOUS EMERGENCY BRAIN & MULTI-FACTOR RISK ENGINE
-                  │
-                  ▼
-   HYBRID DECISION AGGREGATOR (Rules + ML + Monte Carlo + RL + Safe RL Action Masking)
-                  │
-                  ▼
-   INTERACTIVE 14-PAGE PIT WALL DASHBOARD & WEBSOCKET REAL-TIME TWIN
+FastF1 / Jolpica (60Hz Telemetry & Timing Ingestion)
+      │
+      ▼
+Data Validation & Schema Contracts (Pydantic & DLQ Isolation)
+      │
+      ▼
+Feature Engineering & Low-Latency Feature Store (28-D Vector @ 0.0245ms p99)
+      │
+      ▼
+Predictive Machine Learning Models
+ ┌───────────────┬─────────────────┬──────────────────┬─────────────────┐
+ │ Tyre Degradation │ Weather Doppler │ Opponent Intent  │ Vehicle Health  │
+ │ (XGBoost GBDT)   │ (Radar & Rain)  │ (Undercut Model) │ (Anomaly Det)   │
+ └───────────────┴─────────────────┴──────────────────┴─────────────────┘
+      │
+      ▼
+Uncertainty Quantification (95% Confidence Intervals & Conformal Variance)
+      │
+      ▼
+Counterfactual Simulation Engine (1,000+ Stochastic Monte Carlo Rollouts)
+      │
+      ▼
+Decision Policies & Safety Envelopes
+ ┌───────────────┬─────────────────────────────┬────────────────────────┐
+ │ Rule Baseline │ Safe RL (Action Masking)    │ Monte Carlo Rollouts   │
+ └───────────────┴─────────────────────────────┴────────────────────────┘
+      │
+      ▼
+Explainability Engine (TreeSHAP & Additive Feature Attribution)
+      │
+      ▼
+Planner Agent + Domain MCP Tools (Live Telemetry & Evidence Grounding)
+      │
+      ▼
+Strategic Pit Wall Decision (Box vs Stay Out Recommendation)
+      │
+      ▼
+Outcome & Action Execution (Net Delta Tracking)
+      │
+      ▼
+Closed-Loop Evaluation & Feedback (System Ablation & Model Drift Monitoring)
+```
+
+### Production Infrastructure & Supporting Execution Layer
+```
+┌─────────────────────────────────────────────────────────────────────────┐
+│ • Apache Kafka / Redpanda (60Hz Telemetry Stream & DLQ Buffer)          │
+│ • Redis Cluster & BullMQ (Asynchronous Worker Pools for MC Rollouts)   │
+│ • PostgreSQL (Historical Telemetry & Decision Audit Cold Store)         │
+│ • Docker & Kubernetes / Helm (Horizontal Pod Autoscaling 3 -> 20 pods)  │
+│ • Prometheus & OpenTelemetry (Distributed Tracing with W3C traceparent) │
+└─────────────────────────────────────────────────────────────────────────┘
 ```
 
 ---
@@ -333,7 +354,7 @@ flowchart LR
 
 ---
 
-### 🖥️ Sub-Architecture 9: Frontend 14-Workspace React/Zustand & Web Audio DSP
+### 🖥️ Sub-Architecture 9: Frontend 10-Workspace React/Zustand Cockpit
 
 ```mermaid
 flowchart TD
@@ -341,29 +362,23 @@ flowchart TD
     
     subgraph FrontendCore ["Frontend Architecture (React 18 + Zustand)"]
         SocketHook["useRaceSocket.ts (Auto-Reconnect + Local Twin Fallback)"]
-        ZustandStore["raceStore.ts (Global State + Telemetry History + Audio Queue)"]
-        AudioDSP["audioEngine.ts (Web Audio Oscillator Synth + Voice Personas)"]
+        ZustandStore["raceStore.ts (Global State + Telemetry History + Real-Time Sync)"]
         
         BackendWS <--> SocketHook --> ZustandStore
-        ZustandStore --> AudioDSP
     end
 
-    subgraph Workspaces ["14 Specialized Mission Control Workspaces"]
-        W1["1. Live Tactical Pit Wall"]
-        W2["2. Strategy Center & Stints"]
-        W3["3. Tyre ML & RUL"]
-        W4["4. Weather Doppler Radar"]
-        W5["5. Opponent Undercut Tactics"]
-        W6["6. Driver Analytics & Radar"]
-        W7["7. Powertrain Vehicle Health"]
-        W8["8. Counterfactual Lab"]
-        W9["9. RL Policy Visualizer"]
-        W10["10. Deep Telemetry Lab"]
-        W11["11. Historical Race Replay"]
-        W12["12. TreeSHAP AI Reasoner"]
-        W13["13. AI Championship"]
-        W14["14. System Observability"]
+    subgraph Workspaces ["10 Core Mission-Control AI/ML Workspaces"]
+        W1["1. AI Strategy Assistant (Hero Decision Bar)"]
+        W2["2. Live Race State & Timing Tower"]
+        W3["3. Prediction Explorer (FastF1 Metrics & Baselines)"]
+        W4["4. Counterfactual Simulation Lab"]
+        W5["5. Decision Optimization & Safe RL Policy"]
+        W6["6. Model Explainability (TreeSHAP & Delta-Q)"]
+        W7["7. Data Quality & Feature Store Lineage"]
+        W8["8. Agent Trace & MCP Tool Reasoner"]
+        W9["9. System Ablation Matrix (9-Config Study)"]
+        W10["10. Resilience & Edge-Case Error Monitoring"]
         
-        ZustandStore --> W1 & W2 & W3 & W4 & W5 & W6 & W7 & W8 & W9 & W10 & W11 & W12 & W13 & W14
+        ZustandStore --> W1 & W2 & W3 & W4 & W5 & W6 & W7 & W8 & W9 & W10
     end
 ```

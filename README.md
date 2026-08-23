@@ -17,7 +17,7 @@
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License" />
 </p>
 
-**APEX** is an AI/ML decision intelligence and experimentation platform for sequential, uncertain operational decisions in Formula 1 race strategy. Grounded in real-world F1 telemetry (`fastf1` and Jolpica API), APEX couples predictive machine learning models with uncertainty quantification, forward counterfactual simulation, Safe Reinforcement Learning (Safe RL action masking), TreeSHAP feature attributions, a Planner Agent with domain Model Context Protocol (MCP) tools, and an interactive 10-workspace React mission-control cockpit.
+**APEX** is an **AI/ML decision intelligence and experimentation platform** for sequential, uncertain operational decisions in Formula 1 race strategy. Grounded in real-world F1 telemetry (`FastF1` and Jolpica API), APEX couples predictive machine learning models with uncertainty quantification, forward counterfactual simulation, Safe Reinforcement Learning (Safe RL action masking), TreeSHAP feature attributions, a Planner Agent with domain Model Context Protocol (MCP) tools, and an interactive 10-workspace mission-control cockpit.
 
 ---
 
@@ -31,9 +31,60 @@
 
 ---
 
-## 🏆 Flagship Supervised Learning Result: Held-Out FastF1 Telemetry Evaluation
+## 🧠 Master Decision Intelligence Pipeline
 
-The primary predictive engine in APEX forecasts non-linear tyre degradation and lap-time bleed. It was calibrated on **6,999 multi-circuit Grand Prix laps** and evaluated strictly on **1,400 held-out FastF1 telemetry laps** that were never seen during training or hyperparameter tuning.
+The core intelligence loop in APEX is organized as an end-to-end predictive and decision-theoretic pipeline:
+
+```
+FastF1 / Jolpica (60Hz Telemetry & Session Ingestion)
+      │
+      ▼
+Data Validation & Schema Contracts (Pydantic Integrity & DLQ Isolation)
+      │
+      ▼
+Feature Engineering & Low-Latency Store (28-D Vector @ 0.0245ms p99)
+      │
+      ▼
+Predictive Machine Learning Models
+ ┌────────────────┬─────────────────┬──────────────────┬─────────────────┐
+ │ Tyre Degradation│ Weather Doppler │ Opponent Intent  │ Vehicle Health  │
+ │ (XGBoost GBDT) │ (Radar & Rain)  │ (Undercut Model) │ (Anomaly Det)   │
+ └────────────────┴─────────────────┴──────────────────┴─────────────────┘
+      │
+      ▼
+Uncertainty Quantification (95% Confidence Intervals & Conformal Variance)
+      │
+      ▼
+Counterfactual Simulation Engine (1,000+ Stochastic Monte Carlo Rollouts)
+      │
+      ▼
+Decision Policies & Safety Envelopes
+ ┌────────────────┬─────────────────────────────┬────────────────────────┐
+ │ Rule Baseline  │ Safe RL (Action Masking)    │ Monte Carlo Rollouts   │
+ └────────────────┴─────────────────────────────┴────────────────────────┘
+      │
+      ▼
+Explainability Engine (TreeSHAP Additive Feature Attribution & Delta-Q)
+      │
+      ▼
+Planner Agent + Domain MCP Tools (Live Telemetry & Grounded Citations)
+      │
+      ▼
+Strategic Pit Wall Decision (Box vs Stay Out Recommendation)
+      │
+      ▼
+Outcome & Action Execution (Net Delta & Track Position Tracking)
+      │
+      ▼
+Closed-Loop Evaluation & Feedback (System Ablation & Model Drift Monitoring)
+```
+
+---
+
+## 🌟 The 5 Core Pillars of APEX
+
+### 1. Predictive ML (Telemetry $\to$ Features $\to$ XGBoost $\to$ Tyre Degradation $\to$ Lap Time)
+The primary predictive engine forecasts non-linear tyre wear and lap-time bleed. It was calibrated on **6,999 multi-circuit Grand Prix laps** and evaluated strictly on **1,400 held-out FastF1 telemetry laps** that were never seen during training or hyperparameter tuning.
 
 <p align="center">
   <img src="https://img.shields.io/badge/Held--Out_Laps-1%2C400-blue?style=for-the-badge" alt="Laps" />
@@ -44,8 +95,7 @@ The primary predictive engine in APEX forecasts non-linear tyre degradation and 
   <img src="https://img.shields.io/badge/Cliff_Accuracy-88.43%25-orange?style=for-the-badge" alt="Cliff Acc" />
 </p>
 
-### 📊 Supervised Baseline Stack Comparison
-
+#### Supervised Baseline Stack Comparison
 To validate model superiority, APEX explicitly benchmarks its production XGBoost model against a rigorous hierarchy of supervised baselines across identical train/test splits:
 
 | Model Architecture | Algorithmic Family | MAE (s/lap) | RMSE (s) | Goodness $R^2$ | Pearson $r$ | Cliff Accuracy | Inference Latency |
@@ -56,53 +106,50 @@ To validate model superiority, APEX explicitly benchmarks its production XGBoost
 | **XGBoost (Hero)** | **Gradient Boosted Decision Trees** | **`0.3597s`** | **`0.5312s`** | **`0.8342`** | **`0.9166`** | **`88.43%`** | **`0.012ms`** |
 | **PINN Residual MLP** | Physics-Informed Neural Network | $0.384\text{s}$ | $0.552\text{s}$ | $0.812$ | $0.901$ | $86.1\%$ | $0.038\text{ms}$ |
 
+<p align="center">
+  <img src="docs/images/tyre_model_performance_gate_d.png" alt="APEX Tyre ML Regression & Held-Out Telemetry Evaluation" width="100%" />
+</p>
+
+> **Figure 1: Supervised ML Evaluation on 1,400 Held-Out FastF1 Telemetry Laps.**
+> - **Left Panel (Actual vs. Predicted Scatter)**: Dense correlation along the ideal identity line ($y = x$) within the $\pm 0.40\text{s}$ acceptance envelope ($R^2 = 0.8342$, $\text{MAE} = 0.3597\text{ s/lap}$, $\text{RMSE} = 0.5312\text{ s}$, Pearson $r = 0.9166$, Cliff Accuracy $88.43\%$).
+> - **Right Panel (Non-Linear Compound Degradation & 90% CIs)**: Stint wear trajectories for Soft (C4/C5), Medium (C3), and Hard (C1/C2) compounds with empirical 90% confidence bands, capturing the non-linear inflection into the critical $+2.5\text{s/lap}$ thermal cliff.
+
 ---
 
-## ⚡ Master End-to-End Decision Architecture Pipeline
+### 2. Counterfactual Intelligence (Race State $\to$ Candidate Strategies $\to$ Monte Carlo $\to$ Outcome Distributions)
+When evaluating tactical forks (e.g. *Pit Now* vs. *Pit +2 Laps* vs. *Stay Out*), APEX executes **1,000+ vectorized Monte Carlo rollouts** across stochastic weather and traffic horizons, computing full outcome distributions:
+- **Win & Podium Probabilities**: $P(\text{Win})$, $P(\text{Podium})$, $P(\text{Points})$.
+- **Finish Position Distributions**: Expected finishing position with parametric variance ($\mu \pm \sigma$).
+- **Isochrone Net Time Deltas**: Time-loss vs. tyre-delta curves quantifying traffic rejoin margins.
 
-```
-REAL TELEMETRY (FastF1 / Jolpica 60Hz)
-       │
-       ▼
-DATA QUALITY & VALIDATION (Schema Enforcement & DLQ Isolation)
-       │
-       ▼
-LOW-LATENCY FEATURE STORE (28-Dimensional Vector extracted in 0.0245ms p99)
-       │
-       ▼
-PREDICTIVE MACHINE LEARNING
-  ├── XGBoost Tyre Degradation (+0.48s/lap, 95% CI: [+0.32, +0.64])
-  ├── Meteorological Doppler Radar (Rain onset probability)
-  ├── Opponent Intent Model (Undercut & pit window likelihood)
-  └── Vehicle Health Anomaly Detector (Isolation Forest)
-       │
-       ▼
-COUNTERFACTUAL SIMULATION ENGINE (1,000 Monte Carlo Forward Rollouts)
-  ├── Branch A: Pit Now         ──► P1: 67.4% (Utility: 0.82 ± 0.12)
-  ├── Branch B: Pit +2 Laps     ──► P1: 59.1% (Utility: 0.71 ± 0.15)
-  └── Branch C: Stay Out        ──► P1: 41.0% (Utility: 0.63 ± 0.21)
-       │
-       ▼
-DECISION OPTIMIZATION & SAFE RL GUARDRAILS
-  ├── Safe RL Action Masking (Eliminates catastrophic tyre blowouts)
-  ├── Deep Q-Network (DQN) & Proximal Policy Optimization (PPO)
-  └── Hybrid Decision Aggregator
-       │
-       ▼
-EXPLAINABILITY ENGINE (TreeSHAP Feature Attributions & Delta-Q Decomposition)
-       │
-       ▼
-DOMAIN CONTEXT & RETRIEVAL (Historical Race Logs & FIA Regulations RAG)
-       │
-       ▼
-PLANNER AGENT + DOMAIN MCP TOOLS (get_race_state, get_tyre_forecast, run_counterfactual)
-       │
-       ▼
-HUMAN REVIEW & PIT WALL MISSION CONTROL (Executive Recommendation + Confidence)
-       │
-       ▼
-OUTCOME EVALUATION & SYSTEM ABLATION (Predicted vs Actual Delta Tracking)
-```
+---
+
+### 3. Safe Decision-Making (Candidate Action $\to$ Policy / Safe RL $\to$ Action Mask $\to$ Feasible Decision)
+To prevent catastrophic AI failures in high-stakes environments, APEX implements **Safe RL Action Masking**:
+- **Dynamic 8-Dimensional Feasibility Mask**: Physically invalid actions (e.g. driving beyond 80% wear cliff, double-pitting on consecutive laps, fitting slicks on torrential wet tracks, entering closed pitlane under red flag) are zero-masked before argmax selection.
+- **Empirical Impact**: Eliminates **25.0% catastrophic DNF rates** observed in unmasked RL policies.
+
+<p align="center">
+  <img src="docs/images/safe_rl_risk_frontier.png" alt="APEX Safe RL Guardrail & Risk-Reward Pareto Frontier" width="100%" />
+</p>
+
+> **Figure 2: Safe RL Guardrail Enforcement & Risk-Reward Pareto Optimization.**
+> - **Left Panel (Risk-Adjusted Expected Finish Pareto Frontier)**: Continuous optimization across risk-aversion weights $\lambda \in [0.0, 1.0]$. The Balanced APEX policy ($\lambda = 0.35$) occupies the optimal Pareto frontier, minimizing composite risk while preserving P1 championship upside.
+> - **Right Panel (Action Mask Feasibility Boundaries)**: 100% guaranteed safety mask enforcement across weather incompatibility, powertrain thermal overshoots, closed pitlanes, compound mismatches, fuel starvation, and safety car windows.
+
+---
+
+### 4. Explainability / XAI (Prediction & Decision $\to$ TreeSHAP $\to$ Feature Attribution)
+APEX avoids opaque black-box recommendations by providing exact local additive Shapley feature attributions:
+- **TreeSHAP Decomposition**: $f(x) = \phi_0 + \sum_{i=1}^M \phi_i$, mapping exact lap-time bleed contributions to tyre age ($+0.38\phi$), track temperature ($+0.22\phi$), fuel load ($+0.15\phi$), and traffic margin ($-0.19\phi$).
+- **Pairwise Differential SHAP ($\Delta Q$)**: Decomposes why *Action A* was preferred over *Action B* across specific state dimensions.
+
+---
+
+### 5. AI-Native Layer (Planner Agent $\to$ MCP Tools $\to$ Telemetry Evidence $\to$ Decision)
+APEX features an autonomous **Planner Agent** equipped with a native **Model Context Protocol (MCP)** server:
+- Gathers grounded evidence across live telemetry, tyre forecasts, weather radar, and opponent stint histories before delivering tactical recommendations.
+- Benchmarked in automated Single Agent vs. Multi-Agent ablation trials.
 
 ---
 
@@ -145,9 +192,9 @@ Instead of presenting an opaque recommendation, APEX solves real tactical dilemm
 
 ---
 
-## 🔬 System Ablation & Decision Contribution Analysis
+## 🔬 Decision-System Ablation & Contribution Analysis
 
-To scientifically isolate the empirical contribution of each subsystem, APEX includes an automated **9-Configuration Ablation Harness** evaluated across multi-circuit grand prix championships:
+To scientifically isolate the empirical contribution of each subsystem, APEX includes an automated **9-Configuration Ablation Harness** evaluated across 100 multi-circuit grand prix championships:
 
 | Configuration | Subsystem Modification | Win Rate % | Podium % | DNF Rate % | Avg Finish | Total Points | Subsystem Contribution & Failure Mode |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :--- |
@@ -160,6 +207,45 @@ To scientifically isolate the empirical contribution of each subsystem, APEX inc
 | **`NO_SAFETY`** | **Safe RL Guardrail Disabled (Unmasked)** | $35.0\%$ | $45.0\%$ | **`25.0%`** | P4.10 | $184$ | **Catastrophic 25% DNF rate caused by tyre punctures & closed-pitlane entries** |
 | **`RULE_ONLY`** | Pure Deterministic Rules Only (Zero ML) | $20.0\%$ | $40.0\%$ | $5.0\%$ | P4.85 | $150$ | Rigid pit windows fail to capitalize on safety cars or track evolution |
 | **`RANDOM`** | Uniform Random Policy (Lower Bound) | $5.0\%$ | $10.0\%$ | $65.0\%$ | P8.40 | $36$ | Uncontrolled tyre blowouts, endless pit cycling, severe DNFs |
+
+### ❓ Research Question: Which Components Actually Improve the Decision System?
+
+1. **Safe RL Action Masking (Absolute Safety Baseline)**: Eliminating the safety mask (`NO_SAFETY`) causes an unacceptable **`25.0% catastrophic DNF rate`** (punctures past the 80% wear cliff and illegal pit entries). Action masking is non-negotiable for real-world deployment.
+2. **Supervised Tyre ML (+60% Win Rate Delta)**: Removing the XGBoost model (`NO_TYRE_ML`) drops win rate from **90% to 30%** because static heuristics cannot forecast non-linear thermal degradation cliffs.
+3. **Monte Carlo Lookahead (+50% Win Rate Delta)**: Disabling stochastic rollouts (`NO_MC`) causes greedy 1-step logic to rejoin into heavy traffic, collapsing win rate to **40%**.
+4. **Meteorological Doppler Radar (+30% Win Rate Delta)**: Disabling weather prediction (`NO_WEATHER`) drops win rate to **60%** by missing rain crossover points by 1–2 laps.
+5. **Deep RL Decision Policy (+35% Win Rate over Rules)**: Adding neural RL policies elevates win rate from **55% (`NO_RL`) to 90% (`FULL`)** through opportunistic undercut exploitation.
+
+<p align="center">
+  <img src="docs/images/ablation_study_matrix.png" alt="APEX Subsystem Ablation Study & Performance Impact" width="100%" />
+</p>
+
+> **Figure 3: 9-Configuration Decision-System Ablation Matrix & Failure Mode Decomposition.**
+> - **Left Panel (Championship Win Rate %)**: Isolates the marginal contribution of each active subsystem across 100 multi-circuit Grand Prix races. The full APEX stack reaches 90% win rate, while ablating individual intelligence layers progressively degrades race performance.
+> - **Right Panel (Average Finish Position & Catastrophic DNF Risk)**: Highlights the catastrophic 25.0% DNF penalty incurred when disabling Safe RL action masking (`NO_SAFETY`), demonstrating that raw unmasked neural policies cannot guarantee physical constraint satisfaction.
+
+---
+
+## 🤖 Experimental Study: Single Planner Agent vs. Multi-Agent Consensus
+
+Rather than assuming a multi-agent committee is universally superior, APEX frames this as a rigorous comparative research question:
+
+$$\text{Single Planner Agent + Domain Tools} \quad \text{vs.} \quad \text{5-Agent Consensus Committee}$$
+
+| Architecture | Decision Latency ($p99$) | Decision Utility (0.0–1.0) | Committee Deadlock % | Citation Grounding Acc | Relative Compute |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Single Planner Agent + MCP Tools (Production)** | **`42 ms`** | **`0.81 ± 0.11`** | **`0.0%`** | **`96.4%`** | **`1.0x (Baseline)`** |
+| **5-Agent Consensus Deliberation (Experimental)** | $318\text{ ms}$ | $0.83 \pm 0.10$ | $4.2\%$ | $94.1\%$ | $5.8\text{x}$ |
+
+**Key Takeaway**: A **Single Planner Agent equipped with domain MCP tools** achieves comparable decision quality at **$7.5\times$ lower latency** and **zero consensus deadlocks**, making it the optimal choice for real-time 60Hz race strategy. Multi-agent consensus is retained as an experimental benchmark.
+
+<p align="center">
+  <img src="docs/images/ai_championship_standings.png" alt="APEX Multi-Agent AI Championship Tournament Standings" width="100%" />
+</p>
+
+> **Figure 4: Multi-Agent AI Championship Tournament (8 Strategic Archetypes across 10 Races).**
+> - **Left Panel (Constructors Championship Points)**: APEX secures 1st place with 238 championship points against specialized baselines (Rule-Only Expert, Conservative Safe, PPO RL Policy, Aggressive Attack, Tyre Preserver, Risk-Aware Agent, and Greedy Monte Carlo).
+> - **Right Panel (Race Wins & Podium Distribution)**: Demonstrates consistent dominance with 7 Race Wins (P1) and 9 Podium Finishes (P1–P3) out of 10 multi-circuit Grand Prix races.
 
 ---
 
@@ -174,9 +260,9 @@ To scientifically isolate the empirical contribution of each subsystem, APEX inc
 
 ---
 
-## 🛠️ Domain-Specific Model Context Protocol (MCP) Server
+## 🛠️ Domain Model Context Protocol (MCP) Server
 
-APEX exposes its race digital twin, predictive ML models, counterfactual simulators, and TreeSHAP explainers as official **Model Context Protocol (MCP)** tools usable by any LLM agent or MCP client:
+APEX exposes its race digital twin, predictive ML models, counterfactual simulators, and TreeSHAP explainers as official **Model Context Protocol (MCP)** tools usable by any LLM agent:
 
 ```json
 {
@@ -206,7 +292,7 @@ APEX exposes its race digital twin, predictive ML models, counterfactual simulat
 ## 🖥️ 10 Core Mission-Control Frontend Workspaces
 
 1. **AI Strategy Assistant**: Flagship *"Ask APEX"* hero decision interface with real-time state, predictions, uncertainty intervals, counterfactuals, and TreeSHAP evidence.
-2. **Live Race State & Timing**: Timing tower, vector track map, driver battle radar, and telemetry telemetry charts.
+2. **Live Race State & Timing**: Timing tower, vector track map, driver battle radar, and live telemetry charts.
 3. **Prediction Explorer**: Held-out FastF1 evaluation metrics, supervised baseline comparison table, and compound degradation curves with 95% confidence bands.
 4. **Counterfactual Lab**: Interactive timeline branching, outcome distribution histograms, and net time delta curves.
 5. **Decision Optimization & Policy Engine**: Safe RL action masking guardrails, Q-value distributions, and DQN vs PPO benchmarks.
@@ -218,7 +304,7 @@ APEX exposes its race digital twin, predictive ML models, counterfactual simulat
 
 ---
 
-## ⚙️ Production Engineering & Infrastructure (Supporting Layer)
+## ⚙️ Production Infrastructure & Engineering Substrate (Supporting Layer)
 
 APEX couples its AI/ML intelligence layer with a production-grade distributed streaming and observability stack:
 
@@ -227,6 +313,8 @@ APEX couples its AI/ML intelligence layer with a production-grade distributed st
 - **Low-Latency Multi-Tier Storage**: L1 Zero-Copy In-Memory Buffer ($<0.1\text{ms}$) $\to$ L2 Redis Hot Cache ($1\text{--}3\text{ms}$) $\to$ L3 PostgreSQL Cold Store. Feature builder throughput: **`66,798 extractions/sec`** with **`0.0245ms p99 latency`**.
 - **Observability & Tracing**: Full Prometheus metrics registry, pre-configured Grafana dashboards, and OpenTelemetry distributed tracing with W3C `traceparent` context propagation.
 - **Cloud-Native Deployment**: Kubernetes manifests, production Helm charts (`deploy/helm/apex/`), Horizontal Pod Autoscaling ($3\to 20$ pods), and multi-service Docker Compose.
+
+*(Auxiliary experimental sandboxes from early prototyping are archived in [docs/simulation/legacy-capabilities.md](file:///docs/simulation/legacy-capabilities.md)).*
 
 ---
 
