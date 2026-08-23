@@ -1,10 +1,11 @@
-"""Export metadata registries for root context.metadata package."""
-from backend.app.context.metadata.model_metadata import (
+"""APEX Race Intelligence Metadata Subpackage."""
+
+from context.metadata.model_metadata import (
     MODEL_REGISTRY,
     get_model_metadata,
     list_all_model_metadata,
 )
-from backend.app.context.metadata.dataset_metadata import (
+from context.metadata.dataset_metadata import (
     DATASET_REGISTRY,
     get_dataset_metadata,
     list_all_dataset_metadata,

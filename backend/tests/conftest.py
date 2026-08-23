@@ -5,6 +5,13 @@ duplicated setup code across 33+ test files.
 """
 from __future__ import annotations
 
+import sys
+from pathlib import Path
+
+ROOT_DIR = Path(__file__).resolve().parent.parent.parent
+if str(ROOT_DIR) not in sys.path:
+    sys.path.insert(0, str(ROOT_DIR))
+
 import pytest
 
 from backend.app.simulator.engine import RaceSimulator

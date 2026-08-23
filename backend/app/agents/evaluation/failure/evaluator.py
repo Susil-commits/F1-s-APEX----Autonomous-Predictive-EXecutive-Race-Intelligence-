@@ -26,10 +26,10 @@ class FailureEvaluator:
         is_refusal = hasattr(result, "status") and result.status == "INSUFFICIENT_CONTEXT"
 
         response_dict = None
-        if hasattr(result, "dict"):
-            response_dict = result.dict()
-        elif hasattr(result, "model_dump"):
+        if hasattr(result, "model_dump"):
             response_dict = result.model_dump()
+        elif hasattr(result, "dict"):
+            response_dict = result.dict()
         elif isinstance(result, dict):
             response_dict = result
 

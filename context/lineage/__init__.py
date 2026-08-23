@@ -1,9 +1,10 @@
-"""Export lineage graphs and tracers for root context.lineage package."""
-from backend.app.context.lineage.graph import (
+"""APEX Race Intelligence Lineage Subpackage."""
+
+from context.lineage.graph import (
     RaceContextGraph,
     build_default_race_context_graph,
 )
-from backend.app.context.lineage.tracer import (
+from context.lineage.tracer import (
     LineageTracer,
     lineage_tracer,
 )

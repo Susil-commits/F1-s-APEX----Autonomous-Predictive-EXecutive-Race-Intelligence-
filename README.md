@@ -28,48 +28,31 @@
 
 ```
                     ┌───────────────────────────────────────────────────────────┐
-                    │                 DOMAIN: F1 Race Strategy                  │
-                    └─────────────────────────────┬─────────────────────────────┘
+                    │               AI / DECISION INTELLIGENCE CORE             │
+                    │   • Supervised Degradation ML (XGBoost R²=0.8342)         │
+                    │   • Conformal Uncertainty Bands (95% CI Bounds)           │
+                    │   • Counterfactual Simulation (1,000 Rollouts & Isochrone)│
+                    │   • Safe RL Action Masking (0.0% Catastrophic DNFs)       │
+                    │   • TreeSHAP Additive Local Feature Attributions          │
+                    │   • Autonomous Planner Agent (MCP Native Context Engine)  │
+                    └─────────────────────────────▲─────────────────────────────┘
                                                   │
-                                                  ▼
-                    ┌───────────────────────────────────────────────────────────┐
-                    │               DATA ESTATE (5 Curated Sources)             │
-                    │  • FastF1 (Telemetry, Sector Splits, GPS Timing)          │
-                    │  • Jolpica / Ergast (Historical Results & Pit Loss Deltas)│
-                    │  • Weather (Track / Air Temps, Barometric Rain Radar)     │
-                    │  • Strategy History (Stint Curves & Undercut Replays)     │
-                    │  • Live Telemetry (60Hz Sensor Ingestion Stream)          │
-                    └─────────────────────────────┬─────────────────────────────┘
+                                                  │ (Context, Lineage & Grounding)
                                                   │
-                                                  ▼
-                    ┌───────────────────────────────────────────────────────────┐
-                    │           CANONICAL RACE CONTEXT GRAPH (10-Stage)         │
-                    │                                                           │
-                    │   [ Race ]                                                │
-                    │      ↓                                                    │
-                    │   [ Session ]                                             │
-                    │      ↓                                                    │
-                    │   [ Telemetry ]                                           │
-                    │      ↓                                                    │
-                    │   [ Feature Set ]                                         │
-                    │      ↓                                                    │
-                    │   [ Model ]                                               │
-                    │      ↓                                                    │
-                    │   [ Prediction ]                                          │
-                    │      ↓                                                    │
-                    │   [ Counterfactual ]                                      │
-                    │      ↓                                                    │
-                    │   [ Strategy ]                                            │
-                    │      ↓                                                    │
-                    │   [ Decision ]                                            │
-                    │      ↓                                                    │
-                    │   [ Outcome ]                                             │
-                    └─────────────────────────────┬─────────────────────────────┘
+                    ┌─────────────────────────────┴─────────────────────────────┐
+                    │             CANONICAL CONTEXT & LINEAGE DAG               │
+                    │  Telemetry → Features → Model → Prediction →              │
+                    │  StrategyCandidate → Counterfactual → Decision → Outcome  │
+                    └─────────────────────────────▲─────────────────────────────┘
                                                   │
-                                                  ▼
-                    ┌───────────────────────────────────────────────────────────┐
-                    │                    PRIMARY AI CLIENT                      │
-                    │       Ask APEX (Autonomous Strategist via MCP Tools)      │
+                                                  │ (High-Throughput Streaming)
+                                                  │
+                    ┌─────────────────────────────┴─────────────────────────────┐
+                    │              PRODUCTION RUNTIME INFRASTRUCTURE            │
+                    │  • Dual-Tier Caching (L1 RAM Buffer & L2 Redis Hot Store) │
+                    │  • Event Streaming (Kafka / FastF1 Ingestion Pipeline)   │
+                    │  • Microsecond Feature Store (0.0245ms p99 SLA)           │
+                    │  • Observability (Prometheus Metrics & Context SLIs)      │
                     └───────────────────────────────────────────────────────────┘
 ```
 
@@ -108,7 +91,7 @@ Every model and dataset in APEX carries a formal, cryptographically hashed gover
 ### Validated Model Cards (`backend/app/context/metadata/model_metadata.py`)
 
 | Model Identifier | Algorithm Family | Training Dataset | Feature Schema | Held-Out Metric ($R^2$ / MAE / AUC) | Latency (p99) | Status |
-| :--- | :--- | :--- | :--- | :---: | :---: | :---: |
+| :--- | :--- | :--- | :--- | :--- | :---: | :--- |
 | **`tyre_degradation_xgb`** | Gradient Boosted Trees (GBDT) | `fastf1_2018_2024_gold` | `race_features_v3` | **$R^2 = 0.8342$, $\text{MAE} = 0.3597\text{s}$** | `0.012ms` | **Validated** |
 | **`weather_predictor_radar`** | Time-Series & Conformal Classifier | `f1_weather_barometric_v2` | `weather_features_v2` | **Brier $= 0.0421$, Rain F1 $= 0.942$** | `0.008ms` | **Validated** |
 | **`opponent_undercut_model`** | Multi-Class Random Forest | `fastf1_pit_strategies_2019_24` | `opponent_features_v2` | **Pit Window Acc $= 0.912$, AUC $= 0.938$** | `0.015ms` | **Validated** |
@@ -119,7 +102,7 @@ Every model and dataset in APEX carries a formal, cryptographically hashed gover
 ### Validated Dataset Estate (`backend/app/context/metadata/dataset_metadata.py`)
 
 | Dataset Identifier | Primary Ingestion Source | Total Laps / Records | Circuits Covered | Schema Fields | Quality Score | Status |
-| :--- | :--- | :---: | :--- | :--- | :---: | :---: |
+| :--- | :--- | :---: | :--- | :--- | :---: | :--- |
 | **`fastf1_2018_2024_gold`** | FastF1 Python API & F1 Live Feed | `6,999 Laps` | 8 Circuits (Silverstone, Spa, Monza, ...) | Sector splits, lap time, tyre age | **`99.2%`** | **Validated** |
 | **`jolpica_ergast_historical`**| Jolpica F1 API & Ergast Developer API | `18,450 Records` | 8 Circuits (Monaco, Silverstone, Spa, ...) | Pit loss delta, grid/finish delta | **`99.5%`** | **Validated** |
 | **`f1_weather_barometric`** | FIA Track Meteorology Stations | `12,500 Records` | 6 Circuits (Silverstone, Spa, Zandvoort, ...) | Doppler reflectivity, wetness index | **`98.7%`** | **Validated** |
@@ -128,81 +111,70 @@ Every model and dataset in APEX carries a formal, cryptographically hashed gover
 
 ---
 
-## 🔗 End-to-End Traceable Decision Lineage
+## 🔍 Prediction Provenance & Context-Grounded QA
 
-APEX establishes deterministic data provenance from the raw sensor stream to the final pit wall order:
-
-```
-[1. FastF1 60Hz Stream] ──► [2. Pydantic Validation & DLQ] ──► [3. Feature Store (28-D)]
-                                                                       │
-[6. Safe RL Mask] ◄── [5. Counterfactuals (1,000 runs)] ◄── [4. XGBoost v1.4 Inference]
-       │
-       ▼
-[7. Planner Agent Synthesis] ──► [8. Pit Order: BOX THIS LAP] ──► [9. Outcome Delta: +14.8s P1]
-```
-
-### Traceability Guarantee
-Every decision emitted by the API or MCP Server contains a deterministic SHA-256 traceable hash and full lineage trail:
-- **`dataset_version`**: `fastf1_2018_2024_gold_v1.0` (6,999 Laps)
-- **`feature_schema`**: `race_features_v3` (28 Continuous & Discrete Features)
-- **`model_version`**: `tyre_degradation_xgb_v1.4` ($R^2 = 0.8342$)
-- **`lineage_trail`**: `FastF1 Telemetry -> Feature Set v3 -> XGBoost v1.4 -> Safe RL Action Mask -> Decision BOX -> Outcome P1`
-- **`context_trust_score`**: **$96.4\%$**
-
----
-
-## ⚡ Flagship "Ask APEX" Context & Lineage Dossier
-
-When the race engineer queries *"Should we pit the driver this lap?"*, APEX generates a fully grounded, citation-backed decision dossier:
+For every single inference emitted by the system, APEX persists an immutable **Prediction Provenance Record**:
 
 ```json
 {
-  "question": "Should we pit Lando Norris this lap?",
-  "lap": 32,
-  "circuit": "Silverstone Circuit",
-  "recommendation": {
-    "action": "BOX_THIS_LAP",
-    "compound_target": "HARD",
-    "confidence": 0.81,
-    "urgency": "HIGH",
-    "headline": "BOX NOW: Optimal pit window open with +4.1s gap margin. High expected utility (0.82 ± 0.12)."
-  },
-  "prediction": {
-    "model": "XGBoost v1.4 (Held-out FastF1: R² 0.8342, MAE 0.3597s)",
-    "expected_degradation_s_per_lap": "+0.48s/lap",
-    "confidence_interval_95": [0.32, 0.64],
-    "cliff_probability_pct": 78.0,
-    "laps_to_cliff": 3
-  },
-  "counterfactuals": [
-    { "action": "PIT_NOW", "p1_prob_pct": 67.4, "utility_mean": 0.82, "utility_uncertainty": 0.11, "time_delta_s": -3.8 },
-    { "action": "PIT_PLUS_2", "p1_prob_pct": 59.1, "utility_mean": 0.71, "utility_uncertainty": 0.15, "time_delta_s": -1.2 },
-    { "action": "STAY_OUT", "p1_prob_pct": 41.0, "utility_mean": 0.63, "utility_uncertainty": 0.20, "time_delta_s": +4.6 }
-  ],
-  "evidence": {
-    "tree_shap_attributions": [
-      { "feature": "Tyre Age (31 laps)", "shap_phi": +0.38, "impact": "Strongly Favors BOX" },
-      { "feature": "Track Temperature (38.5°C)", "shap_phi": +0.22, "impact": "Favors BOX" },
-      { "feature": "Fuel Load / Horizon", "shap_phi": +0.15, "impact": "Favors BOX" },
-      { "feature": "Rejoin Traffic Gap (+4.1s)", "shap_phi": -0.19, "impact": "Safe Buffer Margin" }
-    ],
-    "citations": [
-      "FastF1 Telemetry Session: Silverstone 2023 Grand Prix (Lap 32/52)",
-      "Tyre Degradation XGBoost Model Card v1.4 (Held-out R² 0.8342)",
-      "Safe RL Action Mask Guardrail v2.0 (100% Boundary Enforcement)",
-      "FIA Sporting Regulations Article 28.2 (Mandatory 2-Compound Rule Checked)"
-    ]
-  },
-  "context_provenance": {
-    "dataset_version": "fastf1_2018_2024_gold_v1.0",
-    "feature_schema": "race_features_v3",
-    "model_version": "tyre_degradation_xgb_v1.4",
-    "lineage_trail": "FastF1 Telemetry -> Feature Set v3 -> XGBoost v1.4 -> Safe RL Action Mask -> Decision BOX -> Outcome P1",
-    "context_trust_score": 0.964,
-    "metadata_completeness_pct": 96.4,
-    "lineage_coverage_pct": 94.2
+  "prediction_id": "pred_1042",
+  "model": "tyre_degradation_xgb",
+  "model_version": "v1.4",
+  "dataset_version": "fastf1_v2",
+  "feature_schema": "race_features_v3",
+  "session_id": "2026_hungary_race",
+  "created_at": "2026-08-23T14:50:00Z",
+  "confidence_interval": {
+    "lower": 0.31,
+    "upper": 0.61
   }
 }
+```
+
+### The 4 Provenance Questions
+With this provenance layer, **Ask APEX** natively answers:
+- **"Which model generated this?"** $\to$ `tyre_degradation_xgb v1.4` (Held-Out $R^2 = 0.8342$, $\text{MAE} = 0.3597\text{s}$)
+- **"Which dataset produced it?"** $\to$ `fastf1_v2` (FastF1 Official Grand Prix Telemetry Gold Corpus, 6,999 Laps)
+- **"Which feature version was used?"** $\to$ `race_features_v3` (28-dimensional normalized feature store vector)
+- **"Which race/session was the source?"** $\to$ `2026_hungary_race` (Silverstone / Hungaroring Grand Prix 60Hz Telemetry Stream)
+
+---
+
+## ⚡ Flagship "Ask APEX" Context Lineage Response
+
+When the race engineer queries *"Why did APEX recommend this strategy?"*, APEX returns a clean executive context lineage breakdown:
+
+```
+RECOMMENDATION
+Pit now
+
+PREDICTION
+Tyre degradation: +0.42 s/lap
+
+UNCERTAINTY
+95% interval: [0.31, 0.61]
+
+COUNTERFACTUALS
+Pit now       → 67.4%
+Pit +2 laps   → 59.1%
+Stay out      → 41.0%
+
+MODELS
+tyre_degradation_xgb v1.4
+weather_model v2.1
+
+DATA
+FastF1 telemetry
+weather stream
+opponent history
+
+LINEAGE
+Telemetry
+→ Features
+→ Model
+→ Prediction
+→ Counterfactual
+→ Decision
 ```
 
 ---

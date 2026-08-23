@@ -1,7 +1,24 @@
-"""APEX Race Intelligence Context Layer Package."""
-from backend.app.context.schemas import (
+"""APEX Race Intelligence Context Layer Backend Package."""
+
+from context import (
     EntityType,
     RelationType,
+    RaceEntity,
+    SessionEntity,
+    DriverEntity,
+    TeamEntity,
+    TelemetryStreamEntity,
+    FeatureSetEntity,
+    ModelEntity,
+    PredictionEntity,
+    StrategyCandidateEntity,
+    CounterfactualEntity,
+    DecisionEntity,
+    OutcomeEntity,
+    WeatherSourceEntity,
+    ToolEntity,
+    ConfidenceIntervalBounds,
+    PredictionProvenanceRecord,
     ProvenanceMetadata,
     ContextNode,
     ContextEdge,
@@ -10,33 +27,44 @@ from backend.app.context.schemas import (
     DatasetMetadataCard,
     ContextQualityReport,
     DecisionLineageTrail,
-)
-from backend.app.context.metadata import (
+    InsufficientContextResponse,
     MODEL_REGISTRY,
     get_model_metadata,
     list_all_model_metadata,
     DATASET_REGISTRY,
     get_dataset_metadata,
     list_all_dataset_metadata,
-)
-from backend.app.context.lineage import (
     RaceContextGraph,
     build_default_race_context_graph,
     LineageTracer,
     lineage_tracer,
-)
-from backend.app.context.retrieval import (
     ContextRetriever,
     context_retriever,
-)
-from backend.app.context.quality import (
     ContextQualityEngine,
     context_quality_engine,
+    ContextAgentEvaluator,
+    agent_evaluator,
 )
 
 __all__ = [
     "EntityType",
     "RelationType",
+    "RaceEntity",
+    "SessionEntity",
+    "DriverEntity",
+    "TeamEntity",
+    "TelemetryStreamEntity",
+    "FeatureSetEntity",
+    "ModelEntity",
+    "PredictionEntity",
+    "StrategyCandidateEntity",
+    "CounterfactualEntity",
+    "DecisionEntity",
+    "OutcomeEntity",
+    "WeatherSourceEntity",
+    "ToolEntity",
+    "ConfidenceIntervalBounds",
+    "PredictionProvenanceRecord",
     "ProvenanceMetadata",
     "ContextNode",
     "ContextEdge",
@@ -45,6 +73,7 @@ __all__ = [
     "DatasetMetadataCard",
     "ContextQualityReport",
     "DecisionLineageTrail",
+    "InsufficientContextResponse",
     "MODEL_REGISTRY",
     "get_model_metadata",
     "list_all_model_metadata",
@@ -59,4 +88,6 @@ __all__ = [
     "context_retriever",
     "ContextQualityEngine",
     "context_quality_engine",
+    "ContextAgentEvaluator",
+    "agent_evaluator",
 ]

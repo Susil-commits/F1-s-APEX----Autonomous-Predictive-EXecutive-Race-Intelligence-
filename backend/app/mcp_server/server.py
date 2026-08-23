@@ -535,8 +535,56 @@ def check_context_readiness(
 @mcp.tool()
 def get_context_quality() -> str:
     """Returns real-time context completeness, lineage coverage, citation grounding, and trust metrics."""
-    from backend.app.context.quality.quality_metrics import context_quality_engine
-    return json.dumps(context_quality_engine.compute_quality_report().dict(), indent=2)
+    from context.evaluation.quality_metrics import context_quality_engine
+    return json.dumps(context_quality_engine.compute_quality_report().model_dump(), indent=2)
+
+
+@mcp.tool()
+def get_decision_lineage(decision_id: str = "decision:box_lap_32_car_4") -> str:
+    """Returns the full 7-stage upstream decision lineage trail for any tactical decision.
+    
+    Includes telemetry sources, 28-D features, invoked models, predictions, counterfactuals, and guardrails.
+    """
+    from context.retrieval.context_retriever import context_retriever
+    trail = context_retriever.get_decision_evidence(decision_id)
+    if not trail:
+        return json.dumps({"error": f"Lineage for decision '{decision_id}' not found."}, indent=2)
+    return json.dumps(trail.model_dump(), indent=2)
+
+
+@mcp.tool()
+def get_context_graph() -> str:
+    """Returns the complete serialized 14-entity APEX Race Intelligence Context Graph DAG."""
+    from context.lineage.tracer import lineage_tracer
+    graph = lineage_tracer.get_graph()
+    return json.dumps(graph.to_schema().model_dump(), indent=2)
+
+
+@mcp.tool()
+def get_model_metadata_card(model_id: str = "tyre_degradation_xgb") -> str:
+    """Returns the formal model governance card, training dataset lineage, and held-out metrics."""
+    from context.metadata.model_metadata import get_model_metadata
+    card = get_model_metadata(model_id)
+    if not card:
+        return json.dumps({"error": f"Model '{model_id}' not found in registry."}, indent=2)
+    return json.dumps(card.model_dump(), indent=2)
+
+
+@mcp.tool()
+def get_dataset_metadata_card(dataset_id: str = "fastf1_2018_2024_gold") -> str:
+    """Returns the formal dataset ingestion card, circuit coverage, schema fields, and quality score."""
+    from context.metadata.dataset_metadata import get_dataset_metadata
+    card = get_dataset_metadata(dataset_id)
+    if not card:
+        return json.dumps({"error": f"Dataset '{dataset_id}' not found in registry."}, indent=2)
+    return json.dumps(card.model_dump(), indent=2)
+
+
+@mcp.tool()
+def explain_recommendation_lineage(decision_id: str = "decision:box_lap_32_car_4") -> str:
+    """Answers 'Why did APEX recommend this strategy?' with natural-language verifiable context lineage."""
+    from context.retrieval.context_retriever import context_retriever
+    return context_retriever.explain_recommendation(decision_id)
 
 
 @mcp.tool()

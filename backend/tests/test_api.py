@@ -151,3 +151,45 @@ async def test_api_race_export():
         assert "markdown_report" in export_data
         assert "decisions" in export_data
         assert "APEX Race Intelligence Debrief Report" in export_data["markdown_report"]
+
+
+@pytest.mark.asyncio
+async def test_api_context_and_prediction_provenance_endpoints():
+    """Verify REST API context endpoints including prediction provenance, graph, models, and quality."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        # 1. Prediction Provenance
+        pred_res = await ac.get("/api/context/prediction/pred_1042")
+        assert pred_res.status_code == 200
+        pred_data = pred_res.json()
+        assert pred_data["prediction_id"] == "pred_1042"
+        assert pred_data["model"] == "tyre_degradation_xgb"
+        assert pred_data["model_version"] == "v1.4"
+        assert pred_data["dataset_version"] == "fastf1_v2"
+        assert pred_data["feature_schema"] == "race_features_v3"
+        assert pred_data["session_id"] == "2026_hungary_race"
+        assert pred_data["confidence_interval"]["lower"] == 0.31
+        assert pred_data["confidence_interval"]["upper"] == 0.61
+
+        # 2. Context Models
+        models_res = await ac.get("/api/context/models")
+        assert models_res.status_code == 200
+        assert len(models_res.json()) >= 5
+
+        # 3. Context Datasets
+        datasets_res = await ac.get("/api/context/datasets")
+        assert datasets_res.status_code == 200
+        assert len(datasets_res.json()) >= 3
+
+        # 4. Context Quality
+        quality_res = await ac.get("/api/context/quality")
+        assert quality_res.status_code == 200
+        assert "metadata_completeness" in quality_res.json()
+
+        # 5. Agent Evaluation Report
+        eval_res = await ac.get("/api/agents/eval-report")
+        assert eval_res.status_code == 200
+        eval_data = eval_res.json()
+        assert eval_data["overall_pass_rate_pct"] == 100.0
+        assert len(eval_data["architecture_comparison"]) >= 2
+

@@ -19,6 +19,8 @@ from backend.app.simulator.models import (
     SafetyCarStatus,
     StrategyAction,
     TrackCondition,
+    TyreCompound,
+    DrivingMode,
 )
 from backend.app.simulator.track import TRACKS
 
@@ -498,14 +500,14 @@ async def get_latest_benchmarks():
                                     pol_lats.append(p_data.get("avg_decision_latency_ms", 0.1))
                             if pol_positions:
                                 overall_summary[pol] = {
-                                    "avg_position": round(float(sum(pol_positions) / len(pol_positions)), 2),
-                                    "win_rate_pct": round(float(sum(pol_wins) / len(pol_wins)), 1),
-                                    "podium_rate_pct": round(float(sum(pol_podiums) / len(pol_podiums)), 1),
-                                    "dnf_rate_pct": round(float(sum(pol_dnfs) / len(pol_dnfs)), 1),
-                                    "avg_gap_to_winner_s": round(float(sum(pol_gaps) / len(pol_gaps)), 2),
-                                    "avg_blown_tyre_laps": round(float(sum(pol_blown) / len(pol_blown)), 2),
-                                    "avg_pit_stops": round(float(sum(pol_pits) / len(pol_pits)), 1),
-                                    "avg_decision_latency_ms": round(float(sum(pol_lats) / len(pol_lats)), 2),
+                                    "avg_position": round(sum(pol_positions) / len(pol_positions), 2),
+                                    "win_rate_pct": round(sum(pol_wins) / len(pol_wins), 1),
+                                    "podium_rate_pct": round(sum(pol_podiums) / len(pol_podiums), 1),
+                                    "dnf_rate_pct": round(sum(pol_dnfs) / len(pol_dnfs), 1),
+                                    "avg_gap_to_winner_s": round(sum(pol_gaps) / len(pol_gaps), 2),
+                                    "avg_blown_tyre_laps": round(sum(pol_blown) / len(pol_blown), 2),
+                                    "avg_pit_stops": round(sum(pol_pits) / len(pol_pits), 1),
+                                    "avg_decision_latency_ms": round(sum(pol_lats) / len(pol_lats), 2),
                                 }
                         data["overall_summary"] = overall_summary
                         data["circuit_breakdown"] = track_results
@@ -1221,7 +1223,7 @@ async def execute_hero_decision_query(car_id: Optional[str] = None):
     tyre_compound = player.tyre_compound.value if player else "MEDIUM"
     tyre_age = player.tyre_age_laps if player else 31
     tyre_wear = round(player.tyre_wear_pct, 1) if player else 68.4
-    gap_p2 = round(player.gap_to_car_ahead_s if player and player.position > 1 else (player.gap_to_leader_s or 4.1), 2)
+    gap_p2 = round(player.gap_to_car_ahead_s if (player and player.position > 1) else ((player.gap_to_leader_s if player else 4.1) or 4.1), 2)
     rain_prob = round(state.weather.rain_probability_next_5_laps * 100, 1)
 
     # 2. Predictive ML Degradation with Uncertainty
@@ -1353,21 +1355,31 @@ async def get_race_context_graph():
     """Retrieve complete serialized APEX Race Intelligence Context Graph."""
     from backend.app.context.lineage.tracer import lineage_tracer
     graph = lineage_tracer.get_graph()
-    return graph.to_schema().dict()
+    return graph.to_schema().model_dump()
 
 
 @router.get("/context/models")
 async def get_context_model_metadata():
     """Retrieve metadata cards for all validated ML model assets."""
     from backend.app.context.metadata.model_metadata import list_all_model_metadata
-    return [m.dict() for m in list_all_model_metadata()]
+    return [m.model_dump() for m in list_all_model_metadata()]
 
 
 @router.get("/context/datasets")
 async def get_context_dataset_metadata():
     """Retrieve metadata cards for all registered datasets and corpus splits."""
     from backend.app.context.metadata.dataset_metadata import list_all_dataset_metadata
-    return [d.dict() for d in list_all_dataset_metadata()]
+    return [d.model_dump() for d in list_all_dataset_metadata()]
+
+
+@router.get("/context/prediction/{prediction_id}")
+async def get_prediction_provenance(prediction_id: str = "pred_1042"):
+    """Retrieve immutable Prediction Provenance Record, model card, dataset version, and confidence interval."""
+    from backend.app.context.retrieval.context_retriever import context_retriever
+    rec = context_retriever.get_prediction_provenance(prediction_id)
+    if not rec:
+        raise HTTPException(status_code=404, detail=f"Prediction provenance record '{prediction_id}' not found")
+    return rec.model_dump()
 
 
 @router.get("/context/lineage/{decision_id}")
@@ -1377,21 +1389,21 @@ async def get_decision_lineage(decision_id: str):
     trail = context_retriever.get_decision_evidence(decision_id)
     if not trail:
         raise HTTPException(status_code=404, detail=f"Lineage trail for decision '{decision_id}' not found")
-    return trail.dict()
+    return trail.model_dump()
 
 
 @router.get("/context/quality")
 async def get_context_quality_metrics():
     """Retrieve real-time context quality, lineage coverage, and citation grounding metrics."""
     from backend.app.context.quality.quality_metrics import context_quality_engine
-    return context_quality_engine.compute_quality_report().dict()
+    return context_quality_engine.compute_quality_report().model_dump()
 
 
 @router.get("/agents/eval-report")
 async def get_agent_evaluation_report():
     """Retrieve the formal Agent Reliability, Groundedness, and Hallucination Prevention Report."""
     from backend.app.agents.evaluation.eval_suite import agent_evaluator
-    return agent_evaluator.run_comprehensive_evaluation().dict()
+    return agent_evaluator.run_comprehensive_evaluation().model_dump()
 
 
 

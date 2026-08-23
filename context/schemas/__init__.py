@@ -1,30 +1,65 @@
-"""Export all schemas from backend.app.context.schemas for root context.schemas package."""
-from backend.app.context.schemas import (
+"""APEX Race Intelligence Context Layer Schemas Subpackage."""
+
+from context.schemas.entities import (
     EntityType,
     RelationType,
-    ConfidenceIntervalBounds,
-    PredictionProvenanceRecord,
-    ProvenanceMetadata,
+    RaceEntity,
+    SessionEntity,
+    DriverEntity,
+    TeamEntity,
+    TelemetryStreamEntity,
+    FeatureSetEntity,
+    ModelEntity,
+    PredictionEntity,
+    StrategyCandidateEntity,
+    CounterfactualEntity,
+    DecisionEntity,
+    OutcomeEntity,
+    WeatherSourceEntity,
+    ToolEntity,
     ContextNode,
     ContextEdge,
     ContextGraphSchema,
+)
+from context.schemas.metadata import (
+    ConfidenceIntervalBounds,
+    PredictionProvenanceRecord,
+    ProvenanceMetadata,
     ModelMetadataCard,
     DatasetMetadataCard,
+)
+from context.schemas.quality import (
     ContextQualityReport,
     DecisionLineageTrail,
+    InsufficientContextResponse,
 )
 
 __all__ = [
     "EntityType",
     "RelationType",
-    "ConfidenceIntervalBounds",
-    "PredictionProvenanceRecord",
-    "ProvenanceMetadata",
+    "RaceEntity",
+    "SessionEntity",
+    "DriverEntity",
+    "TeamEntity",
+    "TelemetryStreamEntity",
+    "FeatureSetEntity",
+    "ModelEntity",
+    "PredictionEntity",
+    "StrategyCandidateEntity",
+    "CounterfactualEntity",
+    "DecisionEntity",
+    "OutcomeEntity",
+    "WeatherSourceEntity",
+    "ToolEntity",
     "ContextNode",
     "ContextEdge",
     "ContextGraphSchema",
+    "ConfidenceIntervalBounds",
+    "PredictionProvenanceRecord",
+    "ProvenanceMetadata",
     "ModelMetadataCard",
     "DatasetMetadataCard",
     "ContextQualityReport",
     "DecisionLineageTrail",
+    "InsufficientContextResponse",
 ]

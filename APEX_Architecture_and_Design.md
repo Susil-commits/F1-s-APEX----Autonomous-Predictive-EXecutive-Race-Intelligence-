@@ -42,51 +42,32 @@ Outcome & System Ablation Evaluation
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                        REAL TELEMETRY INGESTION & FEATURE STORE                         │
-│  FastF1 & Jolpica API (60Hz multi-car stream) ──► Strict Pydantic Schema Validation     │
-│  L1 RAM Ring Buffer (<0.1ms) ──► L2 Redis Hot Cache (1-3ms) ──► L3 PostgreSQL Store     │
-│  Feature Store: 28-dimensional vector extraction at 0.0245ms p99 (66,798 extractions/s) │
-└────────────────────────────────────────────┬────────────────────────────────────────────┘
+│                           AI & DECISION INTELLIGENCE CORE                               │
+│  • Predictive ML (XGBoost R²=0.8342, 95% Conformal Uncertainty Interval [0.31, 0.61])    │
+│  • Counterfactual Lab (1,000 Monte Carlo Stochastic Rollouts & Isochrone Curves)        │
+│  • Safe RL Action Masking (100% Boundary Enforcement, 0.0% Catastrophic DNFs)           │
+│  • TreeSHAP Additive Local Attributions & Context Lineage Retrieval                     │
+│  • Primary Planner Agent (Planner → Context → Tools/MCP → Evidence → Decision)           │
+└────────────────────────────────────────────▲────────────────────────────────────────────┘
                                              │
-                       ┌─────────────────────┴─────────────────────┐
-                       ▼                                           ▼
-┌──────────────────────────────────────────────┐ ┌────────────────────────────────────────┐
-│             PREDICTIVE ML LAYER              │ │          DECISION OPTIMIZATION         │
-│ • Flagship XGBoost: Test MAE 0.3597s/lap,    │ │ • Safe RL Action Masking Guardrails    │
-│   R² 0.8342 on 1,400 held-out FastF1 laps    │ │   (Eliminates 25% catastrophic DNFs)   │
-│ • Supervised Baselines: Naive / Ridge / RF   │ │ • Deep Q-Network (DQN) Neural Policy   │
-│ • Uncertainty: Predicted Delta ± 0.16s (95%) │ │ • Proximal Policy Optimization (PPO)   │
-│ • PINN Thermal Compensator & Doppler Radar   │ │ • 1,000 Monte Carlo Forward Rollouts   │
-└──────────────────────┬───────────────────────┘ └───────────────────┬────────────────────┘
-                       │                                             │
-                       └─────────────────────┬───────────────────────┘
-                                             ▼
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                          COUNTERFACTUAL SIMULATION LAB                                  │
-│  Forks candidate timelines: "Pit Now" vs "Pit +2 Laps" vs "Stay Out"                    │
-│  Outputs finish probability distributions, Isochrone delta matrix, & utility intervals │
-└────────────────────────────────────────────┬────────────────────────────────────────────┘
+                                             │ (Grounded Context & Lineage DAG)
                                              │
-                                             ▼
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                    EXPLAINABILITY & GROUNDED CONTEXT LAYER                              │
-│  • TreeSHAP Additive Feature Attributions: f(x) = φ₀ + ∑ φᵢ (Tyre Age, Temp, Gaps)      │
-│  • Pairwise Differential SHAP: ΔQ = (E[f_A] - E[f_B]) + ∑(φ_i(A) - φ_i(B))              │
-│  • Dense Vector Embedding Retrieval: Grounded citations from race logs & FIA rules      │
-└────────────────────────────────────────────┬────────────────────────────────────────────┘
+┌────────────────────────────────────────────┴────────────────────────────────────────────┐
+│                    CANONICAL RACE CONTEXT & DATA PROVENANCE LAYER                       │
+│  TelemetryStream → FeatureSet → Model → Prediction →                                   │
+│  StrategyCandidate → Counterfactual → Decision → Outcome                                │
+│  • Model Cards & Checksums (XGBoost, PINN, Radar, DQN, PPO, Anomaly)                     │
+│  • Immutable Prediction Provenance Records (prediction_id, model, dataset, schema, CI)   │
+└────────────────────────────────────────────▲────────────────────────────────────────────┘
                                              │
-                                             ▼
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                       PLANNER AGENT + DOMAIN MCP TOOLS                                  │
-│  Tools: get_race_state, get_tyre_forecast, get_weather_forecast, run_counterfactual,    │
-│         get_opponent_strategy, explain_strategy, get_model_prediction                   │
-└────────────────────────────────────────────┬────────────────────────────────────────────┘
+                                             │ (High-Throughput Streaming & Caching)
                                              │
-                                             ▼
-┌─────────────────────────────────────────────────────────────────────────────────────────┐
-│                  MISSION CONTROL COCKPIT & SYSTEM ABLATION HARNESS                      │
-│  • Hero Decision Bar: "Should we pit Lando this lap? [Analyze Strategy]"                │
-│  • 10 Focused AI/ML Workspaces + Scientific 9-Configuration System Ablation Matrix      │
+┌────────────────────────────────────────────┴────────────────────────────────────────────┐
+│                       PRODUCTION RUNTIME INFRASTRUCTURE                                 │
+│  • FastF1 & Jolpica Telemetry Ingestion Pipeline (60Hz Stream & Pydantic Validation)     │
+│  • Dual-Tier State Cache (L1 RAM Buffer <0.1ms, L2 Redis Hot Store 1-3ms)               │
+│  • Feature Store: 28-dimensional state vector extraction at 0.0245ms p99 SLA            │
+│  • Production Observability & SLIs (Prometheus, Grafana, Zero-Hallucination Guardrails)  │
 └─────────────────────────────────────────────────────────────────────────────────────────┘
 ```
 
