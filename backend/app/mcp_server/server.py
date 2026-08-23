@@ -485,6 +485,54 @@ def get_decision_lineage(decision_id: str = "decision:box_lap_32_car_4") -> str:
 
 
 @mcp.tool()
+def get_prediction_provenance(prediction_id: str = "pred_1042") -> str:
+    """Answers: Which model generated this? What data trained it? What feature schema was used?
+    
+    Returns structured provenance metadata attached to any prediction in APEX, including model name,
+    version, training dataset, feature schema, session ID, and calibrated 95% confidence intervals.
+    """
+    from backend.app.context.retrieval.context_retriever import context_retriever
+    record = context_retriever.get_prediction_provenance(prediction_id)
+    if not record:
+        return json.dumps({"error": f"Prediction provenance for '{prediction_id}' not found"}, indent=2)
+    return json.dumps(record.dict() if hasattr(record, "dict") else record.model_dump(), indent=2)
+
+
+@mcp.tool()
+def check_context_readiness(
+    telemetry_available: bool = True,
+    weather_stale: bool = False,
+    opponent_missing: bool = False,
+    model_unavailable: bool = False,
+    counterfactual_timeout: bool = False,
+    conflicting_models: bool = False,
+    driver_id: int = 4,
+) -> str:
+    """Validates real-time context completeness, fresh weather streams, opponent states, and model health.
+    
+    Enforces the zero-hallucination 'INSUFFICIENT CONTEXT' protocol if any essential context is missing or stale.
+    """
+    from backend.app.context.retrieval.context_retriever import context_retriever
+    state_payload = {
+        "telemetry_available": telemetry_available,
+        "weather_stale": weather_stale,
+        "opponent_missing": opponent_missing,
+        "model_unavailable": model_unavailable,
+        "counterfactual_timeout": counterfactual_timeout,
+        "conflicting_models": conflicting_models,
+        "driver_id": driver_id,
+        "tyre_wear_pct": 45.0 if telemetry_available else None,
+        "weather_condition": "DRY" if not weather_stale else None,
+    }
+    result = context_retriever.validate_context_readiness(state_payload)
+    if hasattr(result, "dict"):
+        return json.dumps(result.dict(), indent=2)
+    elif hasattr(result, "model_dump"):
+        return json.dumps(result.model_dump(), indent=2)
+    return json.dumps(result, indent=2)
+
+
+@mcp.tool()
 def get_context_quality() -> str:
     """Returns real-time context completeness, lineage coverage, citation grounding, and trust metrics."""
     from backend.app.context.quality.quality_metrics import context_quality_engine

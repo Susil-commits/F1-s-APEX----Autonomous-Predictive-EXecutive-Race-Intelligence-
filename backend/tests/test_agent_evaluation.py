@@ -119,3 +119,82 @@ def test_full_agent_evaluation_suite_comprehensive():
     assert metric_map["Evidence Completeness"] >= 95.0
     assert metric_map["Tool Failure Recovery"] == 100.0
     assert metric_map["Agent Decision Latency (p99)"] < 100.0
+
+
+def test_grounding_evaluator_submodule():
+    """Verify grounding/evaluator computes unsupported_claim_rate, citation_grounding, evidence_completeness."""
+    from backend.app.agents.evaluation.grounding import GroundingEvaluator
+
+    valid = GroundingEvaluator.evaluate({
+        "claims": ["Tyre degradation estimated by XGBoost at +0.48s/lap", "FastF1 telemetry confirms 31 laps"],
+        "citations": ["Tyre Degradation XGBoost Model Card v1.4", "FastF1 Telemetry Session: Silverstone 2023"],
+    })
+    assert valid.grounded is True
+    assert valid.grounding_score == 1.0
+    assert valid.unsupported_claim_rate == 0.0
+    assert valid.evidence_completeness >= 0.95
+
+    hallucinated = GroundingEvaluator.evaluate({
+        "claims": ["Tyre degradation estimated by XGBoost at +0.48s/lap", "Fabricated mystery compound"],
+        "citations": ["Tyre Degradation XGBoost Model Card v1.4"],
+    })
+    assert hallucinated.grounded is False
+    assert hallucinated.unsupported_claim_rate == 0.5
+    assert len(hallucinated.unsupported_claims) == 1
+
+
+def test_context_evaluator_submodule():
+    """Verify context/evaluator computes context_relevance, missing_context_detection, lineage_coverage."""
+    from backend.app.agents.evaluation.context import ContextEvaluator
+
+    # Ready state
+    ready = ContextEvaluator.evaluate({"tyre_wear_pct": 50.0, "weather_condition": "DRY"})
+    assert ready.context_relevance >= 0.90
+    assert ready.missing_context_detected is False
+    assert ready.lineage_coverage >= 0.90
+    assert ready.lineage_verified is True
+
+    # Missing context state
+    missing = ContextEvaluator.evaluate({"telemetry_available": False, "weather_stale": True})
+    assert missing.missing_context_detected is True
+    assert len(missing.missing_elements) >= 2
+
+
+def test_tools_evaluator_submodule():
+    """Verify tools/evaluator computes tool_selection_accuracy and trajectory_adherence."""
+    from backend.app.agents.evaluation.tools import ToolsEvaluator
+
+    res = ToolsEvaluator.evaluate()
+    assert res.passed is True
+    assert res.tool_selection_accuracy == 1.0
+    assert res.trajectory_adherence == 1.0
+    assert res.parameter_validity == 1.0
+
+
+def test_failure_evaluator_submodule():
+    """Verify failure/evaluator computes tool_failure_recovery and zero-hallucination refusal."""
+    from backend.app.agents.evaluation.failure import FailureEvaluator
+
+    refusal = FailureEvaluator.evaluate_refusal({"telemetry_available": False})
+    assert refusal.passed is True
+    assert refusal.refusal_triggered is True
+    assert refusal.safe_fallback_enforced is True
+
+    timeout = FailureEvaluator.evaluate_tool_timeout_recovery("run_counterfactual", 100.0)
+    assert timeout["recovered"] is True
+    assert timeout["safe_rl_mask_enforced"] is True
+
+
+def test_regression_evaluator_submodule():
+    """Verify regression/evaluator computes decision_consistency, latency SLAs, and single vs multi-agent consensus."""
+    from backend.app.agents.evaluation.regression import RegressionEvaluator
+
+    reg = RegressionEvaluator.evaluate()
+    assert reg.passed is True
+    assert reg.decision_consistency >= 0.95
+    assert reg.latency_ms_p99 < 100.0
+    assert reg.latency_sla_passed is True
+    assert "single_planner_agent_mcp" in reg.single_vs_multi_agent_comparison
+    assert "multi_agent_committee_consensus" in reg.single_vs_multi_agent_comparison
+    assert reg.single_vs_multi_agent_comparison["single_planner_agent_mcp"]["mean_latency_p99_ms"] == 42.0
+

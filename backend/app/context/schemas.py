@@ -64,13 +64,39 @@ class PredictionProvenanceRecord(BaseModel):
     prediction_id: str = Field(..., description="Unique prediction identifier (e.g. pred_1042)")
     model: str = Field(..., description="Model name (e.g. tyre_degradation_xgb)")
     model_version: str = Field(..., description="Model version (e.g. v1.4)")
-    dataset_version: str = Field(..., description="Training / heldout dataset version (e.g. fastf1_heldout_v2)")
+    dataset_version: str = Field(default="fastf1_heldout_v2", description="Training / heldout dataset version (e.g. fastf1_heldout_v2)")
+    dataset: Optional[str] = Field(default=None, description="Dataset alias for dataset_version")
     feature_schema: str = Field(..., description="Feature schema version (e.g. race_features_v3)")
     created_at: str = Field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
-    source_session: str = Field(..., description="Race / session identifier (e.g. 2026_Hungary_R)")
+    source_session: str = Field(default="2026_hungary_race", description="Race / session identifier (e.g. 2026_Hungary_R)")
+    session: Optional[str] = Field(default=None, description="Session alias for source_session")
     confidence_interval: ConfidenceIntervalBounds = Field(..., description="Calibrated confidence interval")
     predicted_value: Optional[float] = Field(default=None, description="Point prediction value (e.g. 0.48)")
     unit: str = Field(default="s/lap", description="Measurement unit")
+
+    def model_post_init(self, __context: Any) -> None:
+        if self.dataset is None:
+            self.dataset = self.dataset_version
+        elif self.dataset_version == "fastf1_heldout_v2" and self.dataset != "fastf1_heldout_v2":
+            self.dataset_version = self.dataset
+
+        if self.session is None:
+            self.session = self.source_session
+        elif self.source_session == "2026_hungary_race" and self.session != "2026_hungary_race":
+            self.source_session = self.session
+
+
+class InsufficientContextResponse(BaseModel):
+    """First-class refusal response when essential context or evidence is missing."""
+    decision: str = "INSUFFICIENT_CONTEXT"
+    status: str = "INSUFFICIENT_CONTEXT"
+    missing: List[str] = Field(default_factory=list, description="List of missing evidence items")
+    message: str = "Unable to make a reliable recommendation."
+    action: str = "Request updated context / human review."
+    fallback_mode: str = "HUMAN_PIT_WALL_REVIEW"
+    safe_fallback_active: bool = True
+    context_freshness_check: Dict[str, bool] = Field(default_factory=dict)
+
 
 
 class ProvenanceMetadata(BaseModel):

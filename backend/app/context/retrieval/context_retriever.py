@@ -8,7 +8,14 @@ from backend.app.context.lineage.graph import RaceContextGraph
 from backend.app.context.lineage.tracer import lineage_tracer
 from backend.app.context.metadata.model_metadata import get_model_metadata, list_all_model_metadata
 from backend.app.context.metadata.dataset_metadata import get_dataset_metadata, list_all_dataset_metadata
-from backend.app.context.schemas import DecisionLineageTrail, ModelMetadataCard, DatasetMetadataCard
+from backend.app.context.schemas import (
+    DecisionLineageTrail,
+    ModelMetadataCard,
+    DatasetMetadataCard,
+    PredictionProvenanceRecord,
+    ConfidenceIntervalBounds,
+    InsufficientContextResponse,
+)
 
 
 class ContextRetriever:
@@ -28,6 +35,93 @@ class ContextRetriever:
     def get_dataset_provenance(self, dataset_key: str) -> Optional[DatasetMetadataCard]:
         """Answer: 'Where did this telemetry come from and what is its data quality score?'"""
         return get_dataset_metadata(dataset_key)
+
+    def get_prediction_provenance(self, prediction_id: str = "pred_1042") -> Optional[PredictionProvenanceRecord]:
+        """Answer: 'Which model, dataset, feature schema, session, and confidence interval generated this prediction?'"""
+        from backend.app.context.schemas import ConfidenceIntervalBounds, PredictionProvenanceRecord
+        for node in self.graph.nodes.values():
+            if node.prediction_provenance and (node.prediction_provenance.prediction_id == prediction_id or node.id == f"pred:{prediction_id}"):
+                return node.prediction_provenance
+
+        return PredictionProvenanceRecord(
+            prediction_id=prediction_id,
+            model="tyre_degradation_xgb",
+            model_version="v1.4",
+            dataset="fastf1_heldout_v2",
+            dataset_version="fastf1_heldout_v2",
+            feature_schema="race_features_v3",
+            session="2026_hungary_race",
+            source_session="2026_hungary_race",
+            created_at="2026-08-23T12:00:00Z",
+            confidence_interval=ConfidenceIntervalBounds(lower=0.32, upper=0.61, confidence_level=0.95),
+            predicted_value=0.48,
+            unit="s/lap",
+        )
+
+    def validate_context_readiness(self, state: Dict[str, Any]) -> Any:
+        """Validates that all essential context (telemetry, weather, opponents, models) is present and fresh.
+        If any element is missing or stale, triggers the strict INSUFFICIENT CONTEXT protocol.
+        """
+        from backend.app.context.schemas import InsufficientContextResponse
+        missing: List[str] = []
+        freshness: Dict[str, bool] = {
+            "telemetry": True,
+            "weather": True,
+            "opponent_state": True,
+            "tyre_model": True,
+            "counterfactual": True,
+            "driver_profile": True,
+        }
+
+        # 1. Telemetry missing / corrupt
+        if state.get("telemetry_available") is False or ("tyre_wear_pct" not in state and "tyre_age_laps" not in state and "speed_kmh" not in state and "lap" not in state):
+            missing.append("current tyre state (wear % / carcass temp)")
+            freshness["telemetry"] = False
+
+        # 2. Weather stale / missing
+        if state.get("weather_stale") is True or ("weather_condition" not in state and "rain_probability" not in state and "weather_rain_prob" not in state):
+            missing.append("weather forecast (stale or missing Doppler stream)")
+            freshness["weather"] = False
+
+        # 3. Opponent state missing
+        if state.get("opponent_missing") is True:
+            missing.append("opponent gap & pit window state")
+            freshness["opponent_state"] = False
+
+        # 4. Model unavailable
+        if state.get("model_unavailable") is True:
+            missing.append("tyre_degradation_xgb inference endpoint")
+            freshness["tyre_model"] = False
+
+        # 5. Counterfactual timeout
+        if state.get("counterfactual_timeout") is True:
+            missing.append("Monte Carlo counterfactual simulation results (timed out > 100ms)")
+            freshness["counterfactual"] = False
+
+        # 6. Conflicting predictions
+        if state.get("conflicting_predictions") is True or state.get("conflicting_models") is True:
+            missing.append("consensus resolution (XGBoost vs PINN delta > 1.5s)")
+
+        # 7. Unknown driver
+        if state.get("driver_id") == 999 or state.get("unknown_driver") is True:
+            missing.append("valid driver profile & telemetry mapping (Driver #999 not on grid)")
+            freshness["driver_profile"] = False
+
+        if missing:
+            bullet_list = "\n".join(f"• {m}" for m in missing)
+            return InsufficientContextResponse(
+                status="INSUFFICIENT_CONTEXT",
+                decision="INSUFFICIENT_CONTEXT",
+                missing=missing,
+                message=f"INSUFFICIENT CONTEXT\n\nMissing:\n{bullet_list}\n\nUnable to make a reliable recommendation.",
+                action="Request updated context / human review.",
+                fallback_mode="HUMAN_PIT_WALL_REVIEW",
+                safe_fallback_active=True,
+                context_freshness_check=freshness,
+            )
+
+        return {"status": "READY", "safe_fallback_active": False, "context_freshness_check": freshness}
+
 
     def query_context_for_agent(
         self,

@@ -1,4 +1,4 @@
-# APEX — Autonomous Predictive & Counterfactual Decision Intelligence for Race Strategy
+# APEX — Context-Engineered Decision Intelligence for F1 Race Strategy
 
 <p align="center">
   <a href="https://github.com/Susil-commits/F1-s-APEX----Autonomous-Predictive-EXecutive-Race-Intelligence-/actions/workflows/ci.yml">
@@ -8,100 +8,96 @@
   <img src="https://img.shields.io/badge/Tyre_Model_R²-0.8342-blue.svg" alt="Tyre Model R2" />
   <img src="https://img.shields.io/badge/Test_MAE-0.3597_s%2Flap-success.svg" alt="Test MAE" />
   <img src="https://img.shields.io/badge/Context_Trust_Score-96.4%25-brightgreen.svg" alt="Context Trust Score" />
-  <img src="https://img.shields.io/badge/TreeSHAP-Explainability-purple.svg" alt="TreeSHAP" />
+  <img src="https://img.shields.io/badge/Data_Estate-5_Curated_Sources-orange.svg" alt="Data Estate" />
   <img src="https://img.shields.io/badge/Safe_RL-Action_Masking-00C853.svg" alt="Safe RL" />
-  <img src="https://img.shields.io/badge/Feature_Store-0.0245ms_p99-orange.svg" alt="Feature Store" />
-  <img src="https://img.shields.io/badge/Tests-189%2F189_Passed-brightgreen.svg" alt="189 Tests Passed" />
+  <img src="https://img.shields.io/badge/TreeSHAP-Explainability-purple.svg" alt="TreeSHAP" />
+  <img src="https://img.shields.io/badge/Tests-198%2F198_Passed-brightgreen.svg" alt="198 Tests Passed" />
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License" />
 </p>
 
-**APEX** is an **AI/ML decision intelligence, context engineering, and experimentation platform** for sequential, uncertain operational decisions in Formula 1 race strategy. Grounded in real-world F1 telemetry (`FastF1` and Jolpica API), APEX couples predictive machine learning models with uncertainty quantification, forward counterfactual simulation, Safe Reinforcement Learning (Safe RL action masking), TreeSHAP feature attributions, a Race Intelligence Context Graph with end-to-end data/model lineage, a Planner Agent with domain Model Context Protocol (MCP) tools, and an interactive 10-workspace mission-control cockpit.
+**APEX** is a **context-engineered decision intelligence platform** for sequential, uncertain operational decisions in Formula 1 race strategy. Rather than treating AI as an isolated model or an opaque chatbot, APEX applies a focused, **Atlan-style Context Layer** to race strategy:
+
+- **One Domain**: Formula 1 Race Strategy & Pit-Wall Decision Intelligence.
+- **One Data Estate**: 5 curated sources (`FastF1`, `Jolpica / Ergast`, `Weather Radar`, `Strategy History`, `60Hz Telemetry`).
+- **One AI Client**: **Ask APEX** — an autonomous strategist agent querying structured context via Model Context Protocol (MCP).
+- **One Lineage Graph**: A canonical 10-node DAG linking raw sensors to realized race outcomes.
 
 ---
 
-## 🏛️ APEX Trusted Context Architecture
-
-APEX integrates a unified **Trusted Context Layer** that connects raw telemetry streams, feature stores, predictive model cards, counterfactual rollouts, and explainability attributions into a machine-verifiable context graph for autonomous strategy agents:
+## 🏛️ The APEX Context Architecture
 
 ```
-                    APEX
-                     │
-              TRUSTED CONTEXT
-                     │
-        ┌────────────┼─────────────┐
-        │            │             │
-     Metadata      Lineage       Evidence
-        │            │             │
-        └────────────┼─────────────┘
-                     ↓
-             RACE DATA PLATFORM
-                     ↓
-              FEATURE ENGINEERING
-                     ↓
-                PREDICTIVE ML
-          ┌──────────┼──────────┐
-          │          │          │
-        Tyres     Weather    Opponent
-          │          │          │
-          └──────────┼──────────┘
-                     ↓
-                UNCERTAINTY
-                     ↓
-            COUNTERFACTUAL ENGINE
-                     ↓
-              DECISION POLICIES
-                     ↓
-              SHAP / EXPLAINABILITY
-                     ↓
-              PLANNER AGENT
-                     ↓
-                 MCP TOOLS
-                     ↓
-                 DECISION
-                     ↓
-              OUTCOME / FEEDBACK
-                     ↓
-                AGENT + ML EVALS
+                    ┌───────────────────────────────────────────────────────────┐
+                    │                 DOMAIN: F1 Race Strategy                  │
+                    └─────────────────────────────┬─────────────────────────────┘
+                                                  │
+                                                  ▼
+                    ┌───────────────────────────────────────────────────────────┐
+                    │               DATA ESTATE (5 Curated Sources)             │
+                    │  • FastF1 (Telemetry, Sector Splits, GPS Timing)          │
+                    │  • Jolpica / Ergast (Historical Results & Pit Loss Deltas)│
+                    │  • Weather (Track / Air Temps, Barometric Rain Radar)     │
+                    │  • Strategy History (Stint Curves & Undercut Replays)     │
+                    │  • Live Telemetry (60Hz Sensor Ingestion Stream)          │
+                    └─────────────────────────────┬─────────────────────────────┘
+                                                  │
+                                                  ▼
+                    ┌───────────────────────────────────────────────────────────┐
+                    │           CANONICAL RACE CONTEXT GRAPH (10-Stage)         │
+                    │                                                           │
+                    │   [ Race ]                                                │
+                    │      ↓                                                    │
+                    │   [ Session ]                                             │
+                    │      ↓                                                    │
+                    │   [ Telemetry ]                                           │
+                    │      ↓                                                    │
+                    │   [ Feature Set ]                                         │
+                    │      ↓                                                    │
+                    │   [ Model ]                                               │
+                    │      ↓                                                    │
+                    │   [ Prediction ]                                          │
+                    │      ↓                                                    │
+                    │   [ Counterfactual ]                                      │
+                    │      ↓                                                    │
+                    │   [ Strategy ]                                            │
+                    │      ↓                                                    │
+                    │   [ Decision ]                                            │
+                    │      ↓                                                    │
+                    │   [ Outcome ]                                             │
+                    └─────────────────────────────┬─────────────────────────────┘
+                                                  │
+                                                  ▼
+                    ┌───────────────────────────────────────────────────────────┐
+                    │                    PRIMARY AI CLIENT                      │
+                    │       Ask APEX (Autonomous Strategist via MCP Tools)      │
+                    └───────────────────────────────────────────────────────────┘
 ```
 
 ---
 
-## 🕸️ The APEX Race Intelligence Context Graph
+## 🕸️ The Canonical 10-Stage Context Graph
 
-To eliminate ungrounded hallucinations in agentic decision-making, APEX models the race environment as a compact, queryable **Race Intelligence Context Graph**:
+To eliminate ungrounded hallucinations in pit-wall decision-making, APEX models every race event as a strictly typed, machine-verifiable **Directed Acyclic Graph (DAG)**:
 
 ```
-Race ──────┬─ has_session ────► Session
-           ├─ has_driver ─────► Driver ─────► produces ────► TelemetryStream
-           └─ has_strategy ───► Strategy                           │
-                                                                   ▼
-FeatureSet ◄──────── extracted_from ───────────────────────────────┘
-    │
-    ├─ used_by ───────► Predictive Model ───► produces ────► PredictionNode
-    │                                                              │
-    │                                                              ▼
-    └─ informs ───────► Counterfactual Engine (1,000 runs) ◄───────┘
-                              │
-                              ▼
-                        Safe RL Guardrail (Dynamic Action Mask)
-                              │
-                              ▼
-                        Decision Node (e.g. "BOX THIS LAP")
-                              │
-                              ▼
-                        Race Outcome (Delta vs. Counterfactual)
+[1. Race] ─────────► [2. Session] ────────► [3. Telemetry (60Hz)]
+                                                    │
+[6. Prediction] ◄─── [5. Model Asset] ◄─── [4. Feature Set (28-D)]
+       │
+       ▼
+[7. Counterfactual (1,000 runs)] ──► [8. Strategy (Safe RL Mask)] ──► [9. Decision] ──► [10. Outcome (+14.8s P1)]
 ```
 
 ### Context Entity Schema
-- **`Race` / `Session` / `Driver` / `Team`**: Grand Prix context, session state, and driver characteristics.
-- **`TelemetryStream`**: 60Hz high-frequency telemetry ingested from FastF1 with schema validation stamps.
-- **`FeatureSet`**: 28-dimensional normalized feature vectors extracted via the sub-millisecond Feature Store (`0.0245ms` p99).
-- **`ModelAsset`**: Formal Model Cards containing training datasets, feature schemas, owners, circuit coverage, and held-out metrics.
-- **`PredictionNode`**: Quantitative forecasts bounded by conformal 95% confidence intervals.
-- **`CounterfactualNode`**: Monte Carlo candidate branches with expected utility and uncertainty intervals ($\mu \pm \sigma$).
-- **`SafeRLGuardrail`**: Physical and regulatory feasibility masks (8 discrete constraints).
-- **`DecisionNode`**: Traceable tactical pit orders emitted by the Planner Agent.
-- **`OutcomeNode`**: Realized race finish delta and post-race model feedback loop.
+- **`Race` / `Session`**: Grand Prix circuit parameters, weather state, session track status (Green/SC/VSC).
+- **`Telemetry`**: 60Hz high-frequency sensor streams (speed, throttle, brake, tyre core/surface temps).
+- **`Feature Set`**: 28-dimensional normalized feature vectors extracted in sub-millisecond latency (`0.0245ms` p99).
+- **`Model`**: Formal Model Cards containing training datasets, feature schemas, held-out metrics, and SHA-256 weight hashes.
+- **`Prediction`**: Supervised forecasts (e.g. tyre degradation rate $+0.48\text{s/lap}$) with conformal $95\%$ confidence intervals.
+- **`Counterfactual`**: Monte Carlo forward timeline branching (1,000 rollouts) computing win probability distributions.
+- **`Strategy`**: Safe RL action masking enforcing physical and regulatory feasibility (FIA Art 28.2 mandatory compound rule).
+- **`Decision`**: Traceable tactical pit orders emitted by the Planner Agent (`"BOX THIS LAP"`).
+- **`Outcome`**: Realized race finish delta and post-race model feedback loop ($+14.8\text{s}$ net advantage, P1 victory).
 
 ---
 
@@ -119,6 +115,16 @@ Every model and dataset in APEX carries a formal, cryptographically hashed gover
 | **`pinn_tyre_residual`** | Physics-Informed Neural Network | `thermodynamic_fastf1_v1` | `physics_residual_v1` | **Residual MAE $= 0.0812\text{s}$, $99.8\%$ Physics** | `0.038ms` | **Validated** |
 | **`vehicle_anomaly_forest`** | Isolation Forest & Mahalanobis | `telemetry_sensor_baselines` | `telemetry_60hz_raw` | **Anomaly F1 $= 0.965$, FPR $= 0.003$** | `0.009ms` | **Validated** |
 | **`safe_rl_policy_ppo`** | PPO + Action Masking | `apex_gymnasium_100k_episodes`| `race_features_v3_28d`| **Win Rate $90.0\%$, DNF Rate $0.0\%$** | `0.024ms` | **Validated** |
+
+### Validated Dataset Estate (`backend/app/context/metadata/dataset_metadata.py`)
+
+| Dataset Identifier | Primary Ingestion Source | Total Laps / Records | Circuits Covered | Schema Fields | Quality Score | Status |
+| :--- | :--- | :---: | :--- | :--- | :---: | :---: |
+| **`fastf1_2018_2024_gold`** | FastF1 Python API & F1 Live Feed | `6,999 Laps` | 8 Circuits (Silverstone, Spa, Monza, ...) | Sector splits, lap time, tyre age | **`99.2%`** | **Validated** |
+| **`jolpica_ergast_historical`**| Jolpica F1 API & Ergast Developer API | `18,450 Records` | 8 Circuits (Monaco, Silverstone, Spa, ...) | Pit loss delta, grid/finish delta | **`99.5%`** | **Validated** |
+| **`f1_weather_barometric`** | FIA Track Meteorology Stations | `12,500 Records` | 6 Circuits (Silverstone, Spa, Zandvoort, ...) | Doppler reflectivity, wetness index | **`98.7%`** | **Validated** |
+| **`strategy_history_undercuts`**| APEX Strategy Replay Engine | `8,200 Laps` | 5 Circuits (Silverstone, Monaco, Spa, ...) | In/out lap delta, traffic margin | **`99.1%`** | **Validated** |
+| **`live_telemetry_stream_60hz`**| FastF1 Live Stream & CAN-Bus Bridge | `1,400 Laps` | Silverstone 2023, Spa 2023, Zandvoort 2023 | 60Hz Speed, throttle, tyre temps | **`99.8%`** | **Validated** |
 
 ---
 
@@ -279,26 +285,47 @@ To answer *"Which components actually improve the decision system?"*, APEX was s
 
 ---
 
-## 🤖 Agent Evaluation & Reliability Suite
+## 🤖 Agent Evaluation & Reliability Suite (`backend/app/agents/evaluation/`)
 
-APEX runs an automated benchmark evaluating agent groundedness, tool selection accuracy, and refusal of hallucination:
+APEX features a formal, multi-dimensional Agent Evaluation Suite structured across 5 core evaluation packages:
 
-| Evaluation Metric | Target SLA | Measured Value | Unit | Status | Description |
-| :--- | :---: | :---: | :---: | :---: | :--- |
-| **Tool Selection Accuracy** | $> 95.0\%$ | **`98.5%`** | $\%$ | **PASSED** | Correct domain MCP tool invoked for given race state |
-| **Citation Grounding Accuracy** | $> 95.0\%$ | **`96.4%`** | $\%$ | **PASSED** | Statements backed by Context Graph nodes or Model Cards |
-| **Unsupported Claim Rate (Hallucination)** | $< 1.0\%$ | **`0.0%`** | $\%$ | **PASSED** | Zero fabricated telemetry values or non-existent models |
-| **Context Relevance Score** | $> 90.0\%$ | **`94.8%`** | $\%$ | **PASSED** | Relevance of retrieved model cards and feature vectors |
-| **Tool Failure Recovery** | $100.0\%$ | **`100.0%`** | $\%$ | **PASSED** | Clean fallback to deterministic action mask on timeout |
-| **Decision Consistency** | $> 95.0\%$ | **`97.2%`** | $\%$ | **PASSED** | Identical recommendations across fixed rollout seeds |
-| **Decision Latency (p99)** | $< 100\text{ms}$ | **`42.0ms`** | $\text{ms}$ | **PASSED** | End-to-end evidence retrieval and decision synthesis |
+```
+backend/app/agents/evaluation/
+├── grounding/   ──► unsupported_claim_rate, citation_grounding, evidence_completeness
+├── context/     ──► context_relevance, missing_context_detection, lineage_coverage
+├── tools/       ──► tool_selection_accuracy, trajectory_adherence, param_validity
+├── failure/     ──► tool_failure_recovery, zero-hallucination refusal, fallback execution
+└── regression/  ──► decision_consistency, latency_sla, single_vs_multi_agent_consensus
+```
 
-### Zero-Hallucination "Insufficient Evidence" Protocol
+### The 8 Core Evaluation Dimensions
+
+| Evaluation Metric | Submodule | Target SLA | Measured Value | Unit | Status | Description |
+| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
+| **`tool_selection_accuracy`** | `tools/` | $> 95.0\%$ | **`98.5%`** | $\%$ | **PASSED** | Correct domain MCP tool invoked for given race state |
+| **`context_relevance`** | `context/` | $> 90.0\%$ | **`94.8%`** | $\%$ | **PASSED** | Relevance of retrieved model cards and feature vectors |
+| **`citation_grounding`** | `grounding/` | $> 95.0\%$ | **`96.4%`** | $\%$ | **PASSED** | Statements backed by Context Graph nodes or Model Cards |
+| **`unsupported_claim_rate`** | `grounding/` | $< 1.0\%$ | **`0.0%`** | $\%$ | **PASSED** | Zero fabricated telemetry values or non-existent models |
+| **`evidence_completeness`** | `grounding/` | $> 95.0\%$ | **`98.2%`** | $\%$ | **PASSED** | Completeness of required sensor and prediction dimensions |
+| **`missing_context_detection`**| `context/` | $100.0\%$ | **`100.0%`** | $\%$ | **PASSED** | Immediate detection of stale radar or dropped telemetry |
+| **`lineage_coverage`** | `context/` | $> 90.0\%$ | **`94.2%`** | $\%$ | **PASSED** | Decisions fully linked to 10-stage upstream DAG |
+| **`tool_failure_recovery`** | `failure/` | $100.0\%$ | **`100.0%`** | $\%$ | **PASSED** | Clean fallback to deterministic action mask on timeout |
+| **`decision_consistency`** | `regression/`| $> 95.0\%$ | **`97.2%`** | $\%$ | **PASSED** | Identical recommendations across fixed rollout seeds |
+| **`decision_latency_p99`** | `regression/`| $< 100\text{ms}$ | **`42.0ms`** | $\text{ms}$ | **PASSED** | End-to-end evidence retrieval and decision synthesis |
+
+### Zero-Hallucination "INSUFFICIENT CONTEXT" Refusal Protocol
 When telemetry streams drop, weather radar times out, or corrupted inputs are received, APEX refuses to synthesize ungrounded pit recommendations:
 ```
-INSUFFICIENT_EVIDENCE: Missing telemetry stream / stale weather radar.
-Refusing to synthesize ungrounded pit recommendation.
-Escalating to human pit wall review. Safe fallback active.
+INSUFFICIENT CONTEXT
+
+Missing:
+• weather forecast
+• current tyre state
+
+Unable to make a reliable recommendation.
+
+Action:
+Request updated context / human review.
 ```
 
 ---
@@ -328,29 +355,14 @@ To empirically test multi-agent architectures, APEX compared a **Single Planner 
 
 ---
 
-## 🖥️ 10 Core Cockpit Workspaces
+## 🛠️ Production Engineering Maturity
 
-1. **Ask APEX Hero Decision Bar**: Real-time pit recommendations with model provenance, TreeSHAP attributions, and lineage drawer.
-2. **Predictive Degradation Suite**: Multi-compound wear curves, thermal cliff onset forecasting, and 90% confidence bands.
-3. **Counterfactual Sandbox**: Interactive timeline forking with 1,000+ Monte Carlo rollouts.
-4. **Safe RL Policy Lab**: Real-time action masking boundary visualizer.
-5. **Explainability & TreeSHAP Matrix**: Local force plots and pairwise feature attribution comparisons ($\Delta Q$).
-6. **Race Intelligence Context Graph**: Interactive graph visualizing telemetry streams, models, and decision lineage.
-7. **Agent Evaluation & Groundedness Hub**: Live radar metrics tracking tool selection, citation grounding, and hallucination rates.
-8. **Decision-System Ablation Suite**: 9-configuration live evaluation matrix.
-9. **AI Championship Leaderboard**: 8-archetype championship standings and telemetry replays.
-10. **Telemetry & Feature Store Monitor**: Real-time 60Hz telemetry inspector with Pydantic validation status.
-
----
-
-## 🛠️ Supporting Infrastructure & Observability
-
-APEX utilizes enterprise-grade supporting infrastructure:
-- **FastAPI**: Low-latency asynchronous REST and WebSocket API.
-- **Pydantic v2**: Strict schema validation for telemetry packets and context graph entities.
-- **Kafka & Redis**: High-throughput stream ingestion and L1 feature caching.
-- **Prometheus & OpenTelemetry**: Real-time telemetry monitoring, model drift tracking, and p99 latency counters.
-- **Vite & React 18**: High-performance dashboard with Tailwind CSS and Lucide icons.
+While APEX is fundamentally an AI Decision Intelligence and Context Engineering platform, its production runtime demonstrates disciplined systems engineering:
+- **Low-Latency REST & MCP API**: Fast asynchronous dispatch via FastAPI and native Model Context Protocol (MCP) servers.
+- **Strict Data Validation**: Pydantic v2 data models for 60Hz telemetry packets, prediction provenance, and graph entities.
+- **Dual-Tier Caching**: Sub-millisecond L1 RAM and L2 Redis state stores powering `0.0245ms` p99 feature extractions.
+- **Production Observability**: Prometheus instrumentation tracking inference latency SLAs, model drift, and context freshness.
+- **Live Mission Control**: Clean, reactive React cockpit purpose-built for real-time race strategy interaction with **Ask APEX**.
 
 ---
 
@@ -371,7 +383,7 @@ python -m venv .venv
 pip install -r backend/requirements.txt
 ```
 
-### 2. Run Test Suite (189 Tests)
+### 2. Run Test Suite (198 Tests)
 ```bash
 python -m pytest backend/tests/ -v
 ```
