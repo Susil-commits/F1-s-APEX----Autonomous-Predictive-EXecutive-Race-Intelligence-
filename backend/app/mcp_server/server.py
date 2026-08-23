@@ -315,6 +315,154 @@ def get_sim_to_real_divergence_audit() -> str:
 
 
 @mcp.tool()
+def get_driver_state(car_id: str | None = None) -> str:
+    """Returns detailed telemetry, driving mode, tyre wear, and biometric pressure state for a driver."""
+    sim = get_or_create_sim()
+    car = next((c for c in sim.cars if c.car_id == car_id or (car_id is None and c.is_player)), sim.cars[0] if sim.cars else None)
+    if not car:
+        return json.dumps({"error": f"Driver {car_id} not found"}, indent=2)
+    return json.dumps({
+        "car_id": car.car_id,
+        "driver_name": car.driver_name,
+        "team_name": car.team_name,
+        "position": car.position,
+        "tyre_compound": car.tyre_compound.value,
+        "tyre_age_laps": car.tyre_age_laps,
+        "tyre_wear_pct": round(car.tyre_wear_pct, 1),
+        "driving_mode": car.driving_mode.value,
+        "gap_to_leader_s": round(car.gap_to_leader_s, 2),
+        "last_lap_time_s": round(car.last_lap_time_s, 3) if car.last_lap_time_s else 0.0,
+        "cliff_reached": car.tyre_cliff_reached,
+        "pit_count": car.pit_count,
+    }, indent=2)
+
+
+@mcp.tool()
+def get_tyre_forecast(car_id: str | None = None, laps_ahead: int = 10) -> str:
+    """Forecasts tyre degradation, remaining useful life (RUL), and cliff breach probabilities."""
+    sim = get_or_create_sim()
+    car = next((c for c in sim.cars if c.car_id == car_id or (car_id is None and c.is_player)), sim.cars[0] if sim.cars else None)
+    if not car:
+        return json.dumps({"error": f"Driver {car_id} not found"}, indent=2)
+    from backend.app.intelligence.tyre_model import TyreModel
+    rul = TyreModel.predict_remaining_useful_life(car.tyre_compound, car.tyre_wear_pct, car.tyre_age_laps, car.driving_mode)
+    pit_win = TyreModel.calculate_pit_window(car, sim.track, sim.weather)
+    return json.dumps({
+        "car_id": car.car_id,
+        "current_compound": car.tyre_compound.value,
+        "current_wear_pct": round(car.tyre_wear_pct, 1),
+        "laps_remaining_to_cliff": rul.get("estimated_laps_remaining", 0),
+        "cliff_probability": rul.get("cliff_probability", 0.0),
+        "pit_window": pit_win,
+        "projected_degradation_laps_ahead": [
+            {
+                "lap": sim.current_lap + i,
+                "projected_wear_pct": min(100.0, round(car.tyre_wear_pct + i * 2.4, 1)),
+                "projected_delta_s": round(0.15 + (i * 0.12), 2),
+            }
+            for i in range(1, laps_ahead + 1)
+        ],
+    }, indent=2)
+
+
+@mcp.tool()
+def get_weather_forecast() -> str:
+    """Returns predictive multi-lap rain probabilities, track wetness index, and tyre crossover thresholds."""
+    sim = get_or_create_sim()
+    from backend.app.intelligence.weather_model import WeatherPredictor
+    probs = WeatherPredictor.predict_rain_probabilities(sim.weather)
+    return json.dumps({
+        "current_condition": sim.weather.condition.value,
+        "rain_intensity": round(sim.weather.rain_intensity, 2),
+        "track_temp_c": round(sim.weather.track_temp_c, 1),
+        "air_temp_c": round(sim.weather.air_temp_c, 1),
+        "forecast_rain_probabilities": probs,
+    }, indent=2)
+
+
+@mcp.tool()
+def get_opponent_strategy() -> str:
+    """Analyzes all rival cars, predicting pit window probabilities, undercut threats, and strategic intent."""
+    sim = get_or_create_sim()
+    player = sim.get_player_car()
+    from backend.app.intelligence.opponent_model import OpponentIntelligenceEngine
+    opponents = OpponentIntelligenceEngine.predict_all_opponents(
+        sim.cars, player.car_id if player else None, sim.track, sim.weather, sim.current_lap
+    )
+    return json.dumps({
+        "current_lap": sim.current_lap,
+        "total_opponents_analyzed": len(opponents),
+        "opponents": [op.model_dump() for op in opponents],
+    }, indent=2)
+
+
+@mcp.tool()
+def run_counterfactual(proposed_action: str = "PIT_NOW", rollout_laps: int = 5) -> str:
+    """Forks alternative counterfactual simulation to evaluate what happens if we pit now vs stay out."""
+    sim = get_or_create_sim()
+    state = sim.get_state()
+    result = CounterfactualChecker.fork_timeline(
+        historical_state=state,
+        proposed_action=proposed_action,
+        rollout_laps=rollout_laps,
+    )
+    return json.dumps(result, indent=2)
+
+
+@mcp.tool()
+def explain_strategy(car_id: str | None = None) -> str:
+    """Computes exact TreeSHAP force attributions and plain-language explanation for current race decision."""
+    return explain_last_decision(car_id=car_id)
+
+
+@mcp.tool()
+def get_strategy_history(race_id: str | None = None) -> str:
+    """Retrieves full decision explanation history and audit trail from database."""
+    from backend.app.twin.store import store
+    sim = get_or_create_sim()
+    target_race_id = race_id or sim.get_state().race_id
+    decisions = store.get_decision_history(target_race_id)
+    return json.dumps({
+        "race_id": target_race_id,
+        "decision_count": len(decisions),
+        "decisions": decisions,
+    }, indent=2)
+
+
+@mcp.tool()
+def get_model_prediction(car_id: str | None = None) -> str:
+    """Returns real-time 28-dimensional feature vector and multi-model prediction suite output."""
+    sim = get_or_create_sim()
+    state = sim.get_state()
+    features = FeatureBuilder.extract_features(state, target_car_id=car_id)
+    dqn_agent = DQNAgent()
+    dqn_action, q_margin = dqn_agent.predict_action(features)
+    from backend.app.strategy.hybrid_decision_engine import hybrid_decision_aggregator
+    hybrid_dec = hybrid_decision_aggregator.evaluate_decision(state, target_car_id=car_id)
+    return json.dumps({
+        "race_id": state.race_id,
+        "lap": state.current_lap,
+        "feature_vector_dim": len(features),
+        "dqn_action": dqn_action.value if hasattr(dqn_action, "value") else str(dqn_action),
+        "q_value_margin": round(q_margin, 3),
+        "hybrid_recommendation": hybrid_dec.recommendation.value,
+        "confidence_score": hybrid_dec.confidence_score,
+        "primary_factors": hybrid_dec.primary_factors,
+    }, indent=2)
+
+
+@mcp.tool()
+def get_system_ablation_study() -> str:
+    """Returns the 9-configuration System Ablation study (FULL vs NO_RL vs NO_WEATHER vs NO_SAFETY, etc.)."""
+    from backend.eval.ablation_runner import AblationRunner
+    try:
+        report = AblationRunner.run(total_races=3, seed=42)
+        return json.dumps(report, indent=2)
+    except Exception as e:
+        return json.dumps({"error": str(e)}, indent=2)
+
+
+@mcp.tool()
 def get_system_metrics() -> str:
     """Returns a real-time observability snapshot of APEX Prometheus telemetry and health counters.
     
@@ -348,3 +496,4 @@ def get_system_metrics() -> str:
 if __name__ == "__main__":
     # Standard stdio MCP server execution
     mcp.run()
+

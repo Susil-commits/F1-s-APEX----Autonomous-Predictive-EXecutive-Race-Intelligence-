@@ -173,8 +173,8 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
     {
       id: 'nav_tactical',
       category: 'NAVIGATION',
-      label: 'Go to Tactical Pit Wall Command Center',
-      sublabel: 'Timing tower, circuit GPS, live telemetry',
+      label: 'Go to AI Strategy Assistant',
+      sublabel: 'Hero decision analysis, live telemetry, and pit command',
       icon: <Layers className="w-4 h-4 text-apex-cyan" />,
       handler: () => {
         setActiveTab('tactical');
@@ -182,20 +182,53 @@ export const CommandPalette: React.FC<CommandPaletteProps> = ({
       },
     },
     {
+      id: 'nav_prediction',
+      category: 'NAVIGATION',
+      label: 'Go to Prediction Explorer (XGBoost)',
+      sublabel: 'Held-out FastF1 benchmark metrics & baseline comparison',
+      icon: <Layers className="w-4 h-4 text-cyan-400" />,
+      handler: () => {
+        setActiveTab('prediction_explorer');
+        onClose();
+      },
+    },
+    {
+      id: 'nav_counterfactual',
+      category: 'NAVIGATION',
+      label: 'Go to Counterfactual Simulation Lab',
+      sublabel: 'Candidate action branching, utility intervals & timeline sandbox',
+      icon: <Layers className="w-4 h-4 text-amber-400" />,
+      handler: () => {
+        setActiveTab('counterfactual_lab');
+        onClose();
+      },
+    },
+    {
       id: 'nav_strategy',
       category: 'NAVIGATION',
-      label: 'Go to Strategy Center & Stint Planner',
-      sublabel: 'Monte Carlo, Isochrone matrix, stint timeline',
+      label: 'Go to Strategy Decision & Policy Engine',
+      sublabel: 'Safe RL action masking guardrails, DQN, PPO, Monte Carlo',
       icon: <Layers className="w-4 h-4 text-purple-400" />,
       handler: () => {
-        setActiveTab('strategy_center');
+        setActiveTab('strategy_policy');
+        onClose();
+      },
+    },
+    {
+      id: 'nav_ablation',
+      category: 'NAVIGATION',
+      label: 'Go to System Ablation Study',
+      sublabel: '9-configuration subsystem empirical contribution matrix',
+      icon: <Layers className="w-4 h-4 text-rose-400" />,
+      handler: () => {
+        setActiveTab('ablation_study');
         onClose();
       },
     },
     {
       id: 'nav_telemetry',
       category: 'NAVIGATION',
-      label: 'Go to Deep Telemetry & Aero Lab',
+      label: 'Go to Deep Telemetry & Diagnostics Lab',
       sublabel: 'Multi-driver overlays, Delta-T decomposition',
       icon: <Layers className="w-4 h-4 text-blue-400" />,
       handler: () => {
