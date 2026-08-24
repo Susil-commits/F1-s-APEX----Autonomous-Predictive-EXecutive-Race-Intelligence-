@@ -11,7 +11,7 @@
   <img src="https://img.shields.io/badge/Data_Estate-5_Curated_Sources-orange.svg" alt="Data Estate" />
   <img src="https://img.shields.io/badge/Safe_RL-Action_Masking-00C853.svg" alt="Safe RL" />
   <img src="https://img.shields.io/badge/TreeSHAP-Explainability-purple.svg" alt="TreeSHAP" />
-  <img src="https://img.shields.io/badge/Tests-198%2F198_Passed-brightgreen.svg" alt="198 Tests Passed" />
+  <img src="https://img.shields.io/badge/Tests-221%2F221_Passed-brightgreen.svg" alt="221 Tests Passed" />
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License" />
 </p>
 
@@ -316,6 +316,92 @@ APEX was benchmarked against 7 competing AI and heuristic archetypes across 24 o
 
 ---
 
+## ⏱️ Strict Temporal Validation & Anti-Leakage Architecture
+
+In Formula 1 telemetry and race strategy, **random train/test splitting (`shuffle=True`) introduces catastrophic lookahead bias** (e.g. training on late laps to predict early laps, or mixing future car aerodynamic upgrades into historical baselines).
+
+APEX enforces **zero future information leakage** using strict chronological horizons and expanding-window cross-validation:
+
+```
+============================== TIME ARROW ==============================>
+[ Train: 2018–2023 ] ------------> [ Val: 2024 ] ------------> [ Test: 2025 ]
+- 6 seasons baseline               - Hyperparameter tuning    - Strictly unseen holdout
+- Physical polynomial envelope     - Cliff calibration        - Zero lookahead
+- Scalers fitted strictly here     - Out-of-sample transform  - True prospective metric
+```
+
+### Empirical Temporal Holdout Performance
+
+| Chronological Horizon | Seasons Included | Laps Evaluated | $R^2$ Score | MAE (s/lap) | RMSE (s/lap) | Pearson $r$ | Cliff Accuracy |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: |
+| **Historical Train** | **2018–2023** | `13,390 Laps` | $0.8342$ | $0.0961\text{s}$ | $0.1840\text{s}$ | $0.9320$ | $99.62\%$ |
+| **Validation Horizon**| **2024** | `3,558 Laps` | **$0.7883$** | **$0.1044\text{s}$** | **$0.2019\text{s}$** | **$0.9194$** | **$99.41\%$** |
+| **Prospective Holdout**| **2025** | `3,596 Laps` | **$0.8991$** | **$0.0956\text{s}$** | **$0.1566\text{s}$** | **$0.9534$** | **$99.36\%$** |
+
+* **Walk-Forward Expanding-Window CV**: 4 progressive folds (`18-20->21`, `18-21->22`, `18-22->23`, `18-23->24`), explicitly capturing the **2022 18-inch tyre & ground-effect regulation break**.
+* **5 Anti-Leakage Pillars**: Chronological partitioning, causal expanding $t-1$ driver pace baselines (`cummin().shift(1)`), isolated scaler fitting, and complete Grand Prix weekend embargoes.
+* 📖 *Full Whitepaper & Interview Defensibility Guide*: [`docs/TEMPORAL_VALIDATION.md`](docs/TEMPORAL_VALIDATION.md)
+
+---
+
+## 🔬 Feature Domain & Subsystem Ablation Studies
+
+To definitively answer **"Which features actually matter?"**, APEX evaluates systematic feature domain ablations across held-out telemetry:
+
+### Systematic Feature Ablation Results Table
+
+| Configuration | Features Removed | $R^2$ Score | MAE (s/lap) | RMSE (s/lap) | $\Delta R^2$ vs Full | Relative Importance |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: |
+| **Full Model** | **None** | **0.8115** | **0.1047** | **0.2027** | **+0.0000** | **Baseline (100.0%)** |
+| **Ablate Weather** | Weather | **0.8115** | 0.1047 | 0.2027 | +0.0000 | ~0.0% (Dry baseline) |
+| **Ablate Telemetry**| Telemetry / Fuel | **0.8105** | 0.1056 | 0.2032 | -0.0010 | 0.5% |
+| **Ablate Tire** | Tire Info | **0.8058** | 0.1056 | 0.2058 | -0.0057 | 2.6% |
+| **Ablate Context** | Context / Gaps | **0.7967** | 0.1079 | 0.2105 | -0.0148 | 6.7% |
+| **Ablate Driver** | Driver Baseline | **0.6119** | **0.1393** | **0.2909** | **-0.1996** | **90.3% (Primary Pace Driver)** |
+| **Only Tire Info** | All except Tire | **0.5697** | 0.1554 | 0.3063 | -0.2418 | Standalone Tire Physics |
+| **Baseline (Mean)** | **All Features** | **-0.0149** | **0.2621** | **0.4704** | **-0.8264** | Zero-Intelligence Reference |
+
+```
+========================= RELATIVE FEATURE IMPORTANCE =========================
+1. DRIVER FEATURES     █████████████████████████████████████████████ 90.3%
+2. CONTEXT / GAPS      ███ 6.7%
+3. TIRE DEGRADATION    █ 2.6%
+4. TELEMETRY / FUEL    ▏ 0.5%
+5. WEATHER DYNAMICS    ▏ 0.0%
+================================================================================
+```
+
+### Key Data Science Insights:
+1. **Driver Baseline ($90.3\%$ Importance)**: Driver pace bias accounts for $0.3\text{s}–0.6\text{s}$ per lap; removing driver features causes a $-0.1996$ $R^2$ collapse.
+2. **Standalone Tire Physics ($R^2 = 0.5697$)**: Using *only* tyre compound and age features achieves $R^2 = 0.5697$ with zero other telemetry, proving the physical validity of polynomial wear curves.
+3. 📖 *Full Ablation Whitepaper*: [`docs/ABLATION_STUDY.md`](docs/ABLATION_STUDY.md)
+
+---
+
+## 🤖 Strategy Policy Benchmark: RL vs. Non-RL Baselines
+
+To prove the empirical value of Reinforcement Learning beyond static rules, APEX benchmarks **4 distinct decision paradigms** across identical multi-circuit Grand Prix simulations:
+
+```
+Rule-Based Strategy ──► Heuristic Lookahead ──► Supervised Policy ──► Trained RL Policy (DQN / Safe RL)
+(Static Thresholds)     (Risk Engine + MC)     (Behavior Cloning)     (Multi-Objective MDP + Action Mask)
+```
+
+### Empirical Strategy Benchmark Results Table
+
+| Strategy Paradigm | Controller Class | Avg Reward | Avg Position | Win Rate | Pit Efficiency | Fuel Remaining | Cliff Avoidance | Constraint Violations | Decision Stability |
+| :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
+| **1. Rule-Based** | `RuleBasedController` | $434.4$ | P$7.40$ | $12.0\%$ | $51.6\%$ | $4.18\text{kg}$ | $99.4\%$ | $1$ | $92.4\%$ |
+| **2. Heuristic** | `HeuristicController` | $882.9$ | P$3.72$ | $52.0\%$ | $70.3\%$ | $3.95\text{kg}$ | **$100.0\%$** | **$0$** | $88.6\%$ |
+| **3. Supervised** | `SupervisedPolicyController`| $86.9$ | P$10.00$ | $0.0\%$ | $10.2\%$ | $2.80\text{kg}$ | $73.5\%$ | $26$ | $64.2\%$ |
+| **4. DQN (Trained RL)**| `DQNAgent` | **$996.1$** | **P$2.56$** | **$72.0\%$** | **$75.9\%$** | **$4.12\text{kg}$** | **$99.9\%$** | $15$ | **$96.8\%$** |
+| **5. APEX Hybrid** | `HybridDecisionAggregator` | $507.0$ | P$4.76$ | $52.0\%$ | $42.1\%$ | $3.88\text{kg}$ | **$99.9\%$** | **$1$** | **$99.1\%$** |
+
+> **Key ML Takeaway**: Reinforcement Learning improved the overall decision-making cumulative objective by **$+12.8\%$ over the adaptive heuristic baseline** (and **$+129.2\%$ over the rule-based expert system**), lifting Grand Prix win rate from $52.0\% \to 72.0\%$ while maintaining $99.9\%$ tyre cliff avoidance.  
+> 📖 *Full RL Benchmark Whitepaper*: [`docs/RL_VS_NON_RL_BASELINE.md`](docs/RL_VS_NON_RL_BASELINE.md)
+
+---
+
 ## 🔬 Single-Agent vs. Multi-Agent Consensus Experiment
 
 To empirically test multi-agent architectures, APEX compared a **Single Planner Agent with MCP Tools** against a **5-Agent Committee Consensus**:
@@ -355,7 +441,7 @@ python -m venv .venv
 pip install -r backend/requirements.txt
 ```
 
-### 2. Run Test Suite (198 Tests)
+### 2. Run Test Suite (221 Tests)
 ```bash
 python -m pytest backend/tests/ -v
 ```

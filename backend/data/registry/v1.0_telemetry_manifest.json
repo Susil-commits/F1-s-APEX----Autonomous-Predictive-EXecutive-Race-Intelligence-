@@ -2,19 +2,27 @@
   "dataset_version": "v1.0_telemetry",
   "source": "synthetic_fallback",
   "seasons": [
+    2018,
+    2019,
+    2020,
+    2021,
     2022,
-    2023
+    2023,
+    2024,
+    2025
   ],
   "sessions": [
     "Silverstone",
     "Monza",
-    "Spa"
+    "Spa",
+    "Bahrain",
+    "Austria"
   ],
   "features_version": "v1.0",
-  "creation_timestamp": "2026-08-23T15:09:51.636106+00:00",
-  "row_count": 4381,
+  "creation_timestamp": "2026-08-24T17:02:18.239381+00:00",
+  "row_count": 20544,
   "missing_values": {},
-  "schema_hash": "806b2bda220266c4",
+  "schema_hash": "05e8ecd8fe193bfb",
   "feature_names": [
     "season",
     "circuit",
@@ -22,22 +30,33 @@
     "compound",
     "tyre_age",
     "stint",
+    "stint_lap",
     "lap_time_s",
     "driver_fastest_lap_s",
+    "fuel_corrected_delta",
     "lap_time_delta",
-    "data_source",
-    "session_key"
+    "data_source"
   ],
   "split_strategy": "race_season_split",
   "train_races": [
-    "Spa",
     "Silverstone",
-    "Monza"
+    "Monza",
+    "Spa",
+    "Bahrain",
+    "Austria"
   ],
   "val_races": [
-    "Silverstone"
+    "Silverstone",
+    "Monza",
+    "Spa",
+    "Bahrain",
+    "Austria"
   ],
   "test_races": [
-    "Monza"
+    "Silverstone",
+    "Monza",
+    "Spa",
+    "Bahrain",
+    "Austria"
   ]
 }

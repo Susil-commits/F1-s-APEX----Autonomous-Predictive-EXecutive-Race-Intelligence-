@@ -1,10 +1,10 @@
 {
-  "run_id": "EVAL-APEX-20260823-150949",
-  "timestamp_utc": "2026-08-23T15:09:49.216229+00:00",
-  "duration_seconds": 2.09,
+  "run_id": "EVAL-APEX-20260824-170313",
+  "timestamp_utc": "2026-08-24T17:03:13.455412+00:00",
+  "duration_seconds": 5.87,
   "overall_status": "PASS",
   "has_regressions": false,
-  "metrics_evaluated": 8,
+  "metrics_evaluated": 11,
   "results": [
     {
       "metric": "dqn_win_rate_pct",
@@ -77,6 +77,33 @@
       "max_allowable": null,
       "status": "PASS",
       "description": "Accuracy of honest refusal when queried on missing or out-of-distribution race data"
+    },
+    {
+      "metric": "temporal_val_2024_r2",
+      "value": 0.7883,
+      "target": 0.75,
+      "min_allowable": 0.5,
+      "max_allowable": null,
+      "status": "PASS",
+      "description": "R2 performance of tyre models on the 2024 chronological validation horizon"
+    },
+    {
+      "metric": "temporal_test_2025_r2",
+      "value": 0.8991,
+      "target": 0.85,
+      "min_allowable": 0.6,
+      "max_allowable": null,
+      "status": "PASS",
+      "description": "R2 performance of tyre models on the strictly unseen 2025 prospective holdout test horizon"
+    },
+    {
+      "metric": "temporal_leakage_violations",
+      "value": 0,
+      "target": 0,
+      "min_allowable": null,
+      "max_allowable": 0,
+      "status": "PASS",
+      "description": "Count of detected temporal inversions, session bleeds, or lookahead column leaks (zero tolerance)"
     }
   ],
   "raw_pillar_outputs": {
@@ -117,6 +144,13 @@
       "rag_refusal_accuracy_pct": 100.0,
       "embedding_model": "all-MiniLM-L6-v2",
       "retrieval_method": "cosine_similarity_top_k"
+    },
+    "pillar_5_temporal": {
+      "status": "PASS",
+      "temporal_val_2024_r2": 0.7883,
+      "temporal_test_2025_r2": 0.8991,
+      "temporal_leakage_violations": 0,
+      "walk_forward_avg_r2": 0.2525
     }
   }
 }

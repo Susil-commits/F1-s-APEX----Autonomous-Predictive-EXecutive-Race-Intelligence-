@@ -41,6 +41,21 @@
       "target": 100.0,
       "min_allowable": 80.0,
       "description": "Accuracy of honest refusal when queried on missing or out-of-distribution race data"
+    },
+    "temporal_val_2024_r2": {
+      "target": 0.75,
+      "min_allowable": 0.50,
+      "description": "R2 performance of tyre models on the 2024 chronological validation horizon"
+    },
+    "temporal_test_2025_r2": {
+      "target": 0.85,
+      "min_allowable": 0.60,
+      "description": "R2 performance of tyre models on the strictly unseen 2025 prospective holdout test horizon"
+    },
+    "temporal_leakage_violations": {
+      "target": 0,
+      "max_allowable": 0,
+      "description": "Count of detected temporal inversions, session bleeds, or lookahead column leaks (zero tolerance)"
     }
   }
 }

@@ -14,8 +14,10 @@ logger = logging.getLogger(__name__)
 CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "fastf1_cache")
 OUTPUT_CSV = os.path.join(os.path.dirname(__file__), "..", "data", "real_tyre_data.csv")
 
-# Standard benchmark sessions covering different degradation profiles
+# Standard multi-season benchmark sessions covering distinct regulatory eras:
+# 2018-2021 (13-inch tyre era), 2022-2023 (18-inch ground-effect era), 2024 (tuning), 2025 (prospective)
 DEFAULT_RACES: list[tuple[int, str, str]] = [
+    # 2018–2023 Historical Training Corpus
     (2023, "Silverstone", "R"),
     (2023, "Monza", "R"),
     (2023, "Belgium", "R"),
@@ -24,6 +26,19 @@ DEFAULT_RACES: list[tuple[int, str, str]] = [
     (2023, "Austria", "R"),
     (2022, "Silverstone", "R"),
     (2022, "Monza", "R"),
+    (2022, "Austria", "R"),
+    (2021, "Silverstone", "R"),
+    (2021, "Monza", "R"),
+    (2020, "Silverstone", "R"),
+    (2019, "Monza", "R"),
+    (2018, "Silverstone", "R"),
+    # 2024 Validation Horizon
+    (2024, "Silverstone", "R"),
+    (2024, "Monza", "R"),
+    (2024, "Spa", "R"),
+    # 2025 Prospective Test Holdout
+    (2025, "Silverstone", "R"),
+    (2025, "Monza", "R"),
 ]
 
 COMPOUND_NORM_MAP = {
@@ -53,7 +68,7 @@ def clean_session_laps(session_laps: pd.DataFrame, circuit_name: str, year: int)
     - Filters out pit in-laps, pit out-laps, and inaccurate telemetry marks.
     - Excludes Safety Car, VSC, and Red Flag track status periods.
     - Normalizes compound names.
-    - Computes lap_time_delta isolated from driver baseline pace.
+    - Computes strictly CAUSAL lap_time_delta isolated from past-only driver baseline pace (zero lookahead).
     - Excludes extreme outliers.
     """
     if session_laps is None or session_laps.empty:
@@ -130,14 +145,18 @@ def clean_session_laps(session_laps: pd.DataFrame, circuit_name: str, year: int)
 
     df = pd.DataFrame(records)
 
-    # Compute lap_time_delta per driver (relative to driver's fastest clean lap in session)
-    driver_bests = df.groupby("Driver")["lap_time_s"].min().to_dict()
-    df["driver_fastest_lap_s"] = df["Driver"].apply(lambda d: driver_bests.get(str(d), 90.0))
+    # Compute strictly CAUSAL baseline pace (expanding minimum of past laps only)
+    # Never use future session laps to normalize early laps
+    df["stint_lap"] = df.groupby(["Driver", "stint"]).cumcount() + 1
+    df["driver_fastest_lap_s"] = (
+        df.groupby("Driver")["lap_time_s"]
+        .transform(lambda s: s.expanding(min_periods=1).min().shift(1))
+        .fillna(df["lap_time_s"])
+    )
     raw_delta = df["lap_time_s"] - df["driver_fastest_lap_s"]
 
     # In F1, fuel burn-off improves pace by ~0.055s per lap. Correcting for fuel isolates pure tyre degradation.
     # Stint-relative fuel correction:
-    df["stint_lap"] = df.groupby(["Driver", "stint"]).cumcount() + 1
     df["fuel_corrected_delta"] = raw_delta + (0.055 * df["stint_lap"])
     df["lap_time_delta"] = df["fuel_corrected_delta"].clip(lower=0.0)
 
@@ -167,32 +186,75 @@ def clean_session_laps(session_laps: pd.DataFrame, circuit_name: str, year: int)
 
 
 def generate_synthetic_fallback_data() -> pd.DataFrame:
-    """Generates realistic synthetic F1 telemetry fallback distribution when FastF1 API is offline."""
+    """
+    Generates realistic multi-season F1 telemetry across 2018–2025:
+      - 2018–2021: 13-inch tyre era (higher thermal sensitivity & steeper cliff)
+      - 2022–2023: 18-inch tyre & ground-effect era (lower degradation slope)
+      - 2024: Tuning / validation horizon
+      - 2025: Prospective unseen holdout test horizon
+    All feature calculations are strictly causal with ZERO future lookahead.
+    """
     np.random.seed(42)
     records = []
     drivers = ["VER", "HAM", "NOR", "LEC", "PIA", "RUS", "SAI", "ALO"]
-    circuits = ["Silverstone", "Monza", "Spa"]
-    compounds = {
-        "SOFT": {"base_loss": 0.08, "cliff_age": 18, "cliff_mult": 0.22},
-        "MEDIUM": {"base_loss": 0.055, "cliff_age": 28, "cliff_mult": 0.16},
-        "HARD": {"base_loss": 0.038, "cliff_age": 42, "cliff_mult": 0.12},
+    circuits = ["Silverstone", "Monza", "Spa", "Bahrain", "Austria"]
+
+    # Era-specific compound degradation profiles
+    era_configs = {
+        # 13-inch wheel era (2018-2021)
+        "classic": {
+            "SOFT": {"base_loss": 0.095, "cliff_age": 16, "cliff_mult": 0.26},
+            "MEDIUM": {"base_loss": 0.065, "cliff_age": 25, "cliff_mult": 0.19},
+            "HARD": {"base_loss": 0.042, "cliff_age": 38, "cliff_mult": 0.14},
+        },
+        # 18-inch ground effect era (2022-2025)
+        "modern": {
+            "SOFT": {"base_loss": 0.080, "cliff_age": 18, "cliff_mult": 0.22},
+            "MEDIUM": {"base_loss": 0.055, "cliff_age": 28, "cliff_mult": 0.16},
+            "HARD": {"base_loss": 0.038, "cliff_age": 42, "cliff_mult": 0.12},
+        },
     }
 
-    for season in [2022, 2023]:
-        for circuit in circuits:
+    all_seasons = [2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025]
+
+    for season in all_seasons:
+        era = "classic" if season <= 2021 else "modern"
+        compounds = era_configs[era]
+        # Base circuit lap reference
+        circuit_times = {
+            "Silverstone": 88.0 + (0.5 if season <= 2021 else 0.0),
+            "Monza": 81.0 + (0.3 if season <= 2021 else 0.0),
+            "Spa": 104.0 + (0.8 if season <= 2021 else 0.0),
+            "Bahrain": 91.5 + (0.4 if season <= 2021 else 0.0),
+            "Austria": 65.0 + (0.2 if season <= 2021 else 0.0),
+        }
+
+        # Select circuits per season
+        selected_circuits = circuits if season in (2023, 2024, 2025) else circuits[:3]
+
+        for circuit in selected_circuits:
+            base_lap = circuit_times.get(circuit, 88.0)
             for driver in drivers:
-                for comp, specs in compounds.items():
-                    max_stint = np.random.randint(specs["cliff_age"] - 6, specs["cliff_age"] + 8)
+                driver_pace_offset = np.random.uniform(0.0, 0.55)
+                # Historical best tracking for strictly causal baseline
+                causal_best_lap = base_lap + driver_pace_offset
+
+                for stint_num, (comp, specs) in enumerate(compounds.items(), start=1):
+                    max_stint = np.random.randint(specs["cliff_age"] - 5, specs["cliff_age"] + 7)
                     for age in range(1, max_stint + 1):
                         linear_loss = age * specs["base_loss"]
                         cliff_excess = max(0, age - specs["cliff_age"])
                         cliff_loss = (cliff_excess ** 1.8) * specs["cliff_mult"]
-                        noise = np.random.normal(0.0, 0.18)
-                        fuel_burn_benefit = -0.045 * age  # car gets lighter over stint
-                        delta = max(0.0, linear_loss + cliff_loss + fuel_burn_benefit + noise + 0.1)
+                        noise = np.random.normal(0.0, 0.15)
+                        fuel_burn_benefit = -0.048 * age
+                        delta = max(0.0, linear_loss + cliff_loss + fuel_burn_benefit + noise + 0.08)
 
-                        base_lap = 88.0 if circuit == "Silverstone" else (81.0 if circuit == "Monza" else 104.0)
-                        driver_pace_offset = np.random.uniform(0.0, 0.6)
+                        actual_lap = round(base_lap + driver_pace_offset + delta, 3)
+                        # Past-only causal baseline
+                        if age == 1 and stint_num == 1:
+                            causal_baseline = round(causal_best_lap, 3)
+                        else:
+                            causal_baseline = min(causal_baseline, actual_lap)
 
                         records.append({
                             "season": season,
@@ -200,9 +262,11 @@ def generate_synthetic_fallback_data() -> pd.DataFrame:
                             "Driver": driver,
                             "compound": comp,
                             "tyre_age": age,
-                            "stint": 1 if age < 25 else 2,
-                            "lap_time_s": round(base_lap + driver_pace_offset + delta, 3),
-                            "driver_fastest_lap_s": round(base_lap + driver_pace_offset, 3),
+                            "stint": stint_num,
+                            "stint_lap": age,
+                            "lap_time_s": actual_lap,
+                            "driver_fastest_lap_s": round(causal_baseline, 3),
+                            "fuel_corrected_delta": round(delta, 3),
                             "lap_time_delta": round(delta, 3),
                             "data_source": "synthetic_fallback",
                         })
@@ -215,53 +279,58 @@ def fetch_all_real_races(
     output_path: str = OUTPUT_CSV,
     force_download: bool = False,
     allow_synthetic_fallback: bool = False,
+    synthetic_only: bool = False,
     register_manifest: bool = True,
     dataset_version: str = "v1.0_telemetry",
 ) -> pd.DataFrame:
     """
     Downloads, processes, and persists clean F1 tyre degradation telemetry across specified races.
     Validates data quality with DataQualityChecker and registers version manifest.
-    If no real sessions were fetched and allow_synthetic_fallback is False, raises RuntimeError.
-    If allow_synthetic_fallback is True, generates synthetic fallback dataset.
+    If synthetic_only is True, directly generates multi-season 2018-2025 synthetic dataset.
     """
     from backend.training.datasets.data_quality import DataQualityChecker
     from backend.training.datasets.dataset_version import DatasetVersionRegistry
 
-    races_to_fetch = races or DEFAULT_RACES
-    setup_fastf1_cache()
-
-    collected_dfs: list[pd.DataFrame] = []
-
-    try:
-        import fastf1
-
-        for year, event, session_type in races_to_fetch:
-            try:
-                print(f"[FastF1] Loading {year} {event} ({session_type})...")
-                session = fastf1.get_session(year, event, session_type)
-                session.load(telemetry=False, weather=False, messages=False)
-                clean_df = clean_session_laps(session.laps, circuit_name=event, year=year)
-                if not clean_df.empty:
-                    collected_dfs.append(clean_df)
-                    print(f"[FastF1] Processed {len(clean_df)} clean laps from {year} {event}")
-            except Exception as e:
-                print(f"[FastF1] Warning fetching {year} {event}: {e}")
-
-    except ImportError:
-        print("[FastF1] fastf1 package not found.")
-
-    if collected_dfs:
-        full_df = pd.concat(collected_dfs, ignore_index=True)
-        source_name = "fastf1_real"
-    else:
-        if not allow_synthetic_fallback:
-            raise RuntimeError(
-                "[FastF1] No real sessions were fetched from FastF1 API and allow_synthetic_fallback is False. "
-                "Check network connection/FastF1 endpoints or pass allow_synthetic_fallback=True if offline."
-            )
-        print("[FastF1] No remote sessions fetched. Generating synthetic fallback dataset.")
+    if synthetic_only:
+        print("[FastF1] Generating clean multi-season 2018-2025 synthetic dataset...")
         full_df = generate_synthetic_fallback_data()
         source_name = "synthetic_fallback"
+    else:
+        races_to_fetch = races or DEFAULT_RACES
+        setup_fastf1_cache()
+
+        collected_dfs: list[pd.DataFrame] = []
+
+        try:
+            import fastf1
+
+            for year, event, session_type in races_to_fetch:
+                try:
+                    print(f"[FastF1] Loading {year} {event} ({session_type})...")
+                    session = fastf1.get_session(year, event, session_type)
+                    session.load(telemetry=False, weather=False, messages=False)
+                    clean_df = clean_session_laps(session.laps, circuit_name=event, year=year)
+                    if not clean_df.empty:
+                        collected_dfs.append(clean_df)
+                        print(f"[FastF1] Processed {len(clean_df)} clean laps from {year} {event}")
+                except Exception as e:
+                    print(f"[FastF1] Warning fetching {year} {event}: {e}")
+
+        except ImportError:
+            print("[FastF1] fastf1 package not found.")
+
+        if collected_dfs:
+            full_df = pd.concat(collected_dfs, ignore_index=True)
+            source_name = "fastf1_real"
+        else:
+            if not allow_synthetic_fallback:
+                raise RuntimeError(
+                    "[FastF1] No real sessions were fetched from FastF1 API and allow_synthetic_fallback is False. "
+                    "Check network connection/FastF1 endpoints or pass allow_synthetic_fallback=True if offline."
+                )
+            print("[FastF1] No remote sessions fetched. Generating synthetic fallback dataset.")
+            full_df = generate_synthetic_fallback_data()
+            source_name = "synthetic_fallback"
 
     # Run automated data quality and leakage checks
     quality_report = DataQualityChecker.run(full_df, dataset_name=dataset_version, fail_on_severe=False)
@@ -301,6 +370,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="APEX FastF1 Telemetry Fetcher")
     parser.add_argument("--quick", action="store_true", help="Fetch 1 race only for quick test")
     parser.add_argument("--allow-synthetic", action="store_true", default=True, help="Allow fallback synthetic data if offline")
+    parser.add_argument("--synthetic-only", action="store_true", default=False, help="Directly generate 2018-2025 synthetic dataset")
     parser.add_argument("--version", type=str, default="v1.0_telemetry", help="Dataset version identifier")
     parser.add_argument("--output", type=str, default=OUTPUT_CSV, help="Output CSV file path")
     args = parser.parse_args()
@@ -310,6 +380,7 @@ if __name__ == "__main__":
         races=races,
         output_path=args.output,
         allow_synthetic_fallback=args.allow_synthetic,
+        synthetic_only=args.synthetic_only,
         dataset_version=args.version,
     )
 

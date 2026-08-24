@@ -108,28 +108,37 @@ def evaluate_and_calibrate(
         has_synthetic = True
         data_source = "synthetic_fallback"
 
-    # Determine train/val split
-    has_held_out = (df["circuit"] == held_out_circuit).any()
-    if not has_held_out:
-        # Fallback to unique circuits
-        circuits = df["circuit"].unique()
-        held_out_circuit = circuits[-1] if len(circuits) > 1 else circuits[0]
+    from backend.training.datasets.temporal_splitter import (
+        TemporalSplitConfig,
+        TemporalSplitter,
+    )
 
-    val_mask = df["circuit"] == held_out_circuit
-    if held_out_season:
-        val_mask = val_mask & (df["season"] == held_out_season)
+    # Determine chronological train/val split
+    if "season" in df.columns and len(df["season"].unique()) > 1:
+        target_val_season = held_out_season or (2024 if 2024 in df["season"].values else int(df["season"].max()))
+        if (df["circuit"] == held_out_circuit).any() and ((df["circuit"] == held_out_circuit) & (df["season"] == target_val_season)).any():
+            val_mask = (df["circuit"] == held_out_circuit) & (df["season"] == target_val_season)
+            train_mask = (df["season"] < target_val_season) | ((df["season"] == target_val_season) & (df["circuit"] != held_out_circuit))
+        else:
+            val_mask = df["season"] == target_val_season
+            train_mask = df["season"] < target_val_season
 
-    # Ensure train and val have records
-    train_df = df[~val_mask]
-    val_df = df[val_mask]
+        train_df = df[train_mask]
+        val_df = df[val_mask]
+        split_label = f"Season {target_val_season} ({held_out_circuit if held_out_circuit in val_df['circuit'].values else 'All Circuits'})"
+    else:
+        # Strict chronological stint/lap split (zero random shuffle)
+        split_dict = TemporalSplitter.fixed_horizon_split(df)
+        train_df = split_dict["train"]
+        val_df = split_dict["val"]
+        split_label = f"Chronological Holdout ({held_out_circuit})"
 
     if train_df.empty or val_df.empty:
-        # Train/val split 80/20 random fallback
-        shuffled = df.sample(frac=1.0, random_state=42)
-        split_idx = int(len(shuffled) * 0.8)
-        train_df = shuffled.iloc[:split_idx]
-        val_df = shuffled.iloc[split_idx:]
-        held_out_circuit = "Holdout 20% Sample"
+        n = len(df)
+        split_idx = int(n * 0.80)
+        train_df = df.iloc[:split_idx]
+        val_df = df.iloc[split_idx:]
+        split_label = "Chronological 80/20 Slice"
 
     compounds = ["SOFT", "MEDIUM", "HARD"]
     models_meta: dict[str, Any] = {}

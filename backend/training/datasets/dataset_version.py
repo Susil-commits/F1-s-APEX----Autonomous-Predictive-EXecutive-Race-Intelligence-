@@ -53,69 +53,33 @@ class DatasetVersionRegistry:
         df: pd.DataFrame,
         race_col: str = "circuit",
         season_col: str = "season",
-        test_season: int = 2023,
+        test_season: int = 2025,
         val_ratio: float = 0.20,
     ) -> dict[str, pd.DataFrame]:
         """
-        Partitions datasets strictly across races/seasons.
-        Never allows laps from the same race session to mix across train, val, and test splits.
+        Partitions datasets strictly across chronological horizons using TemporalSplitter.
+        Enforces:
+          - Train: 2018–2023
+          - Validation: 2024
+          - Test: 2025 (or future holdout)
+        Never allows laps from the same race session or future seasons to mix across splits.
         """
+        from backend.training.datasets.temporal_splitter import (
+            TemporalSplitConfig,
+            TemporalSplitter,
+        )
+
         if df.empty:
             return {"train": pd.DataFrame(), "val": pd.DataFrame(), "test": pd.DataFrame()}
 
-        # Create unique race session key (e.g. '2023_Silverstone')
-        if season_col in df.columns and race_col in df.columns:
-            df["session_key"] = df[season_col].astype(str) + "_" + df[race_col].astype(str)
-        elif "circuit" in df.columns:
-            df["session_key"] = df["circuit"].astype(str)
-        else:
-            df["session_key"] = pd.Series(["race_01"] * len(df), index=df.index)
-
-        all_sessions = sorted(df["session_key"].unique())
-
-        # Test set: holdout test sessions
-        if len(all_sessions) == 1:
-            # Single session: split by distinct stints to prevent contiguous lap leakage
-            stints = sorted(df["stint"].unique()) if "stint" in df.columns else [1]
-            if len(stints) > 2:
-                train_stints = stints[:-1]
-                test_stints = [stints[-1]]
-                train_df = pd.DataFrame(df[df["stint"].isin(train_stints)])
-                val_df = pd.DataFrame(train_df.sample(frac=0.15, random_state=42))
-                train_df = pd.DataFrame(train_df.loc[~train_df.index.isin(val_df.index)])
-                test_df = pd.DataFrame(df[df["stint"].isin(test_stints)])
-                return {"train": train_df, "val": val_df, "test": test_df}
-            else:
-                # 70/15/15 deterministic chunk split
-                n = len(df)
-                t_idx = int(0.70 * n)
-                v_idx = int(0.85 * n)
-                return {
-                    "train": pd.DataFrame(df.iloc[:t_idx]),
-                    "val": pd.DataFrame(df.iloc[t_idx:v_idx]),
-                    "test": pd.DataFrame(df.iloc[v_idx:]),
-                }
-
-        # Multi-session split: allocate complete race sessions to train, val, and test
-        np.random.seed(42)
-        shuffled_sessions = list(all_sessions)
-        np.random.shuffle(shuffled_sessions)
-
-        n_test = max(1, int(len(shuffled_sessions) * 0.20))
-        n_val = max(1, int(len(shuffled_sessions) * 0.20))
-
-        test_sessions = shuffled_sessions[:n_test]
-        val_sessions = shuffled_sessions[n_test:n_test + n_val]
-        train_sessions = shuffled_sessions[n_test + n_val:]
-        if not train_sessions:
-            train_sessions = val_sessions
-            val_sessions = []
-
-        train_df = pd.DataFrame(df[df["session_key"].isin(train_sessions)])
-        val_df = pd.DataFrame(df[df["session_key"].isin(val_sessions)])
-        test_df = pd.DataFrame(df[df["session_key"].isin(test_sessions)])
-
-        return {"train": train_df, "val": val_df, "test": test_df}
+        cfg = TemporalSplitConfig(
+            train_seasons=[2018, 2019, 2020, 2021, 2022, 2023],
+            val_seasons=[2024],
+            test_seasons=[2025],
+            season_col=season_col,
+            circuit_col=race_col,
+        )
+        return TemporalSplitter.fixed_horizon_split(df, config=cfg)
 
     def register_dataset(
         self,

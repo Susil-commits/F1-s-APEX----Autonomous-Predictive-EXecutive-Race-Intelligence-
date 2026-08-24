@@ -146,7 +146,10 @@ class TyreMLSuite:
     ) -> dict[str, Any]:
         """Trains models on a prepared DataFrame and calculates held-out test metrics."""
         from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
-        from sklearn.model_selection import train_test_split
+        from backend.training.datasets.temporal_splitter import (
+            TemporalSplitConfig,
+            TemporalSplitter,
+        )
 
         comp_series = df["compound"].astype(str).str.upper().map(lambda c: self.COMP_RATE_MAP.get(c, 0.055)).fillna(0.055).astype(float)
         ages = df["tyre_age"].astype(float).values
@@ -175,8 +178,34 @@ class TyreMLSuite:
         X = np.column_stack([comp_series.values, ages, age_sq, abrasions, stints, stint_laps, base_paces])
         y = df[target_col].astype(float).values
 
-        # Deterministic 80/20 train/test split
-        X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.20, random_state=42)
+        # Strict Temporal Split: Train on historical seasons (<=2023), evaluate on holdout (>=2024)
+        if "season" in df.columns and len(df["season"].unique()) > 1:
+            split_dict = TemporalSplitter.fixed_horizon_split(df)
+            train_idx = split_dict["train"].index.to_numpy()
+            # Combine val and test for full holdout evaluation
+            val_test_idx = split_dict["val"].index.union(split_dict["test"].index).to_numpy()
+            if len(val_test_idx) == 0:
+                val_test_idx = split_dict["val"].index.to_numpy()
+
+            # Map DataFrame index to positional numpy array indices
+            idx_map = {idx_val: pos for pos, idx_val in enumerate(df.index)}
+            tr_pos = [idx_map[i] for i in train_idx if i in idx_map]
+            te_pos = [idx_map[i] for i in val_test_idx if i in idx_map]
+
+            if tr_pos and te_pos:
+                X_tr, y_tr = X[tr_pos], y[tr_pos]
+                X_te, y_te = X[te_pos], y[te_pos]
+            else:
+                n = len(X)
+                split_pt = int(0.80 * n)
+                X_tr, y_tr = X[:split_pt], y[:split_pt]
+                X_te, y_te = X[split_pt:], y[split_pt:]
+        else:
+            # Deterministic chronological slice (zero random shuffle)
+            n = len(X)
+            split_pt = int(0.80 * n)
+            X_tr, y_tr = X[:split_pt], y[:split_pt]
+            X_te, y_te = X[split_pt:], y[split_pt:]
 
         self.linear_model = LinearRegression().fit(X_tr, y_tr)
         self.rf_model = RandomForestRegressor(n_estimators=60, max_depth=8, random_state=42).fit(X_tr, y_tr)

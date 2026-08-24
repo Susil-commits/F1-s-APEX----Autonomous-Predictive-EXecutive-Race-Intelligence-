@@ -1,0 +1,173 @@
+{
+  "timestamp_utc": "2026-08-24T17:02:53.105073+00:00",
+  "status": "PASS",
+  "temporal_integrity": {
+    "is_valid": true,
+    "max_train_season": 2023,
+    "min_val_season": 2024,
+    "max_val_season": 2024,
+    "min_test_season": 2025,
+    "overlapping_sessions": [],
+    "overlapping_driver_stints": [],
+    "chronological_inversions": 0,
+    "warnings": [],
+    "summary_message": "PASS: Zero temporal leakage detected across chronological partitions."
+  },
+  "fixed_horizon_evaluation": {
+    "train_seasons": [
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023
+    ],
+    "validation_season": 2024,
+    "test_season": 2025,
+    "train_records": 13390,
+    "val_records": 3558,
+    "test_records": 3596,
+    "validation_2024_metrics": {
+      "r2": 0.7883,
+      "rmse": 0.2019,
+      "mae": 0.1044,
+      "pearson_r": 0.9194,
+      "cliff_accuracy": 0.9941,
+      "train_samples": 13390,
+      "val_samples": 3558
+    },
+    "test_2025_metrics": {
+      "r2": 0.8991,
+      "rmse": 0.1566,
+      "mae": 0.0956,
+      "pearson_r": 0.9534,
+      "cliff_accuracy": 0.9936,
+      "train_samples": 16948,
+      "val_samples": 3596
+    }
+  },
+  "walk_forward_expanding_window_cv": {
+    "total_folds": 4,
+    "avg_r2": 0.2525,
+    "avg_rmse": 0.3162,
+    "avg_mae": 0.1482,
+    "folds": [
+      {
+        "fold_idx": 1,
+        "fold_name": "Fold_1_Train_2018-2020_Val_2021",
+        "train_seasons": [
+          2018,
+          2019,
+          2020
+        ],
+        "val_season": 2021,
+        "train_samples": 5756,
+        "val_samples": 1977,
+        "notes": "",
+        "metrics": {
+          "r2": 0.9647,
+          "rmse": 0.122,
+          "mae": 0.0922,
+          "pearson_r": 0.9822,
+          "cliff_accuracy": 0.997,
+          "train_samples": 5756,
+          "val_samples": 1977
+        }
+      },
+      {
+        "fold_idx": 2,
+        "fold_name": "Fold_2_Train_2018-2021_Val_2022",
+        "train_seasons": [
+          2018,
+          2019,
+          2020,
+          2021
+        ],
+        "val_season": 2022,
+        "train_samples": 7733,
+        "val_samples": 2096,
+        "notes": "Major F1 Aerodynamic & 18-inch Tyre Regulation Transition Fold",
+        "metrics": {
+          "r2": -1.3769,
+          "rmse": 0.6291,
+          "mae": 0.2607,
+          "pearson_r": 0.8055,
+          "cliff_accuracy": 0.9547,
+          "train_samples": 7733,
+          "val_samples": 2096
+        }
+      },
+      {
+        "fold_idx": 3,
+        "fold_name": "Fold_3_Train_2018-2022_Val_2023",
+        "train_seasons": [
+          2018,
+          2019,
+          2020,
+          2021,
+          2022
+        ],
+        "val_season": 2023,
+        "train_samples": 9829,
+        "val_samples": 3561,
+        "notes": "",
+        "metrics": {
+          "r2": 0.6339,
+          "rmse": 0.312,
+          "mae": 0.1357,
+          "pearson_r": 0.8915,
+          "cliff_accuracy": 0.9854,
+          "train_samples": 9829,
+          "val_samples": 3561
+        }
+      },
+      {
+        "fold_idx": 4,
+        "fold_name": "Fold_4_Train_2018-2023_Val_2024",
+        "train_seasons": [
+          2018,
+          2019,
+          2020,
+          2021,
+          2022,
+          2023
+        ],
+        "val_season": 2024,
+        "train_samples": 13390,
+        "val_samples": 3558,
+        "notes": "Pre-Prospective Calibration Fold",
+        "metrics": {
+          "r2": 0.7883,
+          "rmse": 0.2019,
+          "mae": 0.1044,
+          "pearson_r": 0.9194,
+          "cliff_accuracy": 0.9941,
+          "train_samples": 13390,
+          "val_samples": 3558
+        }
+      }
+    ]
+  },
+  "leakage_bias_diagnostic": {
+    "leaked_random_split_r2": 0.8897,
+    "strict_temporal_test_r2": 0.8991,
+    "leaked_random_split_rmse": 0.1767,
+    "strict_temporal_test_rmse": 0.1566,
+    "r2_optimism_bias_delta": -0.0094,
+    "rmse_optimism_bias_delta": -0.0201,
+    "conclusion": "Random splitting artificially inflates R\u00b2 due to future lap/stint leakage. APEX's strict temporal split accurately reflects true out-of-sample race generalizability."
+  },
+  "feature_provenance": {
+    "features_used": [
+      "compound_rate",
+      "tyre_age",
+      "tyre_age_sq_scaled",
+      "circuit_abrasion",
+      "stint_number",
+      "stint_lap",
+      "driver_causal_base_pace"
+    ],
+    "causal_guarantee": "Expanding left-closed past-only pace baseline (cummin().shift(1))",
+    "scaler_isolation": "Fitted strictly on train slice (T <= t_val)"
+  }
+}

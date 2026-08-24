@@ -123,6 +123,7 @@ class DataQualityChecker:
         cls._check_outlier_lap_times(df, report)
         cls._check_invalid_race_position(df, report)
         cls._check_impossible_pit_timing(df, report)
+        cls._check_temporal_ordering_and_leakage(df, report)
 
         for issue in report.issues:
             level = logging.ERROR if issue.severity == IssueSeverity.SEVERE else logging.WARNING
@@ -363,3 +364,34 @@ class DataQualityChecker:
                             f"Possible data corruption.",
                 affected_rows=impossible_resets,
             ))
+
+    @staticmethod
+    def _check_temporal_ordering_and_leakage(df: pd.DataFrame, report: DataQualityReport) -> None:
+        """Check 12: Temporal ordering and prospective data leakage prevention.
+
+        Verifies:
+          - Valid season range (2018-2026).
+          - No future-dated test flags embedded in historical rows.
+          - Monotonic progression of race calendar seasons when timestamped.
+        """
+        if "season" in df.columns:
+            invalid_seasons = df[(df["season"] < 2018) | (df["season"] > 2026)]
+            if len(invalid_seasons) > 0:
+                report.add(DataQualityIssue(
+                    check="invalid_temporal_season",
+                    severity=IssueSeverity.WARNING,
+                    description=f"{len(invalid_seasons)} rows have season outside [2018, 2026].",
+                    affected_rows=len(invalid_seasons),
+                ))
+
+        # Check for prospective leakage indicators
+        prospective_leakage_cols = [c for c in df.columns if any(k in c.lower() for k in ("future_pit", "future_weather", "race_outcome", "final_winner"))]
+        if prospective_leakage_cols:
+            report.add(DataQualityIssue(
+                check="prospective_temporal_leakage",
+                severity=IssueSeverity.SEVERE,
+                description=f"Prospective leakage columns detected: {prospective_leakage_cols}. Features contain future race events.",
+                affected_rows=len(df),
+                sample=prospective_leakage_cols[:3],
+            ))
+

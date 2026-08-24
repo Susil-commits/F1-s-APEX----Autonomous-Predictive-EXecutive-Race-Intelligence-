@@ -541,6 +541,51 @@ async def get_latest_benchmarks():
 
 
 
+@router.get("/evaluation/temporal-validation")
+async def get_temporal_validation_report():
+    """Returns the latest zero-leakage temporal validation report across 2018-2023 train, 2024 val, and 2025 test."""
+    from backend.eval.temporal_validation import REPORT_PATH, run_temporal_validation
+    if os.path.exists(REPORT_PATH):
+        try:
+            with open(REPORT_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return run_temporal_validation(save_plots=False)
+
+
+@router.get("/evaluation/ablation-study")
+async def get_ablation_study_report():
+    """Returns the latest feature domain ablation study and importance rankings report."""
+    from backend.eval.feature_ablation_runner import (
+        REPORT_PATH as ABLATION_REPORT_PATH,
+    )
+    from backend.eval.feature_ablation_runner import run_feature_ablation_study
+    if os.path.exists(ABLATION_REPORT_PATH):
+        try:
+            with open(ABLATION_REPORT_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return run_feature_ablation_study(save_plots=False)
+
+
+@router.get("/evaluation/rl-vs-non-rl")
+async def get_rl_vs_non_rl_benchmark_report():
+    """Returns systematic benchmark comparing Rule-Based, Heuristic, Supervised, and RL strategy policies."""
+    from backend.eval.rl_vs_non_rl_benchmark import (
+        REPORT_PATH as RL_BENCHMARK_REPORT_PATH,
+    )
+    from backend.eval.rl_vs_non_rl_benchmark import run_rl_vs_non_rl_benchmark
+    if os.path.exists(RL_BENCHMARK_REPORT_PATH):
+        try:
+            with open(RL_BENCHMARK_REPORT_PATH, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return run_rl_vs_non_rl_benchmark(num_races=10, save_plots=False)
+
+
 @router.get("/twin/sessions")
 async def list_sessions():
     """Lists persisted historical race sessions from database."""

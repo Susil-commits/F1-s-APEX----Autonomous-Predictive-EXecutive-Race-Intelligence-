@@ -21,11 +21,16 @@ from .dataset_version import DatasetVersionRegistry
 logger = logging.getLogger(__name__)
 
 DEFAULT_SESSIONS = [
+    (2022, "Silverstone"),
+    (2022, "Monza"),
     (2023, "Silverstone"),
     (2023, "Monza"),
     (2023, "Belgium"),
     (2023, "Bahrain"),
     (2023, "Austria"),
+    (2024, "Silverstone"),
+    (2024, "Monza"),
+    (2025, "Silverstone"),
 ]
 
 
