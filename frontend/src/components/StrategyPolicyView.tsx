@@ -156,8 +156,8 @@ export const StrategyPolicyView: React.FC = () => {
             </h1>
             <p className="text-sm text-slate-300 max-w-3xl mt-1">
               Benchmark DQN and PPO against expert rule engines and Monte Carlo search under a formal Constrained MDP.
-              Dynamic action-masking feasibility projections ($M(s) \in \{0, 1\}^8$) eliminate catastrophic tyre blowouts
-              and guarantee 100% compliance with FIA sporting regulations (reducing catastrophic DNFs from $25.0\% \to 0.0\%$).
+              Dynamic action-masking feasibility projections (M(s) &isin; {'{0, 1}'}&sup8;) eliminate catastrophic tyre blowouts
+              and guarantee 100% compliance with FIA sporting regulations (reducing catastrophic DNFs from 25.0% &rarr; 0.0%).
             </p>
           </div>
 
