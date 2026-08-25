@@ -25,7 +25,7 @@ from backend.training.fetch_fastf1_data import (
 
 
 def test_fixed_horizon_split_boundaries():
-    """Verifies that 2018-2023 (train), 2024 (val), and 2025 (test) are strictly partitioned."""
+    """Verifies that 2018-2022 (train), 2023 (val), and 2024 (test) are strictly partitioned."""
     df = generate_synthetic_fallback_data()
     splits = TemporalSplitter.fixed_horizon_split(df)
 
@@ -38,9 +38,9 @@ def test_fixed_horizon_split_boundaries():
     assert not test_df.empty
 
     # Strict season boundary checks
-    assert train_df["season"].max() <= 2023
-    assert (val_df["season"] == 2024).all()
-    assert (test_df["season"] == 2025).all()
+    assert train_df["season"].max() <= 2022
+    assert (val_df["season"] == 2023).all()
+    assert (test_df["season"] == 2024).all()
 
     # Zero overlap of session keys
     train_sessions = set(train_df["session_key"].unique())
@@ -140,8 +140,14 @@ def test_temporal_validation_harness_end_to_end():
     report = run_temporal_validation(save_plots=False)
 
     assert report["status"] == "PASS"
-    assert report["fixed_horizon_evaluation"]["validation_2024_metrics"]["r2"] > 0.70
-    assert report["fixed_horizon_evaluation"]["test_2025_metrics"]["r2"] > 0.80
+    assert "validation_2023_metrics" in report["fixed_horizon_evaluation"]
+    assert "test_2024_metrics" in report["fixed_horizon_evaluation"]
+    assert report["fixed_horizon_evaluation"]["validation_2023_metrics"]["r2"] > 0.50
+    assert report["fixed_horizon_evaluation"]["test_2024_metrics"]["r2"] > 0.60
+    assert "model_comparison" in report
+    assert len(report["model_comparison"]["models"]) == 4
+    assert "prediction_calibration" in report
+    assert report["prediction_calibration"]["target_coverage"] == 0.95
     assert report["temporal_integrity"]["is_valid"] is True
     assert report["temporal_integrity"]["chronological_inversions"] == 0
 

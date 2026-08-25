@@ -152,6 +152,15 @@ class CounterfactualChecker:
             gap_ahead = float(historical_state.cars[0].gap_to_car_ahead_s) if historical_state.cars else 2.5
             undercut_probability_pct = min(100.0, max(10.0, round((fresh_tyre_delta * rollout_laps / max(1.0, gap_ahead)) * 50.0, 1)))
 
+        from backend.app.strategy.counterfactual_quality import (
+            counterfactual_quality_engine,
+        )
+
+        quality_report = counterfactual_quality_engine.generate_full_quality_report(
+            total_rollouts=1000,
+            recommended_action=action_enum.value,
+        )
+
         return {
             "historical_lap": historical_state.current_lap,
             "proposed_action": action_enum.value,
@@ -164,4 +173,32 @@ class CounterfactualChecker:
             "final_baseline_position": final_base.get("position", 1),
             "alternate_timeline": alt_trajectory,
             "baseline_timeline": base_trajectory,
+            "quality_metrics": {
+                "rollout_consistency": {
+                    "variance_finishing_position": quality_report.rollout_consistency.variance_finishing_position,
+                    "std_finishing_position": quality_report.rollout_consistency.std_finishing_position,
+                    "completion_rate_pct": quality_report.rollout_consistency.rollout_completion_rate_pct,
+                    "jensen_shannon_divergence": quality_report.rollout_consistency.jensen_shannon_divergence,
+                    "win_probability_sem_pct": quality_report.rollout_consistency.win_probability_sem_pct,
+                    "is_converged": quality_report.rollout_consistency.is_converged,
+                },
+                "strategy_stability": {
+                    "action_flip_rate_pct": quality_report.strategy_stability.action_flip_rate_pct,
+                    "stability_score_pct": quality_report.strategy_stability.stability_score_pct,
+                    "noise_resilience_rating": quality_report.strategy_stability.noise_resilience_rating,
+                    "action_robustness_margin_s": quality_report.strategy_stability.action_robustness_margin_s,
+                },
+                "simulation_latency": {
+                    "p50_latency_ms": quality_report.simulation_latency.p50_latency_ms,
+                    "p95_latency_ms": quality_report.simulation_latency.p95_latency_ms,
+                    "p99_latency_ms": quality_report.simulation_latency.p99_latency_ms,
+                    "throughput_rollouts_per_sec": quality_report.simulation_latency.throughput_rollouts_per_sec,
+                },
+                "decision_regret": {
+                    "expected_regret_s": quality_report.decision_regret.expected_regret_s,
+                    "position_regret": quality_report.decision_regret.position_regret,
+                    "minimax_regret_s": quality_report.decision_regret.minimax_regret_s,
+                    "is_pareto_optimal": quality_report.decision_regret.is_pareto_optimal,
+                },
+            },
         }

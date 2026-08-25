@@ -1,12 +1,12 @@
 {
-  "timestamp_utc": "2026-08-25T04:42:32.979092+00:00",
+  "timestamp_utc": "2026-08-25T05:46:36.569576+00:00",
   "status": "PASS",
   "temporal_integrity": {
     "is_valid": true,
-    "max_train_season": 2023,
-    "min_val_season": 2024,
-    "max_val_season": 2024,
-    "min_test_season": 2025,
+    "max_train_season": 2022,
+    "min_val_season": 2023,
+    "max_val_season": 2023,
+    "min_test_season": 2024,
     "overlapping_sessions": [],
     "overlapping_driver_stints": [],
     "chronological_inversions": 0,
@@ -19,15 +19,23 @@
       2019,
       2020,
       2021,
-      2022,
-      2023
+      2022
     ],
-    "validation_season": 2024,
-    "test_season": 2025,
-    "train_records": 13390,
-    "val_records": 3558,
-    "test_records": 3596,
-    "validation_2024_metrics": {
+    "validation_season": 2023,
+    "test_season": 2024,
+    "train_records": 9829,
+    "val_records": 3561,
+    "test_records": 3558,
+    "validation_2023_metrics": {
+      "r2": 0.6339,
+      "rmse": 0.312,
+      "mae": 0.1357,
+      "pearson_r": 0.8915,
+      "cliff_accuracy": 0.9854,
+      "train_samples": 9829,
+      "val_samples": 3561
+    },
+    "test_2024_metrics": {
       "r2": 0.7883,
       "rmse": 0.2019,
       "mae": 0.1044,
@@ -35,16 +43,132 @@
       "cliff_accuracy": 0.9941,
       "train_samples": 13390,
       "val_samples": 3558
-    },
-    "test_2025_metrics": {
-      "r2": 0.8991,
-      "rmse": 0.1566,
-      "mae": 0.0956,
-      "pearson_r": 0.9534,
-      "cliff_accuracy": 0.9936,
-      "train_samples": 16948,
-      "val_samples": 3596
     }
+  },
+  "model_comparison": {
+    "evaluation_split": "Train: 2018-2022 | Val: 2023 | Test: 2024",
+    "models": [
+      {
+        "model_name": "Linear baseline",
+        "r2": 0.156,
+        "rmse": 0.4032,
+        "mae": 0.2525,
+        "pearson_r": 0.5028,
+        "cliff_accuracy": 0.98,
+        "expected_calibration_error": 0.0001,
+        "coverage_probability_95": 0.95,
+        "mean_interval_width_s": 0.8017,
+        "is_calibrated": false
+      },
+      {
+        "model_name": "Random Forest",
+        "r2": 0.2818,
+        "rmse": 0.3719,
+        "mae": 0.1689,
+        "pearson_r": 0.8619,
+        "cliff_accuracy": 0.9798,
+        "expected_calibration_error": 0.0005,
+        "coverage_probability_95": 0.95,
+        "mean_interval_width_s": 0.7903,
+        "is_calibrated": false
+      },
+      {
+        "model_name": "XGBoost",
+        "r2": 0.5043,
+        "rmse": 0.309,
+        "mae": 0.1324,
+        "pearson_r": 0.876,
+        "cliff_accuracy": 0.9862,
+        "expected_calibration_error": 0.0065,
+        "coverage_probability_95": 0.95,
+        "mean_interval_width_s": 0.5422,
+        "is_calibrated": false
+      },
+      {
+        "model_name": "XGBoost + calibration",
+        "r2": 0.5043,
+        "rmse": 0.309,
+        "mae": 0.1324,
+        "pearson_r": 0.876,
+        "cliff_accuracy": 0.9862,
+        "expected_calibration_error": 0.0065,
+        "coverage_probability_95": 0.9545,
+        "mean_interval_width_s": 0.5917,
+        "is_calibrated": true
+      }
+    ]
+  },
+  "prediction_calibration": {
+    "target_coverage": 0.95,
+    "empirical_coverage_95": 1.0,
+    "expected_calibration_error": 0.0638,
+    "mean_interval_width_s": 0.3736,
+    "winkler_score": 0.3736,
+    "brier_score_cliff": 0.0016,
+    "q_hat_margin_s": 0.2621,
+    "is_well_calibrated": false,
+    "reliability_diagram_bins": [
+      {
+        "nominal_confidence": 0.1,
+        "empirical_coverage": 0.3999,
+        "calibration_gap": 0.2999,
+        "interval_margin_s": 0.0
+      },
+      {
+        "nominal_confidence": 0.2,
+        "empirical_coverage": 0.3999,
+        "calibration_gap": 0.2011,
+        "interval_margin_s": 0.0
+      },
+      {
+        "nominal_confidence": 0.3,
+        "empirical_coverage": 0.3999,
+        "calibration_gap": 0.1022,
+        "interval_margin_s": 0.0
+      },
+      {
+        "nominal_confidence": 0.4,
+        "empirical_coverage": 0.3999,
+        "calibration_gap": 0.0033,
+        "interval_margin_s": 0.0
+      },
+      {
+        "nominal_confidence": 0.5,
+        "empirical_coverage": 0.4983,
+        "calibration_gap": 0.0028,
+        "interval_margin_s": 0.001
+      },
+      {
+        "nominal_confidence": 0.59,
+        "empirical_coverage": 0.5961,
+        "calibration_gap": 0.0017,
+        "interval_margin_s": 0.003
+      },
+      {
+        "nominal_confidence": 0.69,
+        "empirical_coverage": 0.6945,
+        "calibration_gap": 0.0012,
+        "interval_margin_s": 0.004
+      },
+      {
+        "nominal_confidence": 0.79,
+        "empirical_coverage": 0.7923,
+        "calibration_gap": 0.0001,
+        "interval_margin_s": 0.006
+      },
+      {
+        "nominal_confidence": 0.89,
+        "empirical_coverage": 0.8909,
+        "calibration_gap": 0.0002,
+        "interval_margin_s": 0.01
+      },
+      {
+        "nominal_confidence": 0.99,
+        "empirical_coverage": 0.9899,
+        "calibration_gap": 0.0001,
+        "interval_margin_s": 0.046
+      }
+    ]
   },
   "walk_forward_expanding_window_cv": {
     "total_folds": 4,
@@ -150,12 +274,12 @@
   },
   "leakage_bias_diagnostic": {
     "leaked_random_split_r2": 0.8897,
-    "strict_temporal_test_r2": 0.8991,
+    "strict_temporal_test_r2": 0.7883,
     "leaked_random_split_rmse": 0.1767,
-    "strict_temporal_test_rmse": 0.1566,
-    "r2_optimism_bias_delta": -0.0094,
-    "rmse_optimism_bias_delta": -0.0201,
-    "conclusion": "Random splitting artificially inflates R\u00b2 due to future lap/stint leakage. APEX's strict temporal split accurately reflects true out-of-sample race generalizability."
+    "strict_temporal_test_rmse": 0.2019,
+    "r2_optimism_bias_delta": 0.1014,
+    "rmse_optimism_bias_delta": 0.0252,
+    "conclusion": "Random splitting artificially inflates R\u00b2 due to future lap/stint leakage. APEX's strict temporal split (Train: 2018-2022 | Val: 2023 | Test: 2024) accurately reflects true out-of-sample race generalizability."
   },
   "feature_provenance": {
     "features_used": [

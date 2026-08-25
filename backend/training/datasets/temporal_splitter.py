@@ -1,7 +1,7 @@
 """Temporal Validation and Anti-Leakage Splitting Engine for APEX Race Intelligence.
 
 Provides mathematically rigorous, chronological partitioning for Formula 1 telemetry:
-1. Fixed Chronological Horizon: Train (2018–2023), Validation (2024), Test (2025).
+1. Fixed Chronological Horizon: Train (2018–2022), Validation (2023), Test (2024).
 2. Purged & Embargoed Walk-Forward (Expanding-Window) Cross-Validation across season horizons.
 3. Rolling-Window Chronological Cross-Validation.
 4. Temporal Integrity Verification (detecting lookahead, session bleed, and chronological inversions).
@@ -10,7 +10,7 @@ from __future__ import annotations
 
 import logging
 from dataclasses import dataclass, field
-from typing import Any, Iterator
+from typing import Any, Iterator, cast
 
 import numpy as np
 import pandas as pd
@@ -22,9 +22,9 @@ logger = logging.getLogger(__name__)
 @dataclass
 class TemporalSplitConfig:
     """Configuration for fixed horizon and walk-forward temporal splits."""
-    train_seasons: list[int] = field(default_factory=lambda: [2018, 2019, 2020, 2021, 2022, 2023])
-    val_seasons: list[int] = field(default_factory=lambda: [2024])
-    test_seasons: list[int] = field(default_factory=lambda: [2025])
+    train_seasons: list[int] = field(default_factory=lambda: [2018, 2019, 2020, 2021, 2022])
+    val_seasons: list[int] = field(default_factory=lambda: [2023])
+    test_seasons: list[int] = field(default_factory=lambda: [2024])
     season_col: str = "season"
     circuit_col: str = "circuit"
     stint_col: str = "stint"
@@ -108,22 +108,22 @@ class TemporalSplitter:
                 val_mask = working_df[s_col].isin(cfg.val_seasons)
                 test_mask = working_df[s_col].isin(cfg.test_seasons)
 
-                train_df = working_df[train_mask].copy()
-                val_df = working_df[val_mask].copy()
-                test_df = working_df[test_mask].copy()
+                train_df: pd.DataFrame = cast(pd.DataFrame, working_df[train_mask].copy())
+                val_df: pd.DataFrame = cast(pd.DataFrame, working_df[val_mask].copy())
+                test_df: pd.DataFrame = cast(pd.DataFrame, working_df[test_mask].copy())
 
                 # Fallback if val or test was empty in sparse subset
                 if val_df.empty and not train_df.empty and len(available_seasons) >= 2:
                     # Allocate newest available training season to validation
                     latest_train_season = max(matching_train)
-                    val_df = train_df[train_df[s_col] == latest_train_season].copy()
-                    train_df = train_df[train_df[s_col] < latest_train_season].copy()
+                    val_df = cast(pd.DataFrame, train_df[train_df[s_col] == latest_train_season].copy())
+                    train_df = cast(pd.DataFrame, train_df[train_df[s_col] < latest_train_season].copy())
 
                 if test_df.empty and not val_df.empty and len(available_seasons) >= 3:
                     # Fallback test allocation from latest
                     latest_season = available_seasons[-1]
-                    test_df = working_df[working_df[s_col] == latest_season].copy()
-                    val_df = val_df[val_df[s_col] != latest_season].copy()
+                    test_df = cast(pd.DataFrame, working_df[working_df[s_col] == latest_season].copy())
+                    val_df = cast(pd.DataFrame, val_df[val_df[s_col] != latest_season].copy())
 
                 return {"train": train_df, "val": val_df, "test": test_df}
 
@@ -133,20 +133,20 @@ class TemporalSplitter:
                 val_s = [available_seasons[-2]]
                 test_s = [available_seasons[-1]]
                 return {
-                    "train": working_df[working_df[s_col].isin(train_s)].copy(),
-                    "val": working_df[working_df[s_col].isin(val_s)].copy(),
-                    "test": working_df[working_df[s_col].isin(test_s)].copy(),
+                    "train": cast(pd.DataFrame, working_df[working_df[s_col].isin(train_s)].copy()),
+                    "val": cast(pd.DataFrame, working_df[working_df[s_col].isin(val_s)].copy()),
+                    "test": cast(pd.DataFrame, working_df[working_df[s_col].isin(test_s)].copy()),
                 }
             elif len(available_seasons) == 2:
                 train_s = [available_seasons[0]]
                 val_s = [available_seasons[1]]
                 # Split second season 50/50 for val and test
-                s2_df = working_df[working_df[s_col] == val_s[0]]
+                s2_df = cast(pd.DataFrame, working_df[working_df[s_col] == val_s[0]])
                 n_half = len(s2_df) // 2
                 return {
-                    "train": working_df[working_df[s_col].isin(train_s)].copy(),
-                    "val": s2_df.iloc[:n_half].copy(),
-                    "test": s2_df.iloc[n_half:].copy(),
+                    "train": cast(pd.DataFrame, working_df[working_df[s_col].isin(train_s)].copy()),
+                    "val": cast(pd.DataFrame, s2_df.iloc[:n_half].copy()),
+                    "test": cast(pd.DataFrame, s2_df.iloc[n_half:].copy()),
                 }
 
         # Case C: Single season or no season column -> Chronological stint/lap ordering (Zero random shuffle)
@@ -159,9 +159,9 @@ class TemporalSplitter:
         v_idx = int(0.85 * n)
 
         return {
-            "train": working_df.iloc[:t_idx].copy(),
-            "val": working_df.iloc[t_idx:v_idx].copy(),
-            "test": working_df.iloc[v_idx:].copy(),
+            "train": cast(pd.DataFrame, working_df.iloc[:t_idx].copy()),
+            "val": cast(pd.DataFrame, working_df.iloc[t_idx:v_idx].copy()),
+            "test": cast(pd.DataFrame, working_df.iloc[v_idx:].copy()),
         }
 
     @staticmethod
@@ -215,8 +215,8 @@ class TemporalSplitter:
         current_train_seasons = list(initial_train)
 
         for fold_idx, val_season in enumerate(val_candidates, start=1):
-            train_df = working_df[working_df[season_col].isin(current_train_seasons)].copy()
-            val_df = working_df[working_df[season_col] == val_season].copy()
+            train_df: pd.DataFrame = cast(pd.DataFrame, working_df[working_df[season_col].isin(current_train_seasons)].copy())
+            val_df: pd.DataFrame = cast(pd.DataFrame, working_df[working_df[season_col] == val_season].copy())
 
             if train_df.empty or val_df.empty:
                 continue

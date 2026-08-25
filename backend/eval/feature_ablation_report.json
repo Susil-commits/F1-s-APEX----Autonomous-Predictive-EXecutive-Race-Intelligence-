@@ -1,10 +1,10 @@
 {
-  "timestamp_utc": "2026-08-25T04:42:14.951934+00:00",
+  "timestamp_utc": "2026-08-25T05:38:07.741882+00:00",
   "status": "PASS",
   "dataset_summary": {
     "total_records": 20544,
-    "train_records": 13390,
-    "test_records": 7154,
+    "train_records": 9829,
+    "test_records": 7119,
     "split_strategy": "Chronological Horizon (Train: 2018-2023, Test: 2024-2025)"
   },
   "ablation_results": [
@@ -39,10 +39,10 @@
         "tyre_age_sq"
       ],
       "metrics": {
-        "r2": 0.8115,
-        "mae": 0.1047,
-        "rmse": 0.2027,
-        "pearson_r": 0.924,
+        "r2": 0.4853,
+        "mae": 0.1434,
+        "rmse": 0.3436,
+        "pearson_r": 0.8643,
         "delta_r2_vs_full": 0.0,
         "delta_mae_vs_full": 0.0
       }
@@ -75,10 +75,10 @@
         "tyre_age_sq"
       ],
       "metrics": {
-        "r2": 0.8115,
-        "mae": 0.1047,
-        "rmse": 0.2027,
-        "pearson_r": 0.924,
+        "r2": 0.4853,
+        "mae": 0.1434,
+        "rmse": 0.3436,
+        "pearson_r": 0.8643,
         "delta_r2_vs_full": 0.0,
         "delta_mae_vs_full": 0.0
       }
@@ -107,12 +107,12 @@
         "track_wetness_index"
       ],
       "metrics": {
-        "r2": 0.8058,
-        "mae": 0.1056,
-        "rmse": 0.2058,
-        "pearson_r": 0.923,
-        "delta_r2_vs_full": -0.0057,
-        "delta_mae_vs_full": 0.0009
+        "r2": 0.4909,
+        "mae": 0.1427,
+        "rmse": 0.3417,
+        "pearson_r": 0.8646,
+        "delta_r2_vs_full": 0.0056,
+        "delta_mae_vs_full": -0.0007
       }
     },
     {
@@ -142,12 +142,12 @@
         "tyre_age_sq"
       ],
       "metrics": {
-        "r2": 0.8105,
-        "mae": 0.1056,
-        "rmse": 0.2032,
-        "pearson_r": 0.9234,
-        "delta_r2_vs_full": -0.001,
-        "delta_mae_vs_full": 0.0009
+        "r2": 0.4803,
+        "mae": 0.1434,
+        "rmse": 0.3452,
+        "pearson_r": 0.8645,
+        "delta_r2_vs_full": -0.005,
+        "delta_mae_vs_full": 0.0
       }
     },
     {
@@ -176,12 +176,12 @@
         "tyre_age_sq"
       ],
       "metrics": {
-        "r2": 0.6119,
-        "mae": 0.1393,
-        "rmse": 0.2909,
-        "pearson_r": 0.8803,
-        "delta_r2_vs_full": -0.1996,
-        "delta_mae_vs_full": 0.0346
+        "r2": 0.0234,
+        "mae": 0.2059,
+        "rmse": 0.4732,
+        "pearson_r": 0.8495,
+        "delta_r2_vs_full": -0.4619,
+        "delta_mae_vs_full": 0.0625
       }
     },
     {
@@ -212,12 +212,12 @@
         "tyre_age_sq"
       ],
       "metrics": {
-        "r2": 0.7967,
-        "mae": 0.1079,
-        "rmse": 0.2105,
-        "pearson_r": 0.9243,
-        "delta_r2_vs_full": -0.0148,
-        "delta_mae_vs_full": 0.0032
+        "r2": 0.3697,
+        "mae": 0.161,
+        "rmse": 0.3802,
+        "pearson_r": 0.8588,
+        "delta_r2_vs_full": -0.1156,
+        "delta_mae_vs_full": 0.0176
       }
     },
     {
@@ -236,12 +236,12 @@
         "tyre_age_sq"
       ],
       "metrics": {
-        "r2": 0.5697,
-        "mae": 0.1554,
-        "rmse": 0.3063,
-        "pearson_r": 0.8922,
-        "delta_r2_vs_full": -0.2418,
-        "delta_mae_vs_full": 0.0507
+        "r2": 0.0046,
+        "mae": 0.2067,
+        "rmse": 0.4778,
+        "pearson_r": 0.8406,
+        "delta_r2_vs_full": -0.4807,
+        "delta_mae_vs_full": 0.0633
       }
     },
     {
@@ -258,12 +258,12 @@
         "driver_tyre_mgmt"
       ],
       "metrics": {
-        "r2": -0.0177,
-        "mae": 0.2449,
-        "rmse": 0.471,
-        "pearson_r": 0.0043,
-        "delta_r2_vs_full": -0.8292,
-        "delta_mae_vs_full": 0.1402
+        "r2": -0.0233,
+        "mae": 0.2454,
+        "rmse": 0.4844,
+        "pearson_r": 0.0042,
+        "delta_r2_vs_full": -0.5086,
+        "delta_mae_vs_full": 0.102
       }
     },
     {
@@ -274,12 +274,12 @@
       "feature_count": 0,
       "features_used": [],
       "metrics": {
-        "r2": -0.0149,
-        "mae": 0.2621,
-        "rmse": 0.4704,
+        "r2": -0.0256,
+        "mae": 0.2713,
+        "rmse": 0.485,
         "pearson_r": 0.0,
-        "delta_r2_vs_full": -0.8264,
-        "delta_mae_vs_full": 0.1574
+        "delta_r2_vs_full": -0.5109,
+        "delta_mae_vs_full": 0.1279
       }
     }
   ],
@@ -287,102 +287,102 @@
     {
       "rank": 1,
       "feature_domain": "Driver",
-      "r2_drop_on_removal": 0.1996,
-      "mae_increase_on_removal": 0.0346,
-      "relative_importance_pct": 90.3
+      "r2_drop_on_removal": 0.4619,
+      "mae_increase_on_removal": 0.0625,
+      "relative_importance_pct": 79.3
     },
     {
       "rank": 2,
       "feature_domain": "Context",
-      "r2_drop_on_removal": 0.0148,
-      "mae_increase_on_removal": 0.0032,
-      "relative_importance_pct": 6.7
+      "r2_drop_on_removal": 0.1156,
+      "mae_increase_on_removal": 0.0176,
+      "relative_importance_pct": 19.8
     },
     {
       "rank": 3,
-      "feature_domain": "Tire",
-      "r2_drop_on_removal": 0.0057,
-      "mae_increase_on_removal": 0.0009,
-      "relative_importance_pct": 2.6
+      "feature_domain": "Telemetry",
+      "r2_drop_on_removal": 0.005,
+      "mae_increase_on_removal": 0.0,
+      "relative_importance_pct": 0.9
     },
     {
       "rank": 4,
-      "feature_domain": "Telemetry",
-      "r2_drop_on_removal": 0.001,
-      "mae_increase_on_removal": 0.0009,
-      "relative_importance_pct": 0.5
-    },
-    {
-      "rank": 5,
       "feature_domain": "Weather",
       "r2_drop_on_removal": 0.0,
       "mae_increase_on_removal": 0.0,
+      "relative_importance_pct": 0.0
+    },
+    {
+      "rank": 5,
+      "feature_domain": "Tire",
+      "r2_drop_on_removal": 0.0,
+      "mae_increase_on_removal": -0.0007,
       "relative_importance_pct": 0.0
     }
   ],
   "summary_table": [
     {
       "Features Removed": "None",
-      "R2": "0.8115",
-      "MAE_s": "0.1047",
-      "RMSE_s": "0.2027",
+      "R2": "0.4853",
+      "MAE_s": "0.1434",
+      "RMSE_s": "0.3436",
       "Delta_R2": "+0.0000"
     },
     {
       "Features Removed": "Weather",
-      "R2": "0.8115",
-      "MAE_s": "0.1047",
-      "RMSE_s": "0.2027",
+      "R2": "0.4853",
+      "MAE_s": "0.1434",
+      "RMSE_s": "0.3436",
       "Delta_R2": "+0.0000"
     },
     {
       "Features Removed": "Tire",
-      "R2": "0.8058",
-      "MAE_s": "0.1056",
-      "RMSE_s": "0.2058",
-      "Delta_R2": "-0.0057"
+      "R2": "0.4909",
+      "MAE_s": "0.1427",
+      "RMSE_s": "0.3417",
+      "Delta_R2": "+0.0056"
     },
     {
       "Features Removed": "Telemetry",
-      "R2": "0.8105",
-      "MAE_s": "0.1056",
-      "RMSE_s": "0.2032",
-      "Delta_R2": "-0.0010"
+      "R2": "0.4803",
+      "MAE_s": "0.1434",
+      "RMSE_s": "0.3452",
+      "Delta_R2": "-0.0050"
     },
     {
       "Features Removed": "Driver",
-      "R2": "0.6119",
-      "MAE_s": "0.1393",
-      "RMSE_s": "0.2909",
-      "Delta_R2": "-0.1996"
+      "R2": "0.0234",
+      "MAE_s": "0.2059",
+      "RMSE_s": "0.4732",
+      "Delta_R2": "-0.4619"
     },
     {
       "Features Removed": "Context",
-      "R2": "0.7967",
-      "MAE_s": "0.1079",
-      "RMSE_s": "0.2105",
-      "Delta_R2": "-0.0148"
+      "R2": "0.3697",
+      "MAE_s": "0.1610",
+      "RMSE_s": "0.3802",
+      "Delta_R2": "-0.1156"
     },
     {
       "Features Removed": "Weather + Telemetry + Driver + Context",
-      "R2": "0.5697",
-      "MAE_s": "0.1554",
-      "RMSE_s": "0.3063",
-      "Delta_R2": "-0.2418"
+      "R2": "0.0046",
+      "MAE_s": "0.2067",
+      "RMSE_s": "0.4778",
+      "Delta_R2": "-0.4807"
     },
     {
       "Features Removed": "Tire + Weather + Telemetry + Context",
-      "R2": "-0.0177",
-      "MAE_s": "0.2449",
-      "RMSE_s": "0.4710",
-      "Delta_R2": "-0.8292"
+      "R2": "-0.0233",
+      "MAE_s": "0.2454",
+      "RMSE_s": "0.4844",
+      "Delta_R2": "-0.5086"
     },
     {
       "Features Removed": "All Features",
-      "R2": "-0.0149",
-      "MAE_s": "0.2621",
-      "RMSE_s": "0.4704",
-      "Delta_R2": "-0.8264"
+      "R2": "-0.0256",
+      "MAE_s": "0.2713",
+      "RMSE_s": "0.4850",
+      "Delta_R2": "-0.5109"
     }
   ],
   "scientific_conclusions": [

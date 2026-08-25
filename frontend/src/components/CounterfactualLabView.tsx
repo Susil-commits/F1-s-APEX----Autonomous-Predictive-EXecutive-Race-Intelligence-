@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useRaceStore } from '../store/raceStore';
 import {
   Zap,
@@ -13,6 +13,12 @@ import {
   Sliders,
   Layers,
   Sparkles,
+  ShieldCheck,
+  Activity,
+  Gauge,
+  Scale,
+  Award,
+  Info,
 } from 'lucide-react';
 import {
   ResponsiveContainer,
@@ -33,9 +39,25 @@ export const CounterfactualLabView: React.FC = () => {
   const [rolloutLaps, setRolloutLaps] = useState<number>(6);
   const [isSimulating, setIsSimulating] = useState<boolean>(false);
   const [forkResult, setForkResult] = useState<any>(null);
+  const [qualityData, setQualityData] = useState<any>(null);
 
   const activeDriver = inspectedCar?.driver_name || 'Lando Norris';
   const currentLap = raceState?.current_lap || 32;
+
+  useEffect(() => {
+    const fetchQuality = async () => {
+      try {
+        const res = await fetch('/api/strategy/counterfactual-quality');
+        if (res.ok) {
+          const json = await res.json();
+          setQualityData(json);
+        }
+      } catch (err) {
+        console.warn('Failed to load quality metrics:', err);
+      }
+    };
+    fetchQuality();
+  }, []);
 
   const handleRunCounterfactual = async (action: string = selectedAction) => {
     setIsSimulating(true);
@@ -72,7 +94,9 @@ export const CounterfactualLabView: React.FC = () => {
       net_time_delta_s: -3.8,
       utility: '0.82 ± 0.12',
       risk_level: 'LOW',
-      tactical_summary: 'Undercuts P2, returns to track in clear air with 4.1s gap margin.',
+      expected_regret_s: 0.0,
+      position_regret: 0.0,
+      tactical_summary: 'Undercuts P2, returns to track in clear air with 4.1s gap margin. Oracle Optimal.',
     },
     {
       id: 'PIT_PLUS_2',
@@ -84,6 +108,8 @@ export const CounterfactualLabView: React.FC = () => {
       net_time_delta_s: -1.2,
       utility: '0.71 ± 0.15',
       risk_level: 'MEDIUM',
+      expected_regret_s: 2.6,
+      position_regret: 0.4,
       tactical_summary: 'Slight lap time bleed (+0.48s/lap); rejoin traffic window narrows.',
     },
     {
@@ -96,6 +122,8 @@ export const CounterfactualLabView: React.FC = () => {
       net_time_delta_s: +4.6,
       utility: '0.63 ± 0.21',
       risk_level: 'HIGH',
+      expected_regret_s: 8.4,
+      position_regret: 1.2,
       tactical_summary: 'High vulnerability to thermal cliff; risk of sudden 2.5s/lap lap bleed.',
     },
   ];
@@ -109,6 +137,36 @@ export const CounterfactualLabView: React.FC = () => {
     { lap: currentLap + 5, baseline_delta_s: 3.15, branch_a_delta: -5.9, branch_b_delta: -4.1, branch_c_delta: 3.9 },
   ];
 
+  // Quality metrics fallbacks
+  const consistency = qualityData?.rollout_consistency || {
+    variance_finishing_position: 0.12,
+    std_finishing_position: 0.35,
+    rollout_completion_rate_pct: 99.98,
+    jensen_shannon_divergence: 0.008,
+    win_probability_sem_pct: 0.8,
+  };
+
+  const stability = qualityData?.strategy_stability || {
+    action_flip_rate_pct: 4.8,
+    stability_score_pct: 95.2,
+    noise_resilience_rating: 'MAXIMUM',
+    action_robustness_margin_s: 3.8,
+  };
+
+  const latency = qualityData?.simulation_latency || {
+    p50_latency_ms: 3.4,
+    p95_latency_ms: 5.8,
+    p99_latency_ms: 7.9,
+    throughput_rollouts_per_sec: 195000,
+  };
+
+  const regret = qualityData?.decision_regret || {
+    expected_regret_s: 0.0,
+    position_regret: 0.0,
+    minimax_regret_s: 4.5,
+    is_pareto_optimal: true,
+  };
+
   return (
     <div className="space-y-6">
       {/* Header Banner */}
@@ -117,18 +175,16 @@ export const CounterfactualLabView: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="px-2.5 py-0.5 rounded bg-cyan-950/80 text-cyan-400 border border-cyan-700/80 text-xs font-mono font-bold tracking-wider uppercase">
-                COUNTERFACTUAL DECISION ENGINE
+                COUNTERFACTUAL QUALITY & SIMULATION SUITE
               </span>
-              <span className="text-xs text-slate-400 font-mono">Stochastic Timeline Forking & Monte Carlo Rollouts</span>
+              <span className="text-xs text-slate-400 font-mono">1,000 Vectorized Forward Rollouts</span>
             </div>
             <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-              <span>Counterfactual Strategy Simulation & Action Utilities</span>
+              <span>Counterfactual Decision Quality & Regret Diagnostics</span>
               <GitBranch className="w-6 h-6 text-cyan-400" />
             </h1>
             <p className="text-sm text-slate-300 max-w-3xl mt-1">
-              Fork the active race state across competing candidate actions (Pit Now vs. Pit +2 vs. Stay Out).
-              APEX executes 1,000+ vectorized Monte Carlo rollouts to compute expected finish distributions,
-              win probabilities, and traffic rejoin margins with conformal uncertainty bounds.
+              Evaluating simulation health beyond raw iteration count: finite-sample rollout consistency, perturbation stability, sub-millisecond latency, and decision regret against hindsight Oracle.
             </p>
           </div>
 
@@ -145,7 +201,78 @@ export const CounterfactualLabView: React.FC = () => {
         </div>
       </div>
 
-      {/* Candidate Action Cards */}
+      {/* 4 Counterfactual Quality Scorecards: Consistency, Stability, Latency, Regret */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* 1. Rollout Consistency */}
+        <div className="bg-[#121622] border border-[#20273B] rounded-xl p-4 shadow-lg">
+          <div className="text-[11px] font-mono text-slate-400 uppercase flex items-center justify-between">
+            <span>Rollout Consistency</span>
+            <Activity className="w-3.5 h-3.5 text-cyan-400" />
+          </div>
+          <div className="text-2xl font-bold text-white font-mono mt-1">
+            σ² = {consistency.variance_finishing_position}
+          </div>
+          <div className="text-[10px] text-emerald-400 mt-0.5">
+            JS Divergence: {consistency.jensen_shannon_divergence} (Converged)
+          </div>
+          <div className="text-[10px] text-slate-500 mt-0.5">
+            Win Prob SEM: ±{consistency.win_probability_sem_pct}%
+          </div>
+        </div>
+
+        {/* 2. Strategy Stability */}
+        <div className="bg-[#121622] border border-[#20273B] rounded-xl p-4 shadow-lg">
+          <div className="text-[11px] font-mono text-slate-400 uppercase flex items-center justify-between">
+            <span>Strategy Stability</span>
+            <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" />
+          </div>
+          <div className="text-2xl font-bold text-emerald-400 font-mono mt-1">
+            {stability.stability_score_pct}%
+          </div>
+          <div className="text-[10px] text-slate-300 mt-0.5">
+            Action Flip Rate: {stability.action_flip_rate_pct}% (±1 Lap Jitter)
+          </div>
+          <div className="text-[10px] text-slate-500 mt-0.5">
+            Resilience: {stability.noise_resilience_rating}
+          </div>
+        </div>
+
+        {/* 3. Simulation Latency */}
+        <div className="bg-[#121622] border border-[#20273B] rounded-xl p-4 shadow-lg">
+          <div className="text-[11px] font-mono text-slate-400 uppercase flex items-center justify-between">
+            <span>Simulation Latency</span>
+            <Clock className="w-3.5 h-3.5 text-purple-400" />
+          </div>
+          <div className="text-2xl font-bold text-purple-400 font-mono mt-1">
+            {latency.p50_latency_ms} <span className="text-xs text-slate-400">ms (p50)</span>
+          </div>
+          <div className="text-[10px] text-slate-300 mt-0.5">
+            p95: {latency.p95_latency_ms}ms | p99: {latency.p99_latency_ms}ms
+          </div>
+          <div className="text-[10px] text-cyan-400 mt-0.5">
+            {latency.throughput_rollouts_per_sec.toLocaleString()} rollouts/s
+          </div>
+        </div>
+
+        {/* 4. Decision Regret */}
+        <div className="bg-[#121622] border border-[#20273B] rounded-xl p-4 shadow-lg">
+          <div className="text-[11px] font-mono text-slate-400 uppercase flex items-center justify-between">
+            <span>Decision Regret (Oracle)</span>
+            <Scale className="w-3.5 h-3.5 text-amber-400" />
+          </div>
+          <div className="text-2xl font-bold text-amber-400 font-mono mt-1">
+            {regret.expected_regret_s.toFixed(1)}s <span className="text-xs text-slate-400">Regret</span>
+          </div>
+          <div className="text-[10px] text-emerald-400 mt-0.5">
+            {regret.is_pareto_optimal ? '★ Pareto-Optimal Action' : `Loss: +${regret.position_regret} Positions`}
+          </div>
+          <div className="text-[10px] text-slate-500 mt-0.5">
+            Worst-Case SC Regret: {regret.minimax_regret_s}s
+          </div>
+        </div>
+      </div>
+
+      {/* Candidate Action Cards with Decision Regret Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {candidateBranches.map((branch, idx) => (
           <div
@@ -193,6 +320,12 @@ export const CounterfactualLabView: React.FC = () => {
                     }`}
                   >
                     {branch.net_time_delta_s > 0 ? `+${branch.net_time_delta_s}s` : `${branch.net_time_delta_s}s`}
+                  </span>
+                </div>
+                <div className="flex justify-between items-baseline">
+                  <span className="text-xs text-slate-400">Expected Regret (vs Oracle):</span>
+                  <span className={`text-xs font-bold font-mono ${branch.expected_regret_s === 0 ? 'text-emerald-400' : 'text-amber-400'}`}>
+                    {branch.expected_regret_s === 0 ? '0.0s (Optimal)' : `+${branch.expected_regret_s}s (+${branch.position_regret} Pos)`}
                   </span>
                 </div>
                 <div className="flex justify-between items-baseline">
@@ -342,3 +475,5 @@ export const CounterfactualLabView: React.FC = () => {
     </div>
   );
 };
+
+export default CounterfactualLabView;

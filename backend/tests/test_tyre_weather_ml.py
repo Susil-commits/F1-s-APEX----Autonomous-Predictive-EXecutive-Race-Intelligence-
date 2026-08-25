@@ -14,8 +14,8 @@ def test_tyre_ml_suite_predictions():
     assert suite.is_trained
 
     # Test Soft vs Hard delta prediction
-    delta_soft, (ci_l_s, ci_u_s) = suite.predict_delta(TyreCompound.SOFT, tyre_age=15, track_temp_c=35.0, model_type="rf")
-    delta_hard, (ci_l_h, ci_u_h) = suite.predict_delta(TyreCompound.HARD, tyre_age=15, track_temp_c=35.0, model_type="rf")
+    delta_soft, (ci_l_s, ci_u_s), _ = suite.predict_delta(TyreCompound.SOFT, tyre_age=15, track_temp_c=35.0, model_type="rf")
+    delta_hard, (ci_l_h, ci_u_h), _ = suite.predict_delta(TyreCompound.HARD, tyre_age=15, track_temp_c=35.0, model_type="rf")
 
     assert delta_soft > delta_hard
     assert ci_l_s <= delta_soft <= ci_u_s

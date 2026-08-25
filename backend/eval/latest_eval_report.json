@@ -1,10 +1,10 @@
 {
-  "run_id": "EVAL-APEX-20260825-044210",
-  "timestamp_utc": "2026-08-25T04:42:10.210613+00:00",
-  "duration_seconds": 2.51,
+  "run_id": "EVAL-APEX-20260825-054644",
+  "timestamp_utc": "2026-08-25T05:46:44.376475+00:00",
+  "duration_seconds": 2.66,
   "overall_status": "PASS",
   "has_regressions": false,
-  "metrics_evaluated": 21,
+  "metrics_evaluated": 25,
   "results": [
     {
       "metric": "dqn_win_rate_pct",
@@ -79,22 +79,22 @@
       "description": "Accuracy of honest refusal when queried on missing or out-of-distribution race data"
     },
     {
-      "metric": "temporal_val_2024_r2",
-      "value": 0.7883,
+      "metric": "temporal_val_2023_r2",
+      "value": 0.6339,
       "target": 0.75,
       "min_allowable": 0.5,
       "max_allowable": null,
       "status": "PASS",
-      "description": "R2 performance of tyre models on the 2024 chronological validation horizon"
+      "description": "R2 performance of tyre models on the 2023 chronological validation horizon"
     },
     {
-      "metric": "temporal_test_2025_r2",
-      "value": 0.8991,
+      "metric": "temporal_test_2024_r2",
+      "value": 0.7883,
       "target": 0.85,
       "min_allowable": 0.6,
       "max_allowable": null,
       "status": "PASS",
-      "description": "R2 performance of tyre models on the strictly unseen 2025 prospective holdout test horizon"
+      "description": "R2 performance of tyre models on the strictly unseen 2024 prospective holdout test horizon"
     },
     {
       "metric": "temporal_leakage_violations",
@@ -104,6 +104,42 @@
       "max_allowable": 0,
       "status": "PASS",
       "description": "Count of detected temporal inversions, session bleeds, or lookahead column leaks (zero tolerance)"
+    },
+    {
+      "metric": "prediction_ece_error",
+      "value": 0.0638,
+      "target": 0.024,
+      "min_allowable": null,
+      "max_allowable": 0.08,
+      "status": "PASS",
+      "description": "Expected Calibration Error (ECE) for 95% conformal prediction intervals"
+    },
+    {
+      "metric": "prediction_picp_coverage_pct",
+      "value": 100.0,
+      "target": 95.2,
+      "min_allowable": 92.0,
+      "max_allowable": null,
+      "status": "PASS",
+      "description": "Prediction Interval Coverage Probability (PICP) for nominal 95% confidence intervals"
+    },
+    {
+      "metric": "counterfactual_stability_pct",
+      "value": 87.5,
+      "target": 95.2,
+      "min_allowable": 80.0,
+      "max_allowable": null,
+      "status": "PASS",
+      "description": "Strategy stability score under operational environmental noise perturbations"
+    },
+    {
+      "metric": "counterfactual_latency_p95_ms",
+      "value": 2.6,
+      "target": 5.8,
+      "min_allowable": null,
+      "max_allowable": 15.0,
+      "status": "PASS",
+      "description": "P95 execution latency in milliseconds per 1,000 Monte Carlo forward rollouts"
     },
     {
       "metric": "agent_tool_selection_accuracy_pct",
@@ -237,9 +273,13 @@
     },
     "pillar_5_temporal": {
       "status": "PASS",
-      "temporal_val_2024_r2": 0.7883,
-      "temporal_test_2025_r2": 0.8991,
+      "temporal_val_2023_r2": 0.6339,
+      "temporal_test_2024_r2": 0.7883,
       "temporal_leakage_violations": 0,
+      "prediction_ece_error": 0.0638,
+      "prediction_picp_coverage_pct": 100.0,
+      "counterfactual_stability_pct": 87.5,
+      "counterfactual_latency_p95_ms": 2.6,
       "walk_forward_avg_r2": 0.2525
     },
     "pillar_6_agent": {

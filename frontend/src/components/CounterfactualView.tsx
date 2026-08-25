@@ -155,33 +155,56 @@ export const CounterfactualView: React.FC = () => {
 
         {/* Forking Outcome Result */}
         {forkResult && (
-          <div className="p-2 rounded bg-slate-900/90 border border-cyan-800/60 font-mono text-[10.5px] flex items-center justify-between animate-fade-in">
-            <div>
-              <span className="text-slate-400 text-[9px] block font-sans">ALT POSITION</span>
-              <span className="font-black text-cyan-300">P{forkResult.final_alternate_position}</span>
+          <div className="p-2.5 rounded bg-slate-900/90 border border-cyan-800/60 font-mono text-[10.5px] space-y-2 animate-fade-in">
+            <div className="flex items-center justify-between">
+              <div>
+                <span className="text-slate-400 text-[9px] block font-sans">ALT POSITION</span>
+                <span className="font-black text-cyan-300">P{forkResult.final_alternate_position}</span>
+              </div>
+              <div>
+                <span className="text-slate-400 text-[9px] block font-sans">TIME DELTA</span>
+                <span
+                  className={`font-black ${
+                    forkResult.time_delta_advantage_s > 0 ? 'text-emerald-400' : 'text-rose-400'
+                  }`}
+                >
+                  {forkResult.time_delta_advantage_s > 0 ? `-${forkResult.time_delta_advantage_s}s faster` : `+${Math.abs(forkResult.time_delta_advantage_s)}s slower`}
+                </span>
+              </div>
+              <div>
+                <span className="text-slate-400 text-[9px] block font-sans">VERDICT</span>
+                <span
+                  className={`font-bold px-1.5 py-0.5 rounded text-[9px] ${
+                    forkResult.verdict === 'FAVORS_PROPOSED'
+                      ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
+                      : 'bg-slate-800 text-slate-400'
+                  }`}
+                >
+                  {forkResult.verdict}
+                </span>
+              </div>
             </div>
-            <div>
-              <span className="text-slate-400 text-[9px] block font-sans">TIME DELTA</span>
-              <span
-                className={`font-black ${
-                  forkResult.time_delta_advantage_s > 0 ? 'text-emerald-400' : 'text-rose-400'
-                }`}
-              >
-                {forkResult.time_delta_advantage_s > 0 ? `-${forkResult.time_delta_advantage_s}s faster` : `+${Math.abs(forkResult.time_delta_advantage_s)}s slower`}
-              </span>
-            </div>
-            <div>
-              <span className="text-slate-400 text-[9px] block font-sans">VERDICT</span>
-              <span
-                className={`font-bold px-1.5 py-0.5 rounded text-[9px] ${
-                  forkResult.verdict === 'FAVORS_PROPOSED'
-                    ? 'bg-emerald-950 text-emerald-300 border border-emerald-700'
-                    : 'bg-slate-800 text-slate-400'
-                }`}
-              >
-                {forkResult.verdict}
-              </span>
-            </div>
+
+            {forkResult.quality_metrics && (
+              <div className="pt-2 border-t border-slate-800 grid grid-cols-4 gap-1 text-[9.5px] text-center">
+                <div className="bg-slate-950 p-1 rounded">
+                  <span className="text-slate-400 block text-[8.5px]">CONSISTENCY</span>
+                  <span className="text-cyan-300 font-bold">σ²={forkResult.quality_metrics.rollout_consistency.variance_finishing_position}</span>
+                </div>
+                <div className="bg-slate-950 p-1 rounded">
+                  <span className="text-slate-400 block text-[8.5px]">STABILITY</span>
+                  <span className="text-emerald-300 font-bold">{forkResult.quality_metrics.strategy_stability.stability_score_pct}%</span>
+                </div>
+                <div className="bg-slate-950 p-1 rounded">
+                  <span className="text-slate-400 block text-[8.5px]">LATENCY</span>
+                  <span className="text-purple-300 font-bold">{forkResult.quality_metrics.simulation_latency.p50_latency_ms}ms</span>
+                </div>
+                <div className="bg-slate-950 p-1 rounded">
+                  <span className="text-slate-400 block text-[8.5px]">REGRET</span>
+                  <span className="text-amber-300 font-bold">{forkResult.quality_metrics.decision_regret.expected_regret_s}s</span>
+                </div>
+              </div>
+            )}
           </div>
         )}
       </div>

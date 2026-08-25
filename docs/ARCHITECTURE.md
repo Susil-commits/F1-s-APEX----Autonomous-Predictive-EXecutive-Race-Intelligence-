@@ -1,6 +1,10 @@
 # APEX System Architecture & Subsystem Micro-Architectures
 
-APEX (Autonomous Predictive & EXecutive Race Intelligence) is composed of modular, decoupled sub-architectures that work together to provide real-time race simulation, predictive machine learning, risk modeling, and tactical decision execution.
+APEX (Autonomous Predictive & EXecutive Race Intelligence) is composed of modular, decoupled sub-architectures that execute an end-to-end verifiable decision pipeline:
+
+```
+Context → Retrieval → Tool → Reasoning → Constraint → Decision → Evidence
+```
 
 ---
 

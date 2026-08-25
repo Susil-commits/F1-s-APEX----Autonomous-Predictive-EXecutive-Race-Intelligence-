@@ -42,20 +42,40 @@
       "min_allowable": 80.0,
       "description": "Accuracy of honest refusal when queried on missing or out-of-distribution race data"
     },
-    "temporal_val_2024_r2": {
+    "temporal_val_2023_r2": {
       "target": 0.75,
       "min_allowable": 0.50,
-      "description": "R2 performance of tyre models on the 2024 chronological validation horizon"
+      "description": "R2 performance of tyre models on the 2023 chronological validation horizon"
     },
-    "temporal_test_2025_r2": {
+    "temporal_test_2024_r2": {
       "target": 0.85,
       "min_allowable": 0.60,
-      "description": "R2 performance of tyre models on the strictly unseen 2025 prospective holdout test horizon"
+      "description": "R2 performance of tyre models on the strictly unseen 2024 prospective holdout test horizon"
     },
     "temporal_leakage_violations": {
       "target": 0,
       "max_allowable": 0,
       "description": "Count of detected temporal inversions, session bleeds, or lookahead column leaks (zero tolerance)"
+    },
+    "prediction_ece_error": {
+      "target": 0.024,
+      "max_allowable": 0.080,
+      "description": "Expected Calibration Error (ECE) for 95% conformal prediction intervals"
+    },
+    "prediction_picp_coverage_pct": {
+      "target": 95.2,
+      "min_allowable": 92.0,
+      "description": "Prediction Interval Coverage Probability (PICP) for nominal 95% confidence intervals"
+    },
+    "counterfactual_stability_pct": {
+      "target": 95.2,
+      "min_allowable": 80.0,
+      "description": "Strategy stability score under operational environmental noise perturbations"
+    },
+    "counterfactual_latency_p95_ms": {
+      "target": 5.8,
+      "max_allowable": 15.0,
+      "description": "P95 execution latency in milliseconds per 1,000 Monte Carlo forward rollouts"
     },
     "agent_tool_selection_accuracy_pct": {
       "target": 98.5,
