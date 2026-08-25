@@ -198,3 +198,18 @@ def test_regression_evaluator_submodule():
     assert "multi_agent_committee_consensus" in reg.single_vs_multi_agent_comparison
     assert reg.single_vs_multi_agent_comparison["single_planner_agent_mcp"]["mean_latency_p99_ms"] == 42.0
 
+
+def test_reproducible_agent_eval_runner():
+    """Verify that the standalone evaluation harness executes reproducibly and outputs valid reports."""
+    from backend.eval.run_agent_eval import evaluate_agent_harness
+
+    report, has_regressions = evaluate_agent_harness(verbose=False)
+    assert has_regressions is False
+    assert report["overall_status"] == "PASS"
+    assert report["metrics_evaluated"] == 10
+    assert report["insufficient_evidence_tests_passed"] is True
+    assert len(report["results"]) == 10
+    for r in report["results"]:
+        assert r["status"] == "PASS"
+
+

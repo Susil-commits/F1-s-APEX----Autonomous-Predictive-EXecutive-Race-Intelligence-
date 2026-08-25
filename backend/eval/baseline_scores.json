@@ -56,6 +56,56 @@
       "target": 0,
       "max_allowable": 0,
       "description": "Count of detected temporal inversions, session bleeds, or lookahead column leaks (zero tolerance)"
+    },
+    "agent_tool_selection_accuracy_pct": {
+      "target": 98.5,
+      "min_allowable": 95.0,
+      "description": "Accuracy of agent selecting correct domain MCP tool for given race state"
+    },
+    "agent_citation_grounding_pct": {
+      "target": 96.4,
+      "min_allowable": 95.0,
+      "description": "Percentage of factual statements directly verified against Context Graph nodes"
+    },
+    "agent_unsupported_claim_rate_pct": {
+      "target": 0.0,
+      "max_allowable": 1.0,
+      "description": "Rate of fabricated telemetry values or non-existent model predictions (Zero Hallucination)"
+    },
+    "agent_context_relevance_pct": {
+      "target": 94.8,
+      "min_allowable": 90.0,
+      "description": "Relevance of retrieved model cards and feature vectors to current tactical dilemma"
+    },
+    "agent_missing_context_detection_pct": {
+      "target": 100.0,
+      "min_allowable": 100.0,
+      "description": "Immediate detection and refusal under missing or corrupted evidence"
+    },
+    "agent_lineage_coverage_pct": {
+      "target": 94.2,
+      "min_allowable": 90.0,
+      "description": "Percentage of tactical recommendations backed by complete upstream lineage DAG"
+    },
+    "agent_evidence_completeness_pct": {
+      "target": 98.2,
+      "min_allowable": 95.0,
+      "description": "Completeness of required data, weather, and tyre parameters in decision dossier"
+    },
+    "agent_tool_failure_recovery_pct": {
+      "target": 100.0,
+      "min_allowable": 100.0,
+      "description": "Rate of clean deterministic fallback when external tool calls time out"
+    },
+    "agent_decision_consistency_pct": {
+      "target": 97.2,
+      "min_allowable": 95.0,
+      "description": "Consistency of strategic recommendations across identical stochastic rollout seeds"
+    },
+    "agent_decision_latency_p99_ms": {
+      "target": 42.0,
+      "max_allowable": 100.0,
+      "description": "P99 response latency for end-to-end evidence retrieval and decision synthesis"
     }
   }
 }

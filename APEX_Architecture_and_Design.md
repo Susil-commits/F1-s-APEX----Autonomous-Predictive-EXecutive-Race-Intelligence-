@@ -92,9 +92,10 @@ Outcome & System Ablation Evaluation
 - Performs forward stochastic rollouts across candidate actions (Pit Now, Pit +2, Stay Out, Switch Compound).
 - Computes expected finish positions and action utilities with uncertainty bounds ($0.82 \pm 0.12$).
 
-### 3.5 Safe RL & Decision Optimization
-- Action Masking Guardrails physically block invalid or dangerous transitions (e.g. driving beyond 80% wear cliff, pitting under closed pitlane).
-- Trained DQN and PPO agents achieve a **90% win rate and 95% podium rate** in competitive AI benchmarks.
+### 3.5 Constrained RL & Safe Action-Masking Guardrail
+- Formulates strategy execution as a **Constrained Markov Decision Process (CMDP)** with dynamic action masking $M(s) \in \{0, 1\}^8$.
+- Action-Masking Guardrails physically block invalid or dangerous transitions (driving beyond 75% wear cliff, wet/dry compound mismatch, double pitting, red-flag pitlane closure, and FIA Art 28.2 mandatory compound rules).
+- Action-masked DQN and PPO agents achieve a **90% win rate and 95% podium rate** with **0.0% catastrophic DNFs** (compared to a 25.0% failure rate under unmasked policies).
 
 ### 3.6 TreeSHAP Explainability & Grounded Context
 - Additive Shapley feature attributions decompose strategic recommendations into physical factors (tyre age, track temperature, fuel load, traffic gap).

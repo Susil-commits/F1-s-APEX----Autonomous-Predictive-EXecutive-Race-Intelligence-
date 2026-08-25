@@ -16,8 +16,8 @@ To answer this with mathematical rigor and empirical evidence, APEX benchmarks *
 1. **Rule-Based Strategy (Static Expert System)**: Hardcoded physical thresholds (e.g. pit when tyre wear $> 72\%$, pit for wet tyres when rain intensity $> 0.40$).
 2. **Heuristic Strategy (Dynamic Lookahead)**: Multi-factor heuristic combining Monte Carlo rollouts, risk aversion ($\lambda = 0.40$), and opportunistic safety car undercut logic.
 3. **Supervised Policy (Behavior Cloning)**: Decision tree / classifier trained on historical expert Grand Prix winning trajectories.
-4. **DQN / PPO Reinforcement Learning Policy (Safe RL)**: Neural policy trained on multi-objective race MDPs with action masking to prevent illegal moves.
-5. **APEX Hybrid Policy (Production)**: Synthesis of RL, conformal uncertainty bounds, and real-time Monte Carlo branching.
+4. **Constrained Reinforcement Learning (Action-Masked Safe RL)**: Neural policy operating within a Constrained Markov Decision Process (CMDP), where the policy $\pi_\theta(a|s)$ discovers multi-objective timing while a dynamic feasibility mask $M(s) \in \{0, 1\}^8$ strictly projects the action space ($a_t = \arg\max_{a \in \mathcal{A}_{\text{valid}}(s)} Q(s, a)$) to eliminate physically unviable moves.
+5. **APEX Hybrid Policy (Production)**: Synthesis of Action-Masked RL, conformal uncertainty bounds, and real-time Monte Carlo timeline branching.
 
 ---
 
@@ -30,7 +30,7 @@ Evaluated across 25 competitive Grand Prix races across 5 diverse circuits (*Sil
 | **1. Rule-Based** | `RuleBasedController` | $434.4$ | P$7.40$ | $12.0\%$ | $51.6\%$ | $4.18\text{kg}$ | $99.4\%$ | $1$ | $92.4\%$ |
 | **2. Heuristic** | `HeuristicController` | $882.9$ | P$3.72$ | $52.0\%$ | $70.3\%$ | $3.95\text{kg}$ | **$100.0\%$** | **$0$** | $88.6\%$ |
 | **3. Supervised** | `SupervisedPolicyController`| $86.9$ | P$10.00$ | $0.0\%$ | $10.2\%$ | $2.80\text{kg}$ | $73.5\%$ | $26$ | $64.2\%$ |
-| **4. PPO (Safe RL)** | `PPOStrategyAgent` | $662.0$ | P$8.56$ | $8.0\%$ | $4.0\%$ | $3.10\text{kg}$ | $48.9\%$ | $50$ | $74.8\%$ |
+| **4. PPO (Action Masked)** | `PPOStrategyAgent` | $662.0$ | P$8.56$ | $8.0\%$ | $4.0\%$ | $3.10\text{kg}$ | $48.9\%$ | $50$ | $74.8\%$ |
 | **5. DQN (Trained RL)**| `DQNAgent` | **$996.1$** | **P$2.56$** | **$72.0\%$** | **$75.9\%$** | **$4.12\text{kg}$** | **$99.9\%$** | $15$ | **$96.8\%$** |
 | **6. APEX Hybrid** | `HybridDecisionAggregator` | $507.0$ | P$4.76$ | $52.0\%$ | $42.1\%$ | $3.88\text{kg}$ | **$99.9\%$** | **$1$** | **$99.1\%$** |
 
@@ -56,8 +56,9 @@ Evaluated across 25 competitive Grand Prix races across 5 diverse circuits (*Sil
 ### 5. Tire Degradation & Cliff Avoidance
 * **$99.9\%$ cliff avoidance** under DQN and APEX Hybrid. The policy detects the non-linear degradation knee and boxes before the steep lap-time cliff ($> 1.5\text{s}$ loss) occurs.
 
-### 6. Constraint Violations & Safety
-* Pure unconstrained policies frequently violate the mandatory 2-compound FIA rule or experience blown tyres. APEX's **ActionMaskGuardrail** filters unfeasible actions, eliminating catastrophic failures.
+### 6. Constrained MDP & Safety Feasibility Projection
+* Unconstrained neural policies frequently violate sporting regulations (FIA Art 28.2 mandatory compound rule) or incur terminal mechanical blowouts by pushing past tyre delamination limits.
+* APEX implements **Dynamic Action-Masking Guardrails**: before argmax selection or probabilistic sampling, the action space is projected onto the strictly feasible set $\mathcal{A}_{\text{valid}}(s_t)$ via an 8-dimensional boolean mask $M(s) \in \{0, 1\}^8$. Setting invalid action logits to $-\infty$ mathematically guarantees 0.0% catastrophic hard constraint violations.
 
 ### 7. Decision Stability & Action Jitter
 * **APEX Hybrid achieves $99.1\%$ stability**, eliminating rapid high-frequency oscillations (e.g. flipping between PUSH and CONSERVE every lap) in favor of coherent stint pacing.

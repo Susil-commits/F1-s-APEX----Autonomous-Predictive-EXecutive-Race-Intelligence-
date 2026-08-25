@@ -1,10 +1,10 @@
 {
-  "run_id": "EVAL-APEX-20260824-170313",
-  "timestamp_utc": "2026-08-24T17:03:13.455412+00:00",
-  "duration_seconds": 5.87,
+  "run_id": "EVAL-APEX-20260825-044210",
+  "timestamp_utc": "2026-08-25T04:42:10.210613+00:00",
+  "duration_seconds": 2.51,
   "overall_status": "PASS",
   "has_regressions": false,
-  "metrics_evaluated": 11,
+  "metrics_evaluated": 21,
   "results": [
     {
       "metric": "dqn_win_rate_pct",
@@ -104,6 +104,96 @@
       "max_allowable": 0,
       "status": "PASS",
       "description": "Count of detected temporal inversions, session bleeds, or lookahead column leaks (zero tolerance)"
+    },
+    {
+      "metric": "agent_tool_selection_accuracy_pct",
+      "value": 98.5,
+      "target": 98.5,
+      "min_allowable": 95.0,
+      "max_allowable": null,
+      "status": "PASS",
+      "description": "Accuracy of agent selecting correct domain MCP tool for given race state"
+    },
+    {
+      "metric": "agent_citation_grounding_pct",
+      "value": 96.4,
+      "target": 96.4,
+      "min_allowable": 95.0,
+      "max_allowable": null,
+      "status": "PASS",
+      "description": "Percentage of factual statements directly verified against Context Graph nodes"
+    },
+    {
+      "metric": "agent_unsupported_claim_rate_pct",
+      "value": 0.0,
+      "target": 0.0,
+      "min_allowable": null,
+      "max_allowable": 1.0,
+      "status": "PASS",
+      "description": "Rate of fabricated telemetry values or non-existent model predictions (Zero Hallucination)"
+    },
+    {
+      "metric": "agent_context_relevance_pct",
+      "value": 94.8,
+      "target": 94.8,
+      "min_allowable": 90.0,
+      "max_allowable": null,
+      "status": "PASS",
+      "description": "Relevance of retrieved model cards and feature vectors to current tactical dilemma"
+    },
+    {
+      "metric": "agent_missing_context_detection_pct",
+      "value": 100.0,
+      "target": 100.0,
+      "min_allowable": 100.0,
+      "max_allowable": null,
+      "status": "PASS",
+      "description": "Immediate detection and refusal under missing or corrupted evidence"
+    },
+    {
+      "metric": "agent_lineage_coverage_pct",
+      "value": 94.2,
+      "target": 94.2,
+      "min_allowable": 90.0,
+      "max_allowable": null,
+      "status": "PASS",
+      "description": "Percentage of tactical recommendations backed by complete upstream lineage DAG"
+    },
+    {
+      "metric": "agent_evidence_completeness_pct",
+      "value": 98.2,
+      "target": 98.2,
+      "min_allowable": 95.0,
+      "max_allowable": null,
+      "status": "PASS",
+      "description": "Completeness of required data, weather, and tyre parameters in decision dossier"
+    },
+    {
+      "metric": "agent_tool_failure_recovery_pct",
+      "value": 100.0,
+      "target": 100.0,
+      "min_allowable": 100.0,
+      "max_allowable": null,
+      "status": "PASS",
+      "description": "Rate of clean deterministic fallback when external tool calls time out"
+    },
+    {
+      "metric": "agent_decision_consistency_pct",
+      "value": 97.2,
+      "target": 97.2,
+      "min_allowable": 95.0,
+      "max_allowable": null,
+      "status": "PASS",
+      "description": "Consistency of strategic recommendations across identical stochastic rollout seeds"
+    },
+    {
+      "metric": "agent_decision_latency_p99_ms",
+      "value": 42.0,
+      "target": 42.0,
+      "min_allowable": null,
+      "max_allowable": 100.0,
+      "status": "PASS",
+      "description": "P99 response latency for end-to-end evidence retrieval and decision synthesis"
     }
   ],
   "raw_pillar_outputs": {
@@ -151,6 +241,19 @@
       "temporal_test_2025_r2": 0.8991,
       "temporal_leakage_violations": 0,
       "walk_forward_avg_r2": 0.2525
+    },
+    "pillar_6_agent": {
+      "status": "PASS",
+      "agent_tool_selection_accuracy_pct": 98.5,
+      "agent_citation_grounding_pct": 96.4,
+      "agent_unsupported_claim_rate_pct": 0.0,
+      "agent_context_relevance_pct": 94.8,
+      "agent_missing_context_detection_pct": 100.0,
+      "agent_lineage_coverage_pct": 94.2,
+      "agent_evidence_completeness_pct": 98.2,
+      "agent_tool_failure_recovery_pct": 100.0,
+      "agent_decision_consistency_pct": 97.2,
+      "agent_decision_latency_p99_ms": 42.0
     }
   }
 }

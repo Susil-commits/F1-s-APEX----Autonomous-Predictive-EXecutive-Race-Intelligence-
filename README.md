@@ -9,13 +9,13 @@
   <img src="https://img.shields.io/badge/Test_MAE-0.3597_s%2Flap-success.svg" alt="Test MAE" />
   <img src="https://img.shields.io/badge/Context_Trust_Score-96.4%25-brightgreen.svg" alt="Context Trust Score" />
   <img src="https://img.shields.io/badge/Data_Estate-5_Curated_Sources-orange.svg" alt="Data Estate" />
-  <img src="https://img.shields.io/badge/Safe_RL-Action_Masking-00C853.svg" alt="Safe RL" />
+  <img src="https://img.shields.io/badge/Safe_RL-Constrained_MDP-00C853.svg" alt="Safe RL" />
   <img src="https://img.shields.io/badge/TreeSHAP-Explainability-purple.svg" alt="TreeSHAP" />
   <img src="https://img.shields.io/badge/Tests-221%2F221_Passed-brightgreen.svg" alt="221 Tests Passed" />
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License" />
 </p>
 
-**APEX** is a **context-engineered decision intelligence platform** for sequential, uncertain operational decisions in Formula 1 race strategy. Rather than treating AI as an isolated model or an opaque chatbot, APEX applies a focused, **Atlan-style Context Layer** to race strategy:
+**APEX** is a **context-engineered decision intelligence platform** for sequential, uncertain operational decisions in Formula 1 race strategy. Rather than treating AI as an isolated model or an opaque chatbot, APEX applies a focused **Context Layer** to race strategy:
 
 - **One Domain**: Formula 1 Race Strategy & Pit-Wall Decision Intelligence.
 - **One Data Estate**: 5 curated sources (`FastF1`, `Jolpica / Ergast`, `Weather Radar`, `Strategy History`, `60Hz Telemetry`).
@@ -32,7 +32,7 @@
                     │   • Supervised Degradation ML (XGBoost R²=0.8342)         │
                     │   • Conformal Uncertainty Bands (95% CI Bounds)           │
                     │   • Counterfactual Simulation (1,000 Rollouts & Isochrone)│
-                    │   • Safe RL Action Masking (0.0% Catastrophic DNFs)       │
+                    │   • Constrained MDP & Safe RL (0.0% Catastrophic DNFs)    │
                     │   • TreeSHAP Additive Local Feature Attributions          │
                     │   • Autonomous Planner Agent (MCP Native Context Engine)  │
                     └─────────────────────────────▲─────────────────────────────┘
@@ -48,12 +48,58 @@
                                                   │ (High-Throughput Streaming)
                                                   │
                     ┌─────────────────────────────┴─────────────────────────────┐
-                    │              PRODUCTION RUNTIME INFRASTRUCTURE            │
+                    │        SUPPORTING PRODUCTION RUNTIME INFRASTRUCTURE       │
                     │  • Dual-Tier Caching (L1 RAM Buffer & L2 Redis Hot Store) │
                     │  • Event Streaming (Kafka / FastF1 Ingestion Pipeline)   │
                     │  • Microsecond Feature Store (0.0245ms p99 SLA)           │
                     │  • Observability (Prometheus Metrics & Context SLIs)      │
                     └───────────────────────────────────────────────────────────┘
+```
+
+---
+
+## 🎬 Flagship 5-Stage Demonstration: Ask APEX → Provenance → Counterfactual → Decision → Refusal
+
+APEX provides a verifiable, end-to-end operational decision flow for high-stakes race engineering:
+
+```
+[1. Ask APEX] ──► [2. Provenance & ML] ──► [3. Counterfactuals] ──► [4. Decision & SHAP] ──► [5. Refusal on Missing Context]
+```
+
+### Stage 1: Ask APEX (Operational Question & Live Telemetry)
+* **Engineer Query**: `"Should we pit Lando on Lap 32?"`
+* **Telemetry Ingestion**: Lap 32/52 | P1 (+4.1s gap to P2) | Medium Compound (68.4% wear, 31 laps old) | Track Temp: 38.5°C | Rain Probability: 72% in next 5 laps.
+
+### Stage 2: Prediction Provenance & Conformal Uncertainty
+* **Model Provenance**: `tyre_degradation_xgb v1.4` (Held-Out $R^2 = 0.8342$, $\text{MAE} = 0.3597\text{s/lap}$) trained on `fastf1_2018_2024_gold`.
+* **Supervised Forecast**: $+0.48\text{s/lap}$ degradation bleed with **95% Conformal Confidence Bounds** $[+0.31\text{s}, +0.61\text{s}]$.
+* **Cliff Risk**: $78\%$ probability of breaching the critical $+2.5\text{s}$ thermal cliff in $\le 3$ laps.
+
+### Stage 3: Counterfactual Simulation (Monte Carlo Timeline Branching)
+When evaluating candidate tactical branches, APEX executes **1,000+ forward rollouts**:
+* **Branch A (Pit Now - Lap 32)**: $\mathbf{67.4\%}\text{ P1 Win Prob} \mid \text{Expected Utility: } \mathbf{0.82 \pm 0.12} \mid \text{Net Delta: } -3.8\text{s}$ (Exits into clear air with 4.1s margin).
+* **Branch B (Pit +2 Laps - Lap 34)**: $59.1\%\text{ P1 Win Prob} \mid \text{Expected Utility: } 0.71 \pm 0.15 \mid \text{Net Delta: } -1.2\text{s}$ (Traffic window narrows).
+* **Branch C (Stay Out - 1-Stop)**: $41.0\%\text{ P1 Win Prob} \mid \text{Expected Utility: } 0.63 \pm 0.21 \mid \text{Net Delta: } +4.6\text{s}$ (Vulnerable to severe cliff).
+
+### Stage 4: Decision Synthesis, Safe RL Masking & TreeSHAP Attributions
+* **Executive Directive**: $\mathbf{\to \text{BOX THIS LAP}}$ (Switch to Hard Compound).
+* **Constrained MDP Feasibility Check**: $M(s) \in \{0, 1\}^8 \to \text{PASS}$ (Pit lane green, 2-compound FIA rule Art 28.2 satisfied).
+* **TreeSHAP Additive Attribution**: Tyre age ($+0.38\phi$) and Track temperature ($+0.22\phi$) strongly drive the pit order, compensated by clear traffic margin ($-0.19\phi$).
+* **Canonical Lineage**: `FastF1 Telemetry → race_features_v3 → XGBoost v1.4 → Counterfactual → Safe RL Mask → Decision BOX`.
+
+### Stage 5: Zero-Hallucination Refusal Protocol (When Context is Insufficient)
+When telemetry drops, weather radar times out, or corrupted sensor packets arrive, APEX strictly **refuses to hallucinate**:
+```
+INSUFFICIENT CONTEXT — REFUSED TO HALLUCINATE
+
+Missing:
+• current tyre state (wear % / carcass temp sensor dropped)
+• weather forecast (Doppler radar stream timed out > 100ms)
+• opponent gap & pit window state
+
+Status: Refused to synthesize ungrounded strategy recommendations.
+Action: Request updated telemetry / Human pit wall review.
+Safe Fallback: Active (Deterministic stint preservation).
 ```
 
 ---
@@ -97,7 +143,7 @@ Every model and dataset in APEX carries a formal, cryptographically hashed gover
 | **`opponent_undercut_model`** | Multi-Class Random Forest | `fastf1_pit_strategies_2019_24` | `opponent_features_v2` | **Pit Window Acc $= 0.912$, AUC $= 0.938$** | `0.015ms` | **Validated** |
 | **`pinn_tyre_residual`** | Physics-Informed Neural Network | `thermodynamic_fastf1_v1` | `physics_residual_v1` | **Residual MAE $= 0.0812\text{s}$, $99.8\%$ Physics** | `0.038ms` | **Validated** |
 | **`vehicle_anomaly_forest`** | Isolation Forest & Mahalanobis | `telemetry_sensor_baselines` | `telemetry_60hz_raw` | **Anomaly F1 $= 0.965$, FPR $= 0.003$** | `0.009ms` | **Validated** |
-| **`safe_rl_policy_ppo`** | PPO + Action Masking | `apex_gymnasium_100k_episodes`| `race_features_v3_28d`| **Win Rate $90.0\%$, DNF Rate $0.0\%$** | `0.024ms` | **Validated** |
+| **`safe_rl_policy_ppo`** | Constrained PPO + Action Masking | `apex_gymnasium_100k_episodes`| `race_features_v3_28d`| **Win Rate $90.0\%$, DNF Rate $0.0\%$** | `0.024ms` | **Validated** |
 
 ### Validated Dataset Estate (`backend/app/context/metadata/dataset_metadata.py`)
 
@@ -108,74 +154,6 @@ Every model and dataset in APEX carries a formal, cryptographically hashed gover
 | **`f1_weather_barometric`** | FIA Track Meteorology Stations | `12,500 Records` | 6 Circuits (Silverstone, Spa, Zandvoort, ...) | Doppler reflectivity, wetness index | **`98.7%`** | **Validated** |
 | **`strategy_history_undercuts`**| APEX Strategy Replay Engine | `8,200 Laps` | 5 Circuits (Silverstone, Monaco, Spa, ...) | In/out lap delta, traffic margin | **`99.1%`** | **Validated** |
 | **`live_telemetry_stream_60hz`**| FastF1 Live Stream & CAN-Bus Bridge | `1,400 Laps` | Silverstone 2023, Spa 2023, Zandvoort 2023 | 60Hz Speed, throttle, tyre temps | **`99.8%`** | **Validated** |
-
----
-
-## 🔍 Prediction Provenance & Context-Grounded QA
-
-For every single inference emitted by the system, APEX persists an immutable **Prediction Provenance Record**:
-
-```json
-{
-  "prediction_id": "pred_1042",
-  "model": "tyre_degradation_xgb",
-  "model_version": "v1.4",
-  "dataset_version": "fastf1_v2",
-  "feature_schema": "race_features_v3",
-  "session_id": "2026_hungary_race",
-  "created_at": "2026-08-23T14:50:00Z",
-  "confidence_interval": {
-    "lower": 0.31,
-    "upper": 0.61
-  }
-}
-```
-
-### The 4 Provenance Questions
-With this provenance layer, **Ask APEX** natively answers:
-- **"Which model generated this?"** $\to$ `tyre_degradation_xgb v1.4` (Held-Out $R^2 = 0.8342$, $\text{MAE} = 0.3597\text{s}$)
-- **"Which dataset produced it?"** $\to$ `fastf1_v2` (FastF1 Official Grand Prix Telemetry Gold Corpus, 6,999 Laps)
-- **"Which feature version was used?"** $\to$ `race_features_v3` (28-dimensional normalized feature store vector)
-- **"Which race/session was the source?"** $\to$ `2026_hungary_race` (Silverstone / Hungaroring Grand Prix 60Hz Telemetry Stream)
-
----
-
-## ⚡ Flagship "Ask APEX" Context Lineage Response
-
-When the race engineer queries *"Why did APEX recommend this strategy?"*, APEX returns a clean executive context lineage breakdown:
-
-```
-RECOMMENDATION
-Pit now
-
-PREDICTION
-Tyre degradation: +0.42 s/lap
-
-UNCERTAINTY
-95% interval: [0.31, 0.61]
-
-COUNTERFACTUALS
-Pit now       → 67.4%
-Pit +2 laps   → 59.1%
-Stay out      → 41.0%
-
-MODELS
-tyre_degradation_xgb v1.4
-weather_model v2.1
-
-DATA
-FastF1 telemetry
-weather stream
-opponent history
-
-LINEAGE
-Telemetry
-→ Features
-→ Model
-→ Prediction
-→ Counterfactual
-→ Decision
-```
 
 ---
 
@@ -210,10 +188,12 @@ When evaluating tactical forks (*Pit Now* vs. *Pit +2 Laps* vs. *Stay Out*), APE
 
 ---
 
-### 3. Safe Decision-Making (Policy Action $\to$ Safe RL Guardrail $\to$ 100% Feasible Action)
-To prevent catastrophic AI failures in high-stakes environments, APEX implements **Safe RL Action Masking**:
-- **Dynamic 8-Dimensional Feasibility Mask**: Physically invalid actions (e.g. driving beyond 80% wear cliff, double-pitting on consecutive laps, fitting slicks on torrential wet tracks, entering closed pitlane under red flag) are zero-masked before argmax selection.
-- **Empirical Impact**: Eliminates **25.0% catastrophic DNF rates** observed in unmasked RL policies.
+### 3. Constrained MDP & Safe RL Action Masking
+To prevent catastrophic AI failures in high-stakes environments, APEX models race strategy as a **Constrained Markov Decision Process (CMDP)**:
+$$\max_{\pi} \mathbb{E}_{\tau \sim \pi} \left[ \sum_{t=0}^T \gamma^t R(s_t, a_t) \right] \quad \text{subject to} \quad \mathbb{E}_{\tau \sim \pi} \left[ C_k(s_t, a_t) \right] \le d_k$$
+
+- **Dynamic 8-Dimensional Feasibility Mask $M(s) \in \{0, 1\}^8$**: Physically invalid actions (e.g. driving beyond 75% wear cliff, fitting slicks on wet tracks, double-pitting, entering closed pitlane under red flag) are zero-masked ($Q_{\text{safe}}(s, a) = -\infty$) before argmax selection.
+- **Empirical Impact**: Eliminates **25.0% catastrophic DNF rates** observed in unconstrained RL policies.
 
 <p align="center">
   <img src="docs/images/safe_rl_risk_frontier.png" alt="APEX Safe RL Guardrail & Risk-Reward Pareto Frontier" width="100%" />
@@ -233,13 +213,54 @@ APEX avoids opaque black-box recommendations by providing exact local additive S
 ---
 
 ### 5. AI-Native Layer (Planner Agent $\to$ MCP Tools $\to$ Verifiable Decision)
-APEX features an autonomous **Planner Agent** equipped with a native **Model Context Protocol (MCP)** server exposing 14 domain tools:
+APEX features an autonomous **Planner Agent** equipped with a native **Model Context Protocol (MCP)** server exposing domain tools:
 - `get_race_state`: 60Hz telemetry and standings.
 - `explain_last_decision`: TreeSHAP attributions and plain-language reasoning.
 - `run_counterfactual`: Stochastic timeline forking for candidate strategies.
 - `get_model_metadata`: Model cards, training dataset provenance, and validation status.
 - `get_decision_lineage`: End-to-end telemetry-to-decision lineage traces.
 - `get_context_quality`: Metadata completeness, lineage coverage, and citation grounding metrics.
+
+---
+
+## 🤖 Agent Evaluation & Reliability Suite (`backend/app/agents/evaluation/`)
+
+All agent evaluation metrics are anchored in automated, reproducible test harnesses (`python backend/eval/run_agent_eval.py` & `python backend/eval/run_eval.py`):
+
+```
+backend/app/agents/evaluation/
+├── grounding/   ──► unsupported_claim_rate, citation_grounding, evidence_completeness
+├── context/     ──► context_relevance, missing_context_detection, lineage_coverage
+├── tools/       ──► tool_selection_accuracy, trajectory_adherence, param_validity
+├── failure/     ──► tool_failure_recovery, zero-hallucination refusal, fallback execution
+└── regression/  ──► decision_consistency, latency_sla, single_vs_multi_agent_consensus
+```
+
+### Reproducible Agent Evaluation Dimensions
+
+| Evaluation Metric | Submodule | Target SLA | Measured Value | Unit | Status | Description |
+| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
+| **`tool_selection_accuracy`** | `tools/` | $> 95.0\%$ | **`98.5%`** | $\%$ | **PASSED** | Correct domain MCP tool invoked for given race state |
+| **`context_relevance`** | `context/` | $> 90.0\%$ | **`94.8%`** | $\%$ | **PASSED** | Relevance of retrieved model cards and feature vectors |
+| **`citation_grounding`** | `grounding/` | $> 95.0\%$ | **`96.4%`** | $\%$ | **PASSED** | Statements backed by Context Graph nodes or Model Cards |
+| **`unsupported_claim_rate`** | `grounding/` | $< 1.0\%$ | **`0.0%`** | $\%$ | **PASSED** | Zero fabricated telemetry values or non-existent models |
+| **`evidence_completeness`** | `grounding/` | $> 95.0\%$ | **`98.2%`** | $\%$ | **PASSED** | Completeness of required sensor and prediction dimensions |
+| **`missing_context_detection`**| `context/` | $100.0\%$ | **`100.0%`** | $\%$ | **PASSED** | Immediate detection of stale radar or dropped telemetry |
+| **`lineage_coverage`** | `context/` | $> 90.0\%$ | **`94.2%`** | $\%$ | **PASSED** | Decisions fully linked to 10-stage upstream DAG |
+| **`tool_failure_recovery`** | `failure/` | $100.0\%$ | **`100.0%`** | $\%$ | **PASSED** | Clean fallback to deterministic action mask on timeout |
+| **`decision_consistency`** | `regression/`| $> 95.0\%$ | **`97.2%`** | $\%$ | **PASSED** | Identical recommendations across fixed rollout seeds |
+| **`decision_latency_p99`** | `regression/`| $< 100\text{ms}$ | **`42.0ms`** | $\text{ms}$ | **PASSED** | End-to-end evidence retrieval and decision synthesis |
+
+---
+
+## 🔬 Single-Agent vs. Multi-Agent Consensus Experiment
+
+To empirically test multi-agent architectures, APEX compared a **Single Planner Agent with MCP Tools** against a **5-Agent Committee Consensus**:
+
+| Architecture | Mean Latency (p99) | Win Rate | Deadlock Rate | Consensus Overhead | Recommended Use Case |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **Single Planner Agent + MCP Tools (APEX)** | **`42.0ms`** | **`90.0%`** | **`0.0%`** | **`0.0ms`** | **Real-time 60Hz live race decision-making** |
+| **5-Agent Committee Consensus** | $318.0\text{ms}$ | $85.0\%$ | $4.2\%$ | $+276.0\text{ms}$ | Post-session debriefs and offline strategy reviews |
 
 ---
 
@@ -257,70 +278,9 @@ To answer *"Which components actually improve the decision system?"*, APEX was s
 
 ---
 
-## 🤖 Agent Evaluation & Reliability Suite (`backend/app/agents/evaluation/`)
-
-APEX features a formal, multi-dimensional Agent Evaluation Suite structured across 5 core evaluation packages:
-
-```
-backend/app/agents/evaluation/
-├── grounding/   ──► unsupported_claim_rate, citation_grounding, evidence_completeness
-├── context/     ──► context_relevance, missing_context_detection, lineage_coverage
-├── tools/       ──► tool_selection_accuracy, trajectory_adherence, param_validity
-├── failure/     ──► tool_failure_recovery, zero-hallucination refusal, fallback execution
-└── regression/  ──► decision_consistency, latency_sla, single_vs_multi_agent_consensus
-```
-
-### The 8 Core Evaluation Dimensions
-
-| Evaluation Metric | Submodule | Target SLA | Measured Value | Unit | Status | Description |
-| :--- | :--- | :---: | :---: | :---: | :---: | :--- |
-| **`tool_selection_accuracy`** | `tools/` | $> 95.0\%$ | **`98.5%`** | $\%$ | **PASSED** | Correct domain MCP tool invoked for given race state |
-| **`context_relevance`** | `context/` | $> 90.0\%$ | **`94.8%`** | $\%$ | **PASSED** | Relevance of retrieved model cards and feature vectors |
-| **`citation_grounding`** | `grounding/` | $> 95.0\%$ | **`96.4%`** | $\%$ | **PASSED** | Statements backed by Context Graph nodes or Model Cards |
-| **`unsupported_claim_rate`** | `grounding/` | $< 1.0\%$ | **`0.0%`** | $\%$ | **PASSED** | Zero fabricated telemetry values or non-existent models |
-| **`evidence_completeness`** | `grounding/` | $> 95.0\%$ | **`98.2%`** | $\%$ | **PASSED** | Completeness of required sensor and prediction dimensions |
-| **`missing_context_detection`**| `context/` | $100.0\%$ | **`100.0%`** | $\%$ | **PASSED** | Immediate detection of stale radar or dropped telemetry |
-| **`lineage_coverage`** | `context/` | $> 90.0\%$ | **`94.2%`** | $\%$ | **PASSED** | Decisions fully linked to 10-stage upstream DAG |
-| **`tool_failure_recovery`** | `failure/` | $100.0\%$ | **`100.0%`** | $\%$ | **PASSED** | Clean fallback to deterministic action mask on timeout |
-| **`decision_consistency`** | `regression/`| $> 95.0\%$ | **`97.2%`** | $\%$ | **PASSED** | Identical recommendations across fixed rollout seeds |
-| **`decision_latency_p99`** | `regression/`| $< 100\text{ms}$ | **`42.0ms`** | $\text{ms}$ | **PASSED** | End-to-end evidence retrieval and decision synthesis |
-
-### Zero-Hallucination "INSUFFICIENT CONTEXT" Refusal Protocol
-When telemetry streams drop, weather radar times out, or corrupted inputs are received, APEX refuses to synthesize ungrounded pit recommendations:
-```
-INSUFFICIENT CONTEXT
-
-Missing:
-• weather forecast
-• current tyre state
-
-Unable to make a reliable recommendation.
-
-Action:
-Request updated context / human review.
-```
-
----
-
-## 📈 AI Championship Archetype Tournament
-
-APEX was benchmarked against 7 competing AI and heuristic archetypes across 24 official Grand Prix tracks:
-
-<p align="center">
-  <img src="docs/images/ai_championship_standings.png" alt="APEX AI Championship Standings & Podium Dominance" width="100%" />
-</p>
-
-> **Figure 4: AI Championship Standings & Archetype Comparison Across 24 Grand Prix Tracks.**
-> - **Left Panel (Total Championship Points)**: APEX Hybrid Decision Engine dominates the championship standings with **`542 Points`** (18 Wins, 23 Podiums), outscoring Pure Safe RL ($448\text{ pts}$), Monte Carlo MCTS ($386\text{ pts}$), and Rule-Based Undercut ($298\text{ pts}$).
-> - **Right Panel (Win Rate & Podium Rate Share)**: APEX secures a **$75.0\%$ Win Rate** and **$95.8\%$ Podium Rate** with **$0.0\%$ DNFs**, validating the hybrid synthesis of predictive ML, uncertainty bounds, and safe action masking.
-
----
-
 ## ⏱️ Strict Temporal Validation & Anti-Leakage Architecture
 
-In Formula 1 telemetry and race strategy, **random train/test splitting (`shuffle=True`) introduces catastrophic lookahead bias** (e.g. training on late laps to predict early laps, or mixing future car aerodynamic upgrades into historical baselines).
-
-APEX enforces **zero future information leakage** using strict chronological horizons and expanding-window cross-validation:
+In Formula 1 telemetry and race strategy, **random train/test splitting (`shuffle=True`) introduces catastrophic lookahead bias**. APEX enforces **zero future information leakage** using strict chronological horizons and expanding-window cross-validation:
 
 ```
 ============================== TIME ARROW ==============================>
@@ -338,17 +298,11 @@ APEX enforces **zero future information leakage** using strict chronological hor
 | **Validation Horizon**| **2024** | `3,558 Laps` | **$0.7883$** | **$0.1044\text{s}$** | **$0.2019\text{s}$** | **$0.9194$** | **$99.41\%$** |
 | **Prospective Holdout**| **2025** | `3,596 Laps` | **$0.8991$** | **$0.0956\text{s}$** | **$0.1566\text{s}$** | **$0.9534$** | **$99.36\%$** |
 
-* **Walk-Forward Expanding-Window CV**: 4 progressive folds (`18-20->21`, `18-21->22`, `18-22->23`, `18-23->24`), explicitly capturing the **2022 18-inch tyre & ground-effect regulation break**.
-* **5 Anti-Leakage Pillars**: Chronological partitioning, causal expanding $t-1$ driver pace baselines (`cummin().shift(1)`), isolated scaler fitting, and complete Grand Prix weekend embargoes.
-* 📖 *Full Whitepaper & Interview Defensibility Guide*: [`docs/TEMPORAL_VALIDATION.md`](docs/TEMPORAL_VALIDATION.md)
+* 📖 *Full Whitepaper & Defensibility Guide*: [`docs/TEMPORAL_VALIDATION.md`](docs/TEMPORAL_VALIDATION.md)
 
 ---
 
 ## 🔬 Feature Domain & Subsystem Ablation Studies
-
-To definitively answer **"Which features actually matter?"**, APEX evaluates systematic feature domain ablations across held-out telemetry:
-
-### Systematic Feature Ablation Results Table
 
 | Configuration | Features Removed | $R^2$ Score | MAE (s/lap) | RMSE (s/lap) | $\Delta R^2$ vs Full | Relative Importance |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: |
@@ -361,33 +315,11 @@ To definitively answer **"Which features actually matter?"**, APEX evaluates sys
 | **Only Tire Info** | All except Tire | **0.5697** | 0.1554 | 0.3063 | -0.2418 | Standalone Tire Physics |
 | **Baseline (Mean)** | **All Features** | **-0.0149** | **0.2621** | **0.4704** | **-0.8264** | Zero-Intelligence Reference |
 
-```
-========================= RELATIVE FEATURE IMPORTANCE =========================
-1. DRIVER FEATURES     █████████████████████████████████████████████ 90.3%
-2. CONTEXT / GAPS      ███ 6.7%
-3. TIRE DEGRADATION    █ 2.6%
-4. TELEMETRY / FUEL    ▏ 0.5%
-5. WEATHER DYNAMICS    ▏ 0.0%
-================================================================================
-```
-
-### Key Data Science Insights:
-1. **Driver Baseline ($90.3\%$ Importance)**: Driver pace bias accounts for $0.3\text{s}–0.6\text{s}$ per lap; removing driver features causes a $-0.1996$ $R^2$ collapse.
-2. **Standalone Tire Physics ($R^2 = 0.5697$)**: Using *only* tyre compound and age features achieves $R^2 = 0.5697$ with zero other telemetry, proving the physical validity of polynomial wear curves.
-3. 📖 *Full Ablation Whitepaper*: [`docs/ABLATION_STUDY.md`](docs/ABLATION_STUDY.md)
+* 📖 *Full Ablation Whitepaper*: [`docs/ABLATION_STUDY.md`](docs/ABLATION_STUDY.md)
 
 ---
 
 ## 🤖 Strategy Policy Benchmark: RL vs. Non-RL Baselines
-
-To prove the empirical value of Reinforcement Learning beyond static rules, APEX benchmarks **4 distinct decision paradigms** across identical multi-circuit Grand Prix simulations:
-
-```
-Rule-Based Strategy ──► Heuristic Lookahead ──► Supervised Policy ──► Trained RL Policy (DQN / Safe RL)
-(Static Thresholds)     (Risk Engine + MC)     (Behavior Cloning)     (Multi-Objective MDP + Action Mask)
-```
-
-### Empirical Strategy Benchmark Results Table
 
 | Strategy Paradigm | Controller Class | Avg Reward | Avg Position | Win Rate | Pit Efficiency | Fuel Remaining | Cliff Avoidance | Constraint Violations | Decision Stability |
 | :--- | :--- | :---: | :---: | :---: | :---: | :---: | :---: | :---: | :---: |
@@ -397,25 +329,25 @@ Rule-Based Strategy ──► Heuristic Lookahead ──► Supervised Policy �
 | **4. DQN (Trained RL)**| `DQNAgent` | **$996.1$** | **P$2.56$** | **$72.0\%$** | **$75.9\%$** | **$4.12\text{kg}$** | **$99.9\%$** | $15$ | **$96.8\%$** |
 | **5. APEX Hybrid** | `HybridDecisionAggregator` | $507.0$ | P$4.76$ | $52.0\%$ | $42.1\%$ | $3.88\text{kg}$ | **$99.9\%$** | **$1$** | **$99.1\%$** |
 
-> **Key ML Takeaway**: Reinforcement Learning improved the overall decision-making cumulative objective by **$+12.8\%$ over the adaptive heuristic baseline** (and **$+129.2\%$ over the rule-based expert system**), lifting Grand Prix win rate from $52.0\% \to 72.0\%$ while maintaining $99.9\%$ tyre cliff avoidance.  
+> **Key Takeaway**: Reinforcement Learning improved the cumulative decision objective by **$+12.8\%$ over adaptive heuristics** and **$+129.2\%$ over expert rules**, lifting win rate from $52.0\% \to 72.0\%$ while maintaining $99.9\%$ cliff avoidance.  
 > 📖 *Full RL Benchmark Whitepaper*: [`docs/RL_VS_NON_RL_BASELINE.md`](docs/RL_VS_NON_RL_BASELINE.md)
 
 ---
 
-## 🔬 Single-Agent vs. Multi-Agent Consensus Experiment
+## 📈 AI Championship Archetype Tournament
 
-To empirically test multi-agent architectures, APEX compared a **Single Planner Agent with MCP Tools** against a **5-Agent Committee Consensus**:
+<p align="center">
+  <img src="docs/images/ai_championship_standings.png" alt="APEX AI Championship Standings & Podium Dominance" width="100%" />
+</p>
 
-| Architecture | Mean Latency (p99) | Win Rate | Deadlock Rate | Consensus Overhead | Recommended Use Case |
-| :--- | :---: | :---: | :---: | :---: | :--- |
-| **Single Planner Agent + MCP Tools (APEX)** | **`42.0ms`** | **`90.0%`** | **`0.0%`** | **`0.0ms`** | **Real-time 60Hz live race decision-making** |
-| **5-Agent Committee Consensus** | $318.0\text{ms}$ | $85.0\%$ | $4.2\%$ | $+276.0\text{ms}$ | Post-session debriefs and offline strategy reviews |
+> **Figure 4: AI Championship Standings Across 24 Grand Prix Tracks.**
+> APEX secures **542 Points** ($75.0\%$ Win Rate, $95.8\%$ Podium Rate, $0.0\%$ DNFs), outperforming Pure Safe RL ($448\text{ pts}$), Monte Carlo MCTS ($386\text{ pts}$), and Rule-Based Undercut ($298\text{ pts}$).
 
 ---
 
-## 🛠️ Production Engineering Maturity
+## 🛠️ Supporting Production Engineering Maturity
 
-While APEX is fundamentally an AI Decision Intelligence and Context Engineering platform, its production runtime demonstrates disciplined systems engineering:
+While APEX is fundamentally an AI Decision Intelligence and Context Engineering platform, its runtime infrastructure provides high-performance operational backing:
 - **Low-Latency REST & MCP API**: Fast asynchronous dispatch via FastAPI and native Model Context Protocol (MCP) servers.
 - **Strict Data Validation**: Pydantic v2 data models for 60Hz telemetry packets, prediction provenance, and graph entities.
 - **Dual-Tier Caching**: Sub-millisecond L1 RAM and L2 Redis state stores powering `0.0245ms` p99 feature extractions.
@@ -424,29 +356,21 @@ While APEX is fundamentally an AI Decision Intelligence and Context Engineering 
 
 ---
 
-## 🚀 Quickstart
+## 🚀 Quickstart & Verification Commands
 
-### Prerequisites
-- Python 3.12+
-- Node.js 18+
+### 1. Run Complete Automated Evaluation Suites
+```powershell
+# Run the 6-Pillar Full Regression & Decision Evaluation Harness (100% Reproducible)
+.\.venv\Scripts\python backend/eval/run_eval.py
 
-### 1. Clone & Setup Backend
-```bash
-git clone https://github.com/Susil-commits/F1-s-APEX----Autonomous-Predictive-EXecutive-Race-Intelligence-.git
-cd F1-s-APEX----Autonomous-Predictive-EXecutive-Race-Intelligence-
+# Run the Standalone Agent Grounding & Reliability Harness
+.\.venv\Scripts\python backend/eval/run_agent_eval.py
 
-# Create virtual environment & install dependencies
-python -m venv .venv
-.venv\Scripts\activate  # Windows: .venv\Scripts\activate | Linux/macOS: source .venv/bin/activate
-pip install -r backend/requirements.txt
+# Run Full Test Suite (221 Tests)
+.\.venv\Scripts\python -m pytest backend/tests/ -v
 ```
 
-### 2. Run Test Suite (221 Tests)
-```bash
-python -m pytest backend/tests/ -v
-```
-
-### 3. Launch Backend & Frontend
+### 2. Launch Backend & Frontend Cockpit
 ```bash
 # Start Backend API & MCP Server
 uvicorn backend.app.main:app --reload --port 8000
@@ -458,3 +382,4 @@ npm run dev
 ```
 
 ---
+

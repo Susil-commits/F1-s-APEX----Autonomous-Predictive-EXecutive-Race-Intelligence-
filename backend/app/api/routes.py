@@ -1239,14 +1239,21 @@ async def get_system_ablation_study():
         }
 
 
+class HeroDecisionQueryRequest(BaseModel):
+    car_id: Optional[str] = None
+    simulate_missing_context: bool = False
+    missing_elements: Optional[List[str]] = None
+
+
 @router.post("/strategy/hero-query")
-async def execute_hero_decision_query(car_id: Optional[str] = None):
+async def execute_hero_decision_query(req: Optional[HeroDecisionQueryRequest] = None):
     """
-    Executes the flagship 'Ask APEX' decision intelligence query:
-    'Should we pit the driver this lap?'
-    Returns live telemetry state, predictive ML degradation with uncertainty bounds,
-    counterfactual candidate rollouts with utility intervals, TreeSHAP force attributions,
-    and agent reasoning trace.
+    Executes the flagship 5-stage 'Ask APEX' decision intelligence query:
+    1. Ask APEX (Tactical Question & Telemetry State)
+    2. Prediction & Provenance (Model Card, Dataset Version, 95% Conformal Confidence Intervals)
+    3. Counterfactual Simulation (Monte Carlo Rollouts, Win/Podium Probabilities, Action Utilities)
+    4. Decision & Lineage (Pit Directive, TreeSHAP Feature Attributions, Canonical 10-node DAG)
+    5. Zero-Hallucination Refusal (Honest Refusal with missing context audit when sensors drop)
     """
     from backend.app.intelligence.feature_builder import FeatureBuilder
     from backend.app.intelligence.shap_explainer import TreeSHAPExplainer
@@ -1256,6 +1263,37 @@ async def execute_hero_decision_query(car_id: Optional[str] = None):
     from backend.app.strategy.hybrid_decision_engine import hybrid_decision_aggregator
     from backend.app.strategy.monte_carlo import MonteCarloEngine
 
+    car_id = req.car_id if req else None
+    simulate_missing = req.simulate_missing_context if req else False
+
+    # Check for Refusal Mode (Stage 5 of Demo Flow)
+    if simulate_missing:
+        missing_items = (req.missing_elements if (req and req.missing_elements) else [
+            "current tyre state (wear % / carcass temp sensor dropped)",
+            "weather forecast (radar stream timed out > 100ms)",
+            "opponent gap & pit window state"
+        ])
+        bullet_points = "\n".join(f"• {f}" for f in missing_items)
+        return {
+            "question": "Should we pit the driver this lap?",
+            "status": "REFUSED_TO_HALLUCINATE",
+            "decision": "INSUFFICIENT_CONTEXT",
+            "message": f"I cannot recommend a strategy yet.\n\nMissing:\n{bullet_points}\n\nUnable to make a reliable recommendation without verified context.",
+            "missing_context": missing_items,
+            "recommended_action": "Request updated telemetry / human pit wall review.",
+            "fallback_mode": "HUMAN_PIT_WALL_REVIEW",
+            "safe_fallback_active": True,
+            "context_freshness_check": {
+                "telemetry": False,
+                "weather": False,
+                "opponent_state": False,
+                "tyre_model": True,
+                "counterfactual": False,
+                "driver_profile": True,
+            },
+            "lineage_trail": "Telemetry (DROPPED) ──► Validation (INSUFFICIENT) ──► Refusal Emitted (ZERO HALLUCINATION)",
+        }
+
     if not manager.sim:
         await manager.init_race()
     assert manager.sim is not None
@@ -1263,7 +1301,7 @@ async def execute_hero_decision_query(car_id: Optional[str] = None):
     state = manager.sim.get_state()
     player = next((c for c in state.cars if (car_id and c.car_id == car_id) or c.is_player), state.cars[0] if state.cars else None)
 
-    # 1. State Snapshot
+    # 1. Ask APEX & State Snapshot
     driver_name = player.driver_name if player else "Lando Norris"
     tyre_compound = player.tyre_compound.value if player else "MEDIUM"
     tyre_age = player.tyre_age_laps if player else 31
@@ -1271,7 +1309,7 @@ async def execute_hero_decision_query(car_id: Optional[str] = None):
     gap_p2 = round(player.gap_to_car_ahead_s if (player and player.position > 1) else ((player.gap_to_leader_s if player else 4.1) or 4.1), 2)
     rain_prob = round(state.weather.rain_probability_next_5_laps * 100, 1)
 
-    # 2. Predictive ML Degradation with Uncertainty
+    # 2. Predictive ML Degradation with Uncertainty & Provenance
     tyre_rul = TyreModel.predict_remaining_useful_life(
         player.tyre_compound if player else TyreCompound.MEDIUM,
         player.tyre_wear_pct if player else 68.4,
@@ -1284,7 +1322,6 @@ async def execute_hero_decision_query(car_id: Optional[str] = None):
 
     # 3. Counterfactual Simulations & Action Utilities
     mc_results = MonteCarloEngine.evaluate_candidates(state, num_rollouts_per_action=60, target_car_id=player.car_id if player else None)
-    mc_candidates = mc_results.get("candidates", [])
 
     candidates_formatted = [
         {
@@ -1322,13 +1359,14 @@ async def execute_hero_decision_query(car_id: Optional[str] = None):
         },
     ]
 
-    # 4. Hybrid Decision & TreeSHAP
+    # 4. Decision, Safe RL Guardrail & TreeSHAP Attributions
     features = FeatureBuilder.extract_features(state, target_car_id=player.car_id if player else None)
     explainer = TreeSHAPExplainer.get_instance()
     shap_data = explainer.explain(features)
     hybrid_dec = hybrid_decision_aggregator.evaluate_decision(state, target_car_id=player.car_id if player else None)
 
     return {
+        "status": "OPTIMAL_DECISION_SYNTHESIZED",
         "question": f"Should we pit {driver_name} this lap?",
         "lap": state.current_lap,
         "total_laps": state.track.total_laps,

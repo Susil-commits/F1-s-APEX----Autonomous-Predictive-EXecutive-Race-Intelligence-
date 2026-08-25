@@ -114,7 +114,7 @@ export const Header: React.FC = () => {
     { id: 'tactical', label: 'AI Strategist', icon: <Brain className="w-3.5 h-3.5" /> },
     { id: 'race_state', label: 'Race State', icon: <Activity className="w-3.5 h-3.5" /> },
     { id: 'prediction_explorer', label: 'Prediction ML', icon: <TrendingUp className="w-3.5 h-3.5 text-cyan-400" /> },
-    { id: 'counterfactual_lab', label: 'Counterfactual Lab', icon: <GitBranch className="w-3.5 h-3.5 text-amber-400" /> },
+    { id: 'counterfactual_lab', label: 'Counterfactuals', icon: <GitBranch className="w-3.5 h-3.5 text-amber-400" /> },
     { id: 'strategy_policy', label: 'Decision Policy', icon: <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> },
     { id: 'explainability', label: 'TreeSHAP', icon: <Layers className="w-3.5 h-3.5 text-purple-400" /> },
     { id: 'data_lineage', label: 'Data Lineage', icon: <Workflow className="w-3.5 h-3.5 text-blue-400" /> },

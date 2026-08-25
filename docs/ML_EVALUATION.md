@@ -100,7 +100,21 @@ Evaluated via `backend/eval/ablation_runner.py` across 100 multi-circuit Grand P
 
 ---
 
-## 5. Safe RL Guardrail & Multi-Factor Risk Optimization
+## 5. Constrained MDP Formulation & Safe RL Action-Masking Guardrail
+
+In high-stakes Formula 1 strategy operations, unconstrained policy optimization ($\pi_\theta(a|s)$) risks generating lethal actions—such as commanding push laps past the 80% tyre delamination threshold, attempting double pits, or putting slick tyres on a flooded circuit.
+
+APEX formally frames race decision-making as a **Constrained Markov Decision Process (CMDP)**:
+$$\max_{\pi} \mathbb{E}_{\tau \sim \pi} \left[ \sum_{t=0}^T \gamma^t R(s_t, a_t) \right] \quad \text{subject to} \quad \mathbb{E}_{\tau \sim \pi} \left[ C_k(s_t, a_t) \right] \le d_k, \quad \forall k \in \{1, \dots, K\}$$
+
+Where $C_k$ enforces zero hard constraint violations across:
+1. **Mechanical Integrity**: Tyre wear $< 75.0\%$ before PUSH mode.
+2. **Environmental Safety**: Slick tyres strictly masked when track wetness $> 0.40$.
+3. **Regulatory Compliance**: Mandatory 2-compound FIA rule (Art 28.2) and pit lane red-flag restrictions.
+
+Before action selection or Monte Carlo tree exploration, APEX applies a **Dynamic Feasibility Projection**:
+$$M(s_t) \in \{0, 1\}^8, \qquad Q_{\text{safe}}(s_t, a) = \begin{cases} Q(s_t, a) & \text{if } M(s_t)_a = 1 \\ -\infty & \text{if } M(s_t)_a = 0 \end{cases}$$
+$$a_t^* = \arg\max_{a \in \mathcal{A}} Q_{\text{safe}}(s_t, a)$$
 
 <p align="center">
   <img src="images/safe_rl_risk_frontier.png" alt="APEX Safe RL Guardrail & Risk-Reward Pareto Frontier" width="100%" />
@@ -108,7 +122,7 @@ Evaluated via `backend/eval/ablation_runner.py` across 100 multi-circuit Grand P
 
 > **Figure 3: Safe RL Action Masking & Pareto Optimization.**
 > - **Left Panel**: Continuous Pareto optimization curve over risk weights $\lambda \in [0.0, 1.0]$, demonstrating the Balanced APEX sweet spot at $\lambda = 0.35$.
-> - **Right Panel**: 100% boundary mask enforcement across 6 physical and regulatory failure modes.
+> - **Right Panel**: 100% boundary mask enforcement across 6 physical and regulatory failure modes, reducing catastrophic DNFs from $25.0\% \to 0.0\%$.
 
 ---
 

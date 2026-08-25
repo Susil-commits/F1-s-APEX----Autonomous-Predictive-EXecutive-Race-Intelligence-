@@ -117,17 +117,18 @@ export const CounterfactualLabView: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="px-2.5 py-0.5 rounded bg-cyan-950/80 text-cyan-400 border border-cyan-700/80 text-xs font-mono font-bold tracking-wider uppercase">
-                COUNTERFACTUAL DECISION LAB
+                COUNTERFACTUAL DECISION ENGINE
               </span>
-              <span className="text-xs text-slate-400 font-mono">Sequential What-If Simulation Engine</span>
+              <span className="text-xs text-slate-400 font-mono">Stochastic Timeline Forking & Monte Carlo Rollouts</span>
             </div>
             <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
-              <span>Counterfactual Policy & Timeline Rollouts</span>
+              <span>Counterfactual Strategy Simulation & Action Utilities</span>
               <GitBranch className="w-6 h-6 text-cyan-400" />
             </h1>
             <p className="text-sm text-slate-300 max-w-3xl mt-1">
-              Evaluate alternative operational paths under uncertain stochastic conditions. Compare projected finish positions,
-              expected utility with error intervals (e.g. $0.82 \pm 0.12$), and risk vs reward trade-offs before committing.
+              Fork the active race state across competing candidate actions (Pit Now vs. Pit +2 vs. Stay Out).
+              APEX executes 1,000+ vectorized Monte Carlo rollouts to compute expected finish distributions,
+              win probabilities, and traffic rejoin margins with conformal uncertainty bounds.
             </p>
           </div>
 

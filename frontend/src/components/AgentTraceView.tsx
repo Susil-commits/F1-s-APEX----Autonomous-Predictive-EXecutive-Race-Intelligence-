@@ -154,10 +154,86 @@ export const AgentTraceView: React.FC = () => {
                   disabled={isEvaluating}
                   className="px-4 py-2.5 rounded-lg bg-[#E10600] hover:bg-[#C00400] text-white text-xs font-mono font-bold flex items-center gap-1.5 transition-all active:scale-95 disabled:opacity-50"
                 >
-                  <Send className={`w-3.5 h-3.5 ${isEvaluating ? 'animate-spin' : ''}`} />
-                  <span>Ask</span>
+                  <Send className="w-3.5 h-3.5" />
+                  <span>Ask APEX</span>
                 </button>
               </form>
+
+              {/* Quick Preset Queries */}
+              <div className="flex flex-wrap items-center gap-2 mt-3 pt-3 border-t border-[#1C2337] text-[11px] font-mono">
+                <span className="text-slate-400 font-bold">5-Stage Demo Presets:</span>
+                <button
+                  onClick={() => {
+                    setQuery('Should we pit Lando on Lap 32?');
+                    setAgentResponse({
+                      question: 'Should we pit Lando on Lap 32?',
+                      planner_reasoning: [
+                        { step: 1, tool: 'get_race_state()', output: 'Lap 32/52 | P1 +4.1s gap | Medium compound at 68.4% wear | Track temp 38.5°C' },
+                        { step: 2, tool: 'get_prediction_provenance("pred_1042")', output: 'XGBoost v1.4 (Held-Out R² 0.8342, MAE 0.3597s) predicts +0.48s/lap wear delta [95% CI: +0.31, +0.61]' },
+                        { step: 3, tool: 'run_counterfactual(rollouts=1000)', output: 'Pit Now (67.4% P1, Utility 0.82 ± 0.12) vs Stay Out (41.0% P1, Utility 0.63 ± 0.21)' },
+                        { step: 4, tool: 'safe_rl_mask_eval()', output: 'Safe RL Action Mask: PASS (Green flag, pit lane open, fresh Hard tyre available)' },
+                        { step: 5, tool: 'explain_strategy()', output: 'TreeSHAP: Tyre age (+0.38) and Track temp (+0.22) strongly favor BOX THIS LAP' },
+                      ],
+                      final_synthesis: 'BOX THIS LAP: Optimal pit window open with +4.1s gap margin. High expected utility (0.82 ± 0.12) and 67.4% win probability.',
+                      grounded_citations: [
+                        { doc: 'Tyre Degradation XGBoost Model Card v1.4', citation: 'Held-out R² = 0.8342, MAE = 0.3597 s/lap' },
+                        { doc: 'Counterfactual Engine (1,000 Rollouts)', citation: 'Pit Now achieves 67.4% P1 win probability vs 41.0% Stay Out' },
+                        { doc: 'Safe RL Feasibility Mask', citation: 'Action mask M(s) verifies 100% boundary compliance' },
+                      ],
+                    });
+                  }}
+                  className="px-2.5 py-1 rounded bg-[#161B2B] hover:bg-[#20273D] text-cyan-300 border border-cyan-800/60 transition-all"
+                >
+                  🟢 1-4: Nominal Pit Decision
+                </button>
+                <button
+                  onClick={() => {
+                    setQuery('Why did we reject the undercut on Lap 28?');
+                    setAgentResponse({
+                      question: 'Why did we reject the undercut on Lap 28?',
+                      planner_reasoning: [
+                        { step: 1, tool: 'get_race_state()', output: 'Lap 28/52 | P1 (Lando) +3.8s over P2 (Charles) | Medium tyres at 58% wear | Track temp 38°C' },
+                        { step: 2, tool: 'get_opponent_strategy()', output: 'Charles (P2) pitted on Lap 27 for Hard tyres | Projected out-lap delta: +1.2s faster on cold hards' },
+                        { step: 3, tool: 'run_counterfactual(proposed_action="PIT_NOW", rollout_laps=5)', output: 'Simulated box on Lap 28 yields 72% chance of exiting into Turn 3 traffic behind Stroll (P8). Net time loss: 2.1s.' },
+                        { step: 4, tool: 'get_tyre_forecast(laps_ahead=5)', output: 'Medium tyres have 6 laps remaining before critical 78% cliff. Stint overcut viable for 3 additional laps.' },
+                        { step: 5, tool: 'explain_strategy()', output: 'TreeSHAP confirms Traffic Rejoin Window (-0.32 φ) strongly penalizes Lap 28 pit stop.' },
+                      ],
+                      final_synthesis: 'The undercut was rejected because an immediate reaction on Lap 28 would release Lando into heavy DRS traffic behind P8. Staying out for 3 laps ("overcut") cleared the traffic window, creating a safe 4.1s pit exit margin.',
+                      grounded_citations: [
+                        { doc: 'Race Stint Log Lap 28', citation: 'Traffic gap to P8 was 1.1s (within dirty air turbulence zone)' },
+                        { doc: 'Tyre Model Held-out Telemetry', citation: 'Medium compound wear rate at 38°C track temp: 0.055% per lap' },
+                        { doc: 'FIA Sporting Regs Art. 30.5', citation: 'Minimum two distinct dry compounds mandatory for race completion' },
+                      ],
+                    });
+                  }}
+                  className="px-2.5 py-1 rounded bg-[#161B2B] hover:bg-[#20273D] text-purple-300 border border-purple-800/60 transition-all"
+                >
+                  🔵 Counterfactual & TreeSHAP
+                </button>
+                <button
+                  onClick={() => {
+                    setQuery('[Sensor Fault] Dropped Telemetry & Stale Radar');
+                    setAgentResponse({
+                      question: '[Sensor Fault] Dropped Telemetry & Stale Radar',
+                      planner_reasoning: [
+                        { step: 1, tool: 'get_race_state()', output: 'ERROR: Telemetry frame dropped. Tyre wear and carcass temp sensors unavailable.' },
+                        { step: 2, tool: 'get_weather_forecast()', output: 'WARNING: Doppler radar stream timed out (>100ms).' },
+                        { step: 3, tool: 'validate_context_readiness()', output: 'INSUFFICIENT CONTEXT DETECTED: Missing tyre wear and weather radar stream.' },
+                        { step: 4, tool: 'enforce_refusal_protocol()', output: 'REFUSED_TO_HALLUCINATE: Refusing ungrounded pit recommendation.' },
+                        { step: 5, tool: 'activate_safe_fallback()', output: 'Safe Fallback Guardrail Active: Requesting updated telemetry & human pit wall review.' },
+                      ],
+                      final_synthesis: 'INSUFFICIENT CONTEXT: I cannot recommend a strategy yet.\n\nMissing:\n• current tyre state (wear % / carcass temp)\n• latest weather forecast (Doppler stream)\n\nAction: Request updated telemetry / Human pit wall review.',
+                      grounded_citations: [
+                        { doc: 'Context Readiness Validator', citation: 'Status: INSUFFICIENT_CONTEXT — Missing 2 core evidence nodes' },
+                        { doc: 'Safe Fallback Guardrail', citation: 'Mode: HUMAN_PIT_WALL_REVIEW (Zero Hallucination)' },
+                      ],
+                    });
+                  }}
+                  className="px-2.5 py-1 rounded bg-amber-950/60 hover:bg-amber-900/80 text-amber-300 border border-amber-700/80 transition-all"
+                >
+                  🔴 5: Test Context Refusal
+                </button>
+              </div>
 
               {/* Sample Prompt Suggestions */}
               <div className="flex flex-wrap gap-2 mt-3 text-[11px] font-mono">

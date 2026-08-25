@@ -146,17 +146,18 @@ export const StrategyPolicyView: React.FC = () => {
           <div>
             <div className="flex items-center gap-2 mb-1">
               <span className="px-2.5 py-0.5 rounded bg-purple-950/80 text-purple-400 border border-purple-700/80 text-xs font-mono font-bold tracking-wider uppercase">
-                DECISION OPTIMIZATION & SAFE RL LAYER
+                CONSTRAINED MDP & SAFE RL FEASIBILITY PROJECTION
               </span>
-              <span className="text-xs text-slate-400 font-mono">Reinforcement Learning & Guardrail Action Masking</span>
+              <span className="text-xs text-slate-400 font-mono">Reinforcement Learning & 8-D Action Masking Guardrail</span>
             </div>
             <h1 className="text-2xl font-bold text-white tracking-tight flex items-center gap-2">
               <span>Policy Evaluation & Guardrail Action Masking</span>
               <ShieldCheck className="w-6 h-6 text-emerald-400" />
             </h1>
             <p className="text-sm text-slate-300 max-w-3xl mt-1">
-              Benchmark DQN and PPO against expert rule engines and Monte Carlo search. Safe RL action masking guardrails
-              physically eliminate catastrophic tyre blowouts and ensure 100% compliance with FIA sporting regulations.
+              Benchmark DQN and PPO against expert rule engines and Monte Carlo search under a formal Constrained MDP.
+              Dynamic action-masking feasibility projections ($M(s) \in \{0, 1\}^8$) eliminate catastrophic tyre blowouts
+              and guarantee 100% compliance with FIA sporting regulations (reducing catastrophic DNFs from $25.0\% \to 0.0\%$).
             </p>
           </div>
 

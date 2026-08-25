@@ -81,10 +81,10 @@ def test_eval_harness_full_run():
     report, has_reg = run_full_evaluation(verbose=False)
 
     assert report["run_id"].startswith("EVAL-APEX-")
-    assert report["metrics_evaluated"] == 11
+    assert report["metrics_evaluated"] == 21
     assert report["overall_status"] == "PASS"
     assert has_reg is False
-    assert len(report["results"]) == 11
+    assert len(report["results"]) == 21
 
 
 def test_self_healing_agent_cycle():
