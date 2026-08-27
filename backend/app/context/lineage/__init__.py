@@ -1,3 +1,8 @@
+"""APEX Context Lineage Package.
+
+Provides RaceContextGraph and LineageTracer exports for telemetry and strategy decision provenance.
+"""
+
 from backend.app.context.lineage.graph import (
     RaceContextGraph,
     build_default_race_context_graph,

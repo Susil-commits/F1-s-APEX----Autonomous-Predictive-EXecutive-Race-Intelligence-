@@ -1,3 +1,8 @@
+"""APEX Context Quality Package.
+
+Provides ContextQualityEngine for scoring context completeness, freshness, and relevance.
+"""
+
 from backend.app.context.quality.quality_metrics import (
     ContextQualityEngine,
     context_quality_engine,

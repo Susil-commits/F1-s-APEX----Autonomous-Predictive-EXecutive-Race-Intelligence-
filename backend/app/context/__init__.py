@@ -1,4 +1,8 @@
-"""APEX Race Intelligence Context Layer Backend Package."""
+"""APEX Race Intelligence Context Layer Backend Package.
+
+Provides unified provenance tracking, lineage graph modeling, context quality
+evaluation, and dataset/model metadata registry for the APEX Decision Intelligence Engine.
+"""
 
 from context import (
     EntityType,

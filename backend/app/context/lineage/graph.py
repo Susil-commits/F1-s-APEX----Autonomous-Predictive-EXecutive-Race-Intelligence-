@@ -1,4 +1,7 @@
-"""Context Graph delegator for backend.app.context.lineage.graph."""
+"""Context Graph delegator for backend.app.context.lineage.graph.
+
+Maintains directed acyclic graphs (DAGs) representing race intelligence entities and causal relationships.
+"""
 
 from context.lineage.graph import (
     RaceContextGraph,

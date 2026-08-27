@@ -1,3 +1,8 @@
+"""APEX Context Metadata Package.
+
+Provides registries and lookups for model cards and dataset lineage cards.
+"""
+
 from backend.app.context.metadata.model_metadata import (
     MODEL_REGISTRY,
     get_model_metadata,

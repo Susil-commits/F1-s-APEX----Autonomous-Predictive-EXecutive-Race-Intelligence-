@@ -1,4 +1,7 @@
-"""Model Metadata delegator for backend.app.context.metadata.model_metadata."""
+"""Model Metadata delegator for backend.app.context.metadata.model_metadata.
+
+Provides registry lookup and metadata cards for all predictive models in APEX.
+"""
 
 from context.metadata.model_metadata import (
     MODEL_REGISTRY,

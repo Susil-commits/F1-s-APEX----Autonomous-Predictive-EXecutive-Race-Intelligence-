@@ -1,5 +1,7 @@
 """Pydantic schemas and typed definitions for the APEX Race Intelligence Context Layer.
 
+Provides structured entity schemas, relation graphs, decision lineage models, and
+quality reporting contracts for race telemetry, predictive models, and tactical strategies.
 Re-exports typed schemas from context.schemas for backward compatibility.
 """
 from context.schemas.entities import (
