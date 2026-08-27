@@ -15,9 +15,11 @@
   <img src="https://img.shields.io/badge/Safe_RL-Constrained_MDP-00C853.svg" alt="Safe RL" />
   <img src="https://img.shields.io/badge/TreeSHAP-Explainability-purple.svg" alt="TreeSHAP" />
   <img src="https://img.shields.io/badge/MCP_Server-Domain_Tools-orange.svg" alt="MCP Domain Tools" />
-  <img src="https://img.shields.io/badge/Tests-221%2F221_Passed-brightgreen.svg" alt="221 Tests Passed" />
+  <img src="https://img.shields.io/badge/Tests-232%2F232_Passed-brightgreen.svg" alt="232 Tests Passed" />
   <img src="https://img.shields.io/badge/License-MIT-green.svg" alt="License" />
 </p>
+
+> **In Plain English:** APEX is a real-time decision intelligence engine for Formula 1 race strategy. It processes live 60Hz vehicle telemetry and weather dynamics, forecasts non-linear tyre degradation with conformal uncertainty bounds, simulates 1,000+ probabilistic race scenarios in under 50ms, and delivers mathematically grounded pit-stop recommendations with end-to-end data lineage, explainability, and zero regulatory violations.
 
 ---
 

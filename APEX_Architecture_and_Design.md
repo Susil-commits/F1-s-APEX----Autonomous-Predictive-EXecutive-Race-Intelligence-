@@ -2,6 +2,8 @@
 
 **An AI/ML Decision Intelligence and Experimentation Platform for Sequential, Uncertain Operational Decisions in Formula 1 Race Strategy.**
 
+> **In Plain English:** APEX is a real-time decision intelligence engine for Formula 1 race strategy. It transforms raw, high-frequency vehicle telemetry (60Hz) into auditable, safety-constrained tactical directives—combining predictive machine learning, conformal uncertainty intervals, forward Monte Carlo rollouts, and explainable feature attributions into a unified data-lineage DAG.
+
 ---
 
 ## 1. System Philosophy & Value Proposition

@@ -1,5 +1,7 @@
 # APEX System Architecture & Subsystem Micro-Architectures
 
+> **In Plain English:** APEX is an end-to-end decision intelligence platform that ingests 60Hz vehicle telemetry, evaluates predictive degradation and weather shifts, and executes 1,000+ counterfactual race simulations to recommend optimal, safety-verified pit-wall actions with complete data-lineage tracing.
+
 APEX (Autonomous Predictive & EXecutive Race Intelligence) is composed of modular, decoupled sub-architectures that execute an end-to-end verifiable decision pipeline:
 
 ```
