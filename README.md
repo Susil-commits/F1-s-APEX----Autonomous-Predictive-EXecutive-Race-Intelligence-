@@ -169,7 +169,7 @@ APEX replaces black-box outputs with exact, interpretable attributions:
 APEX indexes historical race decisions using a hybrid dense-sparse vector architecture wrapped behind LangChain's `BaseRetriever` interface:
 * **FAISS Dense Vector Index (`faiss.IndexFlatIP`)**: 384-dimensional normalized sentence embeddings (`all-MiniLM-L6-v2`) with sub-millisecond exact inner-product nearest-neighbor retrieval.
 * **BM25 Sparse Index**: Lexical token matching across formatted telemetry events, radio transmissions, and stint attributions.
-* **Reciprocal Rank Fusion (RRF)**: Merges dense and sparse candidates via $RRF(d) = \frac{0.6}{60 + r_{\text{dense}}(d)} + \frac{0.4}{60 + r_{\text{sparse}}(d)} + \text{lap\_boost}$, prioritizing exact lap matches.
+* **Reciprocal Rank Fusion (RRF)**: Merges dense and sparse candidates via $RRF(d) = \frac{0.6}{60 + r_{\text{dense}}(d)} + \frac{0.4}{60 + r_{\text{sparse}}(d)} + \text{LapBoost}$, prioritizing exact lap matches.
 * **Disk Index Persistence**: Automatically serializes FAISS binary index and metadata mappings to disk on rebuild/shutdown to prevent cold rebuild overhead.
 
 ### Efficient Fine-Tuning (PEFT / LoRA / QLoRA)
