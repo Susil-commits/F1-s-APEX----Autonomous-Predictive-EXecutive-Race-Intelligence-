@@ -1,0 +1,15 @@
+{
+  "circuit_id": "silverstone",
+  "circuit_name": "Silverstone Circuit",
+  "circuit_type": "HIGH_SPEED_SWEEPERS",
+  "downforce_package": "MEDIUM_HIGH",
+  "epochs": 10,
+  "final_train_loss": 1.2589,
+  "val_mae_seconds": 0.8418,
+  "val_r2_score": 0.0,
+  "action_accuracy_pct": 73.2,
+  "trainable_parameters": 12288,
+  "total_parameters": 240073,
+  "trainable_pct": 5.12,
+  "checkpoint_dir": "C:\\Users\\nayak\\OneDrive\\Desktop\\Projects\\AIML\\APEX\\backend\\models\\lora_adapters\\circuits\\silverstone"
+}

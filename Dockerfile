@@ -43,8 +43,9 @@ COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 COPY pyproject.toml uv.lock APEX_Architecture_and_Design.md README.md ./
 RUN uv sync --frozen --no-install-project --no-dev
 
-# Step 2: Copy application source code and benchmarks
+# Step 2: Copy application source code, agent loops, and benchmarks
 COPY backend/ /app/backend/
+COPY agents/ /app/agents/
 COPY benchmarks/ /app/benchmarks/
 
 # Step 3: Install the project

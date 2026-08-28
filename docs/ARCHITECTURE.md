@@ -388,3 +388,116 @@ flowchart TD
         ZustandStore --> W1 & W2 & W3 & W4 & W5 & W6 & W7 & W8 & W9 & W10
     end
 ```
+
+---
+
+### 🤖 Sub-Architecture 10: LangGraph StateGraph Autonomous Orchestrator
+
+```mermaid
+stateDiagram-v2
+    [*] --> INTENT_EXTRACTION : User Strategic Query / Tick Event
+    INTENT_EXTRACTION --> METADATA_RESOLUTION : Resolve Query Intent
+    METADATA_RESOLUTION --> TELEMETRY_AUDIT : Fetch Context Graph Governance Cards
+    TELEMETRY_AUDIT --> ANOMALY_DETECTION : Ingest 60Hz Telemetry & Weather
+    ANOMALY_DETECTION --> TACTICAL_RANKING : Evaluate Degradation & Thermal Blistering
+    
+    state RiskCheck <<choice>>
+    TACTICAL_RANKING --> RiskCheck : Evaluate Risk Profile
+    
+    RiskCheck --> DEEP_RISK_MITIGATION : High Risk (Rain / SC / Cliff / Query Risk)
+    RiskCheck --> MCP_TOOL_EXECUTION : Nominal Risk
+    
+    DEEP_RISK_MITIGATION --> REASONING_SYNTHESIS : 500-Rollout Counterfactuals
+    MCP_TOOL_EXECUTION --> REASONING_SYNTHESIS : Domain MCP Tools Dispatched
+    
+    REASONING_SYNTHESIS --> SAFE_RL_VERIFICATION : DQN + TreeSHAP + Conformal CI + PINN
+    SAFE_RL_VERIFICATION --> RESPONSE_FORMATTING : Enforce 8-D Constrained MDP Action Mask
+    RESPONSE_FORMATTING --> [*] : Emit Executive Dossier & Lineage Hash
+```
+
+---
+
+### 🔍 Sub-Architecture 11: Hybrid Mission RAG (FAISS + BM25 via RRF)
+
+```mermaid
+flowchart TD
+    Query["Strategic Natural-Language Query"]
+    
+    subgraph DenseSearch ["Dense Vector Retrieval"]
+        Embedder["SentenceTransformer ('all-MiniLM-L6-v2') -> [384-D]"]
+        FAISS["FAISS IndexFlatIP (Cosine Inner Product on L2-Norm Vectors)"]
+        DenseRanks["Dense Ranked Candidates (r_dense)"]
+        
+        Query --> Embedder --> FAISS --> DenseRanks
+    end
+
+    subgraph SparseSearch ["Sparse Lexical Retrieval"]
+        Tokenizer["Regex Alphanumeric Tokenizer"]
+        BM25["BM25Okapi Sparse Index"]
+        SparseRanks["Sparse Ranked Candidates (r_sparse)"]
+        
+        Query --> Tokenizer --> BM25 --> SparseRanks
+    end
+
+    subgraph Fusion ["Reciprocal Rank Fusion (RRF)"]
+        RRFFormula["RRF(d) = 0.6 / (60 + r_dense) + 0.4 / (60 + r_sparse) + LapBoost"]
+        DenseRanks & SparseRanks --> RRFFormula
+        SortedDocs["Top-k Grounded Decision Logs"]
+        RRFFormula --> SortedDocs
+    end
+
+    subgraph LangChainWrapper ["LangChain BaseRetriever Interface"]
+        Retriever["ApexHybridRAGRetriever"]
+        Docs["LangChain Documents with Provenance Metadata"]
+        SortedDocs --> Retriever --> Docs
+    end
+
+    subgraph DiskPersistence ["Storage & Persistence Layer"]
+        IndexBin[("faiss_rag.index (Binary FAISS)")]
+        MetaJSON[("faiss_rag_metadata.json")]
+        FAISS <--> IndexBin
+        SortedDocs <--> MetaJSON
+    end
+```
+
+---
+
+### ⚡ Sub-Architecture 12: Strategy Transformer & PEFT LoRA Fine-Tuning
+
+```mermaid
+flowchart LR
+    subgraph Input ["Sequential Telemetry Stint Tokens"]
+        Tokens["[Batch, SeqLen, 28-D Features]"]
+    end
+
+    subgraph BaseTransformer ["Strategy Transformer (Frozen >98.5% Weights)"]
+        InProj["Linear Projection -> [d_model=128]"]
+        PosEmbed["Positional Embedding (64 Stint Steps)"]
+        Attn1["Multi-Head Self-Attention Layer 1 (Frozen W_0)"]
+        Attn2["Multi-Head Self-Attention Layer 2 (Frozen W_0)"]
+        FFN["Feed-Forward Network (Frozen)"]
+        
+        Tokens --> InProj --> PosEmbed --> Attn1 --> Attn2 --> FFN
+    end
+
+    subgraph LoRAAdapters ["Trainable Low-Rank Adapters (r=8, alpha=16)"]
+        LoRA_A["Matrix A (128 x 8, Gaussian Init)"]
+        LoRA_B["Matrix B (8 x 128, Zero Init)"]
+        DeltaW["Delta W = (alpha/r) * B * A"]
+        
+        Attn1 & Attn2 -.-> LoRA_A --> LoRA_B --> DeltaW
+    end
+
+    subgraph Heads ["Dual Strategic Prediction Heads"]
+        BidHead["Bid Value Head -> Expected Stint Advantage (-5s to +15s)"]
+        PolicyHead["Action Policy Head -> 8-D Strategic Distribution"]
+        
+        FFN & DeltaW --> BidHead & PolicyHead
+    end
+
+    subgraph Checkpoint ["Adapter Serialization"]
+        AdapterDir[("backend/models/lora_adapters/stint_bid_value/")]
+        LoRAAdapters --> AdapterDir
+    end
+```
+

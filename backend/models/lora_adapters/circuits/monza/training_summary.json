@@ -1,0 +1,15 @@
+{
+  "circuit_id": "monza",
+  "circuit_name": "Autodromo Nazionale Monza",
+  "circuit_type": "TEMPLE_OF_SPEED",
+  "downforce_package": "MINIMUM",
+  "epochs": 10,
+  "final_train_loss": 4.233,
+  "val_mae_seconds": 3.6855,
+  "val_r2_score": 0.0,
+  "action_accuracy_pct": 38.8,
+  "trainable_parameters": 12288,
+  "total_parameters": 240073,
+  "trainable_pct": 5.12,
+  "checkpoint_dir": "C:\\Users\\nayak\\OneDrive\\Desktop\\Projects\\AIML\\APEX\\backend\\models\\lora_adapters\\circuits\\monza"
+}

@@ -193,3 +193,38 @@ async def test_api_context_and_prediction_provenance_endpoints():
         assert eval_data["overall_pass_rate_pct"] == 100.0
         assert len(eval_data["architecture_comparison"]) >= 2
 
+
+@pytest.mark.asyncio
+async def test_api_langgraph_and_hybrid_rag():
+    """Validates LangGraph StateGraph, FAISS Hybrid Search, and LoRA status endpoints."""
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        # 1. LangGraph Orchestrator POST
+        lg_res = await ac.post(
+            "/api/strategy/langgraph-orchestrator",
+            json={"query": "Should we pit for fresh tyres?", "race_id": "test_api_session"},
+        )
+        assert lg_res.status_code == 200
+        lg_data = lg_res.json()
+        assert "primary_action" in lg_data
+        assert "chain_of_thought" in lg_data
+        assert lg_data["execution_status"] == "COMPLETED"
+
+        # 2. Hybrid RAG Search POST
+        rag_res = await ac.post(
+            "/api/rag/hybrid-search",
+            json={"question": "What was our strategy under safety car?", "top_k": 3},
+        )
+        assert rag_res.status_code == 200
+        rag_data = rag_res.json()
+        assert "retrieval_method" in rag_data
+        assert "documents" in rag_data
+
+        # 3. LoRA Status GET
+        lora_res = await ac.get("/api/training/lora-status")
+        assert lora_res.status_code == 200
+        lora_data = lora_res.json()
+        assert "parameter_summary" in lora_data
+        assert lora_data["parameter_summary"]["trainable_percentage"] <= 15.0
+
+

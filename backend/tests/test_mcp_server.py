@@ -172,3 +172,27 @@ def test_mcp_get_system_metrics():
     assert "apex_metrics" in data
     assert "raw_metric_count" in data
 
+
+def test_mcp_run_langgraph_orchestrator():
+    """Validates LangGraph orchestrator tool invocation via MCP."""
+    from backend.app.mcp_server.server import run_langgraph_orchestrator
+    res_str = run_langgraph_orchestrator(query="Check tyre wear and pit window")
+    data = json.loads(res_str)
+
+    assert "primary_action" in data
+    assert "chain_of_thought" in data
+    assert "execution_status" in data
+    assert data["execution_status"] == "COMPLETED"
+
+
+def test_mcp_query_hybrid_rag():
+    """Validates FAISS + BM25 RRF hybrid retrieval tool via MCP."""
+    from backend.app.mcp_server.server import query_hybrid_rag
+    res_str = query_hybrid_rag(question="safety car pit stop")
+    data = json.loads(res_str)
+
+    assert "retrieval_method" in data
+    assert "FAISS_IndexFlatIP + BM25_Okapi" in data["retrieval_method"]
+    assert "documents" in data
+
+

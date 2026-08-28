@@ -19,6 +19,7 @@ from backend.app.intelligence.embeddings import (
     format_decision_log,
     get_embedding_source,
 )
+from backend.app.intelligence.hybrid_mission_rag import HybridMissionRAG, hybrid_rag_engine
 from backend.app.twin.store import store
 
 logger = logging.getLogger(__name__)
@@ -30,6 +31,7 @@ class RaceQAEngine:
     def __init__(self, model_name: str = DEFAULT_OLLAMA_MODEL, host: str = DEFAULT_OLLAMA_HOST):
         self.model_name = model_name
         self.host = host
+        self.rag_engine = hybrid_rag_engine
 
     async def retrieve_relevant_decisions(
         self,
@@ -38,8 +40,8 @@ class RaceQAEngine:
         top_k: int = 5,
     ) -> list[tuple[dict[str, Any], float]]:
         """
-        Fetches decision logs from store, computes cosine similarities against query embedding,
-        and returns the top-k highest scoring decisions with their similarity scores.
+        Fetches decision logs from store, indexes them via FAISS dense + BM25 sparse hybrid index,
+        and returns the top-k highest scoring decisions with their RRF similarity scores.
         """
         logs = await store.get_persisted_decisions(race_id=race_id)
         if not logs:
@@ -49,29 +51,17 @@ class RaceQAEngine:
         lap_match = re.search(r"\blap\s*(\d+)\b", query.lower())
         target_lap = int(lap_match.group(1)) if lap_match else None
 
-        texts = [format_decision_log(item) for item in logs]
-        log_embeddings = embed_texts(texts)  # [N, dim]
-        query_embedding = embed_text(query)  # [dim]
+        # Synchronize hybrid FAISS + BM25 index with current store records
+        self.rag_engine.sync_index(logs, persist=True)
 
-        # Compute cosine similarity
-        norm_logs = np.linalg.norm(log_embeddings, axis=1)  # [N]
-        norm_query = float(np.linalg.norm(query_embedding))
-
-        # Avoid division by zero
-        denom = np.maximum(norm_logs * norm_query, 1e-9)
-        raw_similarities = np.dot(log_embeddings, query_embedding) / denom
-        similarities = np.atleast_1d(raw_similarities).copy()
-
-        # Boost score if exact lap requested matches
-        if target_lap is not None:
-            for i, item in enumerate(logs):
-                if item.get("lap") == target_lap:
-                    similarities[i] += 1.5
-
-        scored_pairs = list(zip(logs, similarities.tolist()))
-        scored_pairs.sort(key=lambda p: p[1], reverse=True)
-
-        return scored_pairs[:top_k]
+        # Execute hybrid RRF search
+        results = self.rag_engine.search(
+            query=query,
+            race_id=race_id,
+            top_k=top_k,
+            target_lap=target_lap,
+        )
+        return results
 
     async def answer_question(
         self,

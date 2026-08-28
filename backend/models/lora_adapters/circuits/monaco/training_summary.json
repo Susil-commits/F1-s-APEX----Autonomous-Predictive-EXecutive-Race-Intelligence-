@@ -1,0 +1,15 @@
+{
+  "circuit_id": "monaco",
+  "circuit_name": "Circuit de Monaco",
+  "circuit_type": "STREET_CIRCUIT",
+  "downforce_package": "MAXIMUM",
+  "epochs": 2,
+  "final_train_loss": 0.5893,
+  "val_mae_seconds": 0.3893,
+  "val_r2_score": 0.0,
+  "action_accuracy_pct": 74.0,
+  "trainable_parameters": 12288,
+  "total_parameters": 240073,
+  "trainable_pct": 5.12,
+  "checkpoint_dir": "C:\\Users\\nayak\\OneDrive\\Desktop\\Projects\\AIML\\APEX\\backend\\models\\lora_adapters\\circuits\\monaco"
+}

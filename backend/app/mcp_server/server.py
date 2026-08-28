@@ -467,11 +467,11 @@ def get_model_metadata(model_key: str = "tyre_degradation_xgb") -> str:
     """Returns the formal governance card, training dataset, feature schema, and held-out metrics for a model."""
     from backend.app.context.metadata.model_metadata import get_model_metadata, list_all_model_metadata
     if model_key == "all":
-        return json.dumps([m.dict() for m in list_all_model_metadata()], indent=2)
+        return json.dumps([m.model_dump() for m in list_all_model_metadata()], indent=2)
     card = get_model_metadata(model_key)
     if not card:
         return json.dumps({"error": f"Model '{model_key}' not found in registry"}, indent=2)
-    return json.dumps(card.dict(), indent=2)
+    return json.dumps(card.model_dump(), indent=2)
 
 
 @mcp.tool()
@@ -481,7 +481,7 @@ def get_decision_lineage(decision_id: str = "decision:box_lap_32_car_4") -> str:
     trail = context_retriever.get_decision_evidence(decision_id)
     if not trail:
         return json.dumps({"error": f"Lineage trail for '{decision_id}' not found"}, indent=2)
-    return json.dumps(trail.dict(), indent=2)
+    return json.dumps(trail.model_dump(), indent=2)
 
 
 @mcp.tool()
@@ -495,7 +495,7 @@ def get_prediction_provenance(prediction_id: str = "pred_1042") -> str:
     record = context_retriever.get_prediction_provenance(prediction_id)
     if not record:
         return json.dumps({"error": f"Prediction provenance for '{prediction_id}' not found"}, indent=2)
-    return json.dumps(record.dict() if hasattr(record, "dict") else record.model_dump(), indent=2)
+    return json.dumps(record.model_dump() if hasattr(record, "model_dump") else record.dict(), indent=2)
 
 
 @mcp.tool()
@@ -525,10 +525,10 @@ def check_context_readiness(
         "weather_condition": "DRY" if not weather_stale else None,
     }
     result = context_retriever.validate_context_readiness(state_payload)
-    if hasattr(result, "dict"):
-        return json.dumps(result.dict(), indent=2)
-    elif hasattr(result, "model_dump"):
+    if hasattr(result, "model_dump"):
         return json.dumps(result.model_dump(), indent=2)
+    elif hasattr(result, "dict"):
+        return json.dumps(result.dict(), indent=2)
     return json.dumps(result, indent=2)
 
 
@@ -611,6 +611,60 @@ def get_system_metrics() -> str:
         }, indent=2)
     except Exception as e:
         return json.dumps({"status": "ERROR", "message": str(e)}, indent=2)
+
+
+@mcp.tool()
+def run_langgraph_orchestrator(
+    query: str = "Should we pit this lap?",
+    race_id: str | None = None,
+    target_car_id: str | None = None,
+) -> str:
+    """Executes the 10-node LangGraph StateGraph Autonomous Orchestrator with conditional risk branching.
+    
+    Traverses: Intent -> Metadata -> Telemetry -> Anomaly -> Tactical Ranking -> Risk Branch -> Tools -> Reasoning -> Safe RL -> Response.
+    """
+    from agents.agent_loop.orchestrator import run_orchestrator
+    result = run_orchestrator(query=query, race_id=race_id, target_car_id=target_car_id)
+    return json.dumps(result, indent=2)
+
+
+@mcp.tool()
+def query_hybrid_rag(
+    question: str,
+    race_id: str | None = None,
+    top_k: int = 5,
+) -> str:
+    """Queries APEX historical decision logs using FAISS dense vector inner-product search fused with BM25 via RRF."""
+    from backend.app.intelligence.hybrid_mission_rag import hybrid_rag_engine
+    results = hybrid_rag_engine.search(query=question, race_id=race_id, top_k=top_k)
+    return json.dumps({
+        "query": question,
+        "retrieval_method": "FAISS_IndexFlatIP + BM25_Okapi (RRF Fusion)",
+        "results_count": len(results),
+        "documents": [
+            {
+                "lap": r[0].get("lap"),
+                "directive": r[0].get("recommendation"),
+                "confidence": r[0].get("confidence_score"),
+                "urgency": r[0].get("urgency"),
+                "rrf_score": r[1],
+                "explanation": r[0].get("explanation_payload", {}),
+            }
+            for r in results
+        ],
+    }, indent=2)
+
+
+@mcp.tool()
+def get_circuit_lora_adapters() -> str:
+    """Returns available circuit-specific Parameter-Efficient LoRA adapters (Monaco, Monza, Spa, Silverstone) and evaluation metrics."""
+    from pathlib import Path
+    report_file = Path(__file__).resolve().parent.parent.parent / "eval" / "circuit_lora_benchmark_report.json"
+    if report_file.exists():
+        with open(report_file, "r", encoding="utf-8") as f:
+            return f.read()
+    from backend.training.circuit_lora_benchmark import run_multi_circuit_lora_benchmark
+    return json.dumps(run_multi_circuit_lora_benchmark(save_report=False), indent=2)
 
 
 if __name__ == "__main__":

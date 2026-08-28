@@ -1,0 +1,15 @@
+{
+  "circuit_id": "spa",
+  "circuit_name": "Circuit de Spa-Francorchamps",
+  "circuit_type": "MICROCLIMATE_ELEVATION",
+  "downforce_package": "MEDIUM_LOW",
+  "epochs": 10,
+  "final_train_loss": 1.9423,
+  "val_mae_seconds": 1.4583,
+  "val_r2_score": 0.0,
+  "action_accuracy_pct": 66.8,
+  "trainable_parameters": 12288,
+  "total_parameters": 240073,
+  "trainable_pct": 5.12,
+  "checkpoint_dir": "C:\\Users\\nayak\\OneDrive\\Desktop\\Projects\\AIML\\APEX\\backend\\models\\lora_adapters\\circuits\\spa"
+}

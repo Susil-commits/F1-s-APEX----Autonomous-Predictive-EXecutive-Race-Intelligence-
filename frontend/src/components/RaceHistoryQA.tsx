@@ -251,8 +251,8 @@ export const RaceHistoryQA: React.FC<RaceHistoryQAProps> = ({ onClose }) => {
                     <Database className="w-3.5 h-3.5 text-cyan-400" />
                     Retrieved Ground-Truth Decision Logs ({qaResult.sources.length})
                   </span>
-                  <span className="text-[10px] text-slate-500 font-mono">
-                    Cosine Similarity Ranked
+                  <span className="text-[10px] text-cyan-400 bg-cyan-950/60 border border-cyan-800/60 px-2 py-0.5 rounded font-mono font-bold">
+                    FAISS IndexFlatIP + BM25 (RRF Fused)
                   </span>
                 </div>
 

@@ -80,6 +80,9 @@ jobs:
       - name: Run Chaos Engineering & Recovery Resilience Harness
         run: uv run python benchmarks/chaos_harness.py
 
+      - name: Run Agent Reliability & Hallucination Prevention Evaluation
+        run: uv run python backend/eval/run_agent_eval.py
+
       - name: Upload Evaluation & Benchmark Artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -88,8 +91,10 @@ jobs:
           path: |
             backend/eval/latest_eval_report.json
             backend/eval/latest_benchmark_report.json
+            backend/eval/agent_eval_report.json
             backend/eval/tyre_model_eval_report.json
             backend/eval/sim_to_real_divergence_report.json
+            backend/models/lora_adapters/
             benchmarks/latest_benchmark_results.json
             backend/models/registry.json
             backend/training/best_hyperparameters.json
