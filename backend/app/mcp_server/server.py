@@ -495,7 +495,9 @@ def get_prediction_provenance(prediction_id: str = "pred_1042") -> str:
     record = context_retriever.get_prediction_provenance(prediction_id)
     if not record:
         return json.dumps({"error": f"Prediction provenance for '{prediction_id}' not found"}, indent=2)
-    return json.dumps(record.model_dump() if hasattr(record, "model_dump") else record.dict(), indent=2)
+    if hasattr(record, "model_dump"):
+        return json.dumps(record.model_dump(), indent=2)
+    return json.dumps(record, indent=2)
 
 
 @mcp.tool()
@@ -527,8 +529,6 @@ def check_context_readiness(
     result = context_retriever.validate_context_readiness(state_payload)
     if hasattr(result, "model_dump"):
         return json.dumps(result.model_dump(), indent=2)
-    elif hasattr(result, "dict"):
-        return json.dumps(result.dict(), indent=2)
     return json.dumps(result, indent=2)
 
 

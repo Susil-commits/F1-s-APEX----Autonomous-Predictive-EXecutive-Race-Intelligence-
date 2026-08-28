@@ -216,7 +216,7 @@ def load_lora_checkpoint(
         try:
             from_pretrained_fn = getattr(PeftModel, "from_pretrained", None)
             if callable(from_pretrained_fn):
-                model: nn.Module = from_pretrained_fn(base_model, str(ckpt_dir))
+                model: nn.Module = from_pretrained_fn(base_model, str(ckpt_dir))  # type: ignore[assignment]
                 model.eval()
                 return model
         except Exception as e:
