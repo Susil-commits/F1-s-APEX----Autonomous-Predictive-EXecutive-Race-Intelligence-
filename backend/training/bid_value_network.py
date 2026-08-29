@@ -53,7 +53,7 @@ class MultiHeadAttentionBlock(nn.Module):
         k = self.k_proj(x).view(batch, seq_len, self.n_heads, self.head_dim).transpose(1, 2)
         v = self.v_proj(x).view(batch, seq_len, self.n_heads, self.head_dim).transpose(1, 2)
 
-        scores = torch.matmul(q, k.transpose(-2, -1)) / np.sqrt(self.head_dim)
+        scores = torch.matmul(q, k.transpose(-2, -1)) * (self.head_dim ** -0.5)
         attn = torch.softmax(scores, dim=-1)
         context = torch.matmul(attn, v).transpose(1, 2).contiguous().view(batch, seq_len, self.d_model)
 
@@ -72,10 +72,11 @@ class StrategyTransformerEncoder(nn.Module):
         num_layers: int = 2,
         d_ff: int = 256,
         dropout: float = 0.1,
+        max_seq_len: int = 64,
     ):
         super().__init__()
         self.input_proj = nn.Linear(input_dim, d_model)
-        self.pos_embedding = nn.Parameter(torch.randn(1, 64, d_model) * 0.02)
+        self.pos_embedding = nn.Parameter(torch.randn(1, max_seq_len, d_model) * 0.02)
 
         self.layers = nn.ModuleList([
             MultiHeadAttentionBlock(d_model=d_model, n_heads=n_heads)
@@ -87,8 +88,8 @@ class StrategyTransformerEncoder(nn.Module):
             nn.SiLU(),
             nn.Dropout(dropout),
             nn.Linear(d_ff, d_model),
-            nn.LayerNorm(d_model),
         )
+        self.ff_norm = nn.LayerNorm(d_model)
 
         # Bid Value & Strategy Heads
         self.bid_value_head = nn.Sequential(
@@ -108,12 +109,16 @@ class StrategyTransformerEncoder(nn.Module):
             x = x.unsqueeze(1)  # [batch, 1, input_dim]
 
         batch, seq_len, _ = x.shape
+        if seq_len > self.pos_embedding.shape[1]:
+            raise ValueError(
+                f"Input seq_len ({seq_len}) exceeds maximum positional embedding length ({self.pos_embedding.shape[1]})."
+            )
         h = self.input_proj(x) + self.pos_embedding[:, :seq_len, :]
 
         for layer in self.layers:
             h = layer(h)
 
-        h = h + self.feed_forward(h)
+        h = self.ff_norm(h + self.feed_forward(h))
 
         # Global average pool over sequence
         pooled = h.mean(dim=1)  # [batch, d_model]
@@ -189,7 +194,8 @@ def save_lora_checkpoint(
     output_dir: Optional[str | Path] = None,
 ) -> str:
     """Saves LoRA adapter checkpoint to disk."""
-    out_dir = Path(save_dir or output_dir or DEFAULT_LORA_SAVE_DIR)
+    target_path = save_dir if save_dir is not None else output_dir
+    out_dir = Path(target_path or DEFAULT_LORA_SAVE_DIR)
     out_dir.mkdir(parents=True, exist_ok=True)
 
     save_fn = getattr(model, "save_pretrained", None)

@@ -7,7 +7,12 @@ from gymnasium import spaces
 
 from backend.app.intelligence.feature_builder import FEATURE_DIM, FeatureBuilder
 from backend.app.simulator.engine import RaceSimulator
-from backend.app.simulator.models import StrategyAction, TrackCondition, TyreCompound
+from backend.app.simulator.models import (
+    SafetyCarStatus,
+    StrategyAction,
+    TrackCondition,
+    TyreCompound,
+)
 
 ACTION_MAP = {
     0: StrategyAction.MAINTAIN,
@@ -114,9 +119,9 @@ class ApexRaceGymEnv(gym.Env):
         if is_pit_action:
             if prev_wear >= 65.0 or player_before.tyre_cliff_reached:
                 reward += 6.0  # Timely pit stop incentive
-                if state.safety_car in ("VSC", "SAFETY_CAR"):
+                if state.safety_car in (SafetyCarStatus.VSC, SafetyCarStatus.SAFETY_CAR):
                     reward += 5.0  # Opportunistic pit under safety car
-            elif prev_wear < 35.0 and state.weather.condition == TrackCondition.DRY and state.safety_car == "NONE":
+            elif prev_wear < 35.0 and state.weather.condition == TrackCondition.DRY and state.safety_car == SafetyCarStatus.NONE:
                 reward -= 8.0  # Wasteful pit stop penalty on fresh tyres
 
         # Pushing on heavily degraded tyres is heavily penalized

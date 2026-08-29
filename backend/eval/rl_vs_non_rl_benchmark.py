@@ -379,8 +379,8 @@ def run_rl_vs_non_rl_benchmark(
 
     # Aggregation
     summary_results = []
-    heuristic_reward = np.mean(metrics_by_controller["heuristic"]["cumulative_rewards"])
-    heuristic_pos = np.mean(metrics_by_controller["heuristic"]["finish_positions"])
+    heuristic_reward = float(np.mean(metrics_by_controller["heuristic"]["cumulative_rewards"]))
+    heuristic_pos = float(np.mean(metrics_by_controller["heuristic"]["finish_positions"]))
 
     for cid, controller in controllers:
         m = metrics_by_controller[cid]
@@ -396,8 +396,8 @@ def run_rl_vs_non_rl_benchmark(
         stability = float(np.mean(m["stability_score"]))
 
         # Objective improvement vs Heuristic baseline
-        reward_lift_pct = round(((avg_reward - heuristic_reward) / abs(heuristic_reward)) * 100.0, 1)
-        pos_improvement_pct = round(((heuristic_pos - avg_pos) / heuristic_pos) * 100.0, 1)
+        reward_lift_pct = round(((avg_reward - heuristic_reward) / max(1e-9, abs(heuristic_reward))) * 100.0, 1)
+        pos_improvement_pct = round(((heuristic_pos - avg_pos) / max(1e-9, heuristic_pos)) * 100.0, 1)
 
         summary_results.append({
             "controller_id": cid,

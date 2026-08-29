@@ -2,7 +2,7 @@
   "version": "1.0",
   "documents": [
     {
-      "race_id": "test_rag_9c6ec056",
+      "race_id": "test_rag_b767e811",
       "lap": 10,
       "recommendation": "MAINTAIN",
       "confidence_score": 0.88,
@@ -37,7 +37,7 @@
       "timestamp": ""
     },
     {
-      "race_id": "test_rag_9c6ec056",
+      "race_id": "test_rag_b767e811",
       "lap": 23,
       "recommendation": "PIT_HARD",
       "confidence_score": 0.96,
@@ -72,7 +72,7 @@
       "timestamp": ""
     },
     {
-      "race_id": "test_rag_9c6ec056",
+      "race_id": "test_rag_b767e811",
       "lap": 35,
       "recommendation": "PUSH",
       "confidence_score": 0.92,
@@ -108,8 +108,8 @@
     }
   ],
   "doc_texts": [
-    "Race test_rag_9c6ec056 Lap 10: Strategy Directive: MAINTAIN (Urgency: LOW, Confidence: 88%). Drivers & Attributions: Stable medium tyre wear at 22%; Good pace in clean air. Consensus: Rule engine recommended MAINTAIN, DQN RL agent selected MAINTAIN. Tyre Cliff Risk: LOW. Pit Window: OPTIMAL.",
-    "Race test_rag_9c6ec056 Lap 23: Strategy Directive: PIT_HARD (Urgency: CRITICAL, Confidence: 96%). Drivers & Attributions: Physical Safety Car deployed (12.0s cheap pit advantage); Tyre wear 65%. Consensus: Rule engine recommended PIT_HARD, DQN RL agent selected PIT_HARD. Tyre Cliff Risk: HIGH. Pit Window: OPTIMAL.",
-    "Race test_rag_9c6ec056 Lap 35: Strategy Directive: PUSH (Urgency: HIGH, Confidence: 92%). Drivers & Attributions: Fresh hard tyres; Attacking car ahead within DRS gap 0.8s. Consensus: Rule engine recommended PUSH, DQN RL agent selected PUSH. Tyre Cliff Risk: LOW. Pit Window: OPTIMAL."
+    "Race test_rag_b767e811 Lap 10: Strategy Directive: MAINTAIN (Urgency: LOW, Confidence: 88%). Drivers & Attributions: Stable medium tyre wear at 22%; Good pace in clean air. Consensus: Rule engine recommended MAINTAIN, DQN RL agent selected MAINTAIN. Tyre Cliff Risk: LOW. Pit Window: OPTIMAL.",
+    "Race test_rag_b767e811 Lap 23: Strategy Directive: PIT_HARD (Urgency: CRITICAL, Confidence: 96%). Drivers & Attributions: Physical Safety Car deployed (12.0s cheap pit advantage); Tyre wear 65%. Consensus: Rule engine recommended PIT_HARD, DQN RL agent selected PIT_HARD. Tyre Cliff Risk: HIGH. Pit Window: OPTIMAL.",
+    "Race test_rag_b767e811 Lap 35: Strategy Directive: PUSH (Urgency: HIGH, Confidence: 92%). Drivers & Attributions: Fresh hard tyres; Attacking car ahead within DRS gap 0.8s. Consensus: Rule engine recommended PUSH, DQN RL agent selected PUSH. Tyre Cliff Risk: LOW. Pit Window: OPTIMAL."
   ]
 }

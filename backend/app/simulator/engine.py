@@ -35,7 +35,7 @@ DEFAULT_DRIVERS: list[DriverProfile] = [
     {"car_id": "car_01", "name": "M. Verstappen", "team": "Red Bull Racing", "number": 1, "is_player": False, "pace_bias": -0.25},
     {"car_id": "car_02", "name": "L. Norris", "team": "McLaren", "number": 4, "is_player": False, "pace_bias": -0.15},
     {"car_id": "car_03", "name": "C. Leclerc", "team": "Ferrari", "number": 16, "is_player": False, "pace_bias": -0.10},
-    {"car_id": "car_04", "name": "APEX AI (You)", "team": "APEX Strategy Team", "number": 44, "is_player": True, "pace_bias": -0.05},
+    {"car_id": "car_04", "name": "APEX AI (You)", "team": "APEX Strategy Team", "number": 99, "is_player": True, "pace_bias": -0.05},
     {"car_id": "car_05", "name": "O. Piastri", "team": "McLaren", "number": 81, "is_player": False, "pace_bias": 0.00},
     {"car_id": "car_06", "name": "G. Russell", "team": "Mercedes", "number": 63, "is_player": False, "pace_bias": 0.05},
     {"car_id": "car_07", "name": "C. Sainz", "team": "Ferrari", "number": 55, "is_player": False, "pace_bias": 0.08},
@@ -123,12 +123,12 @@ class RaceSimulator:
             )
         ]
 
-    def get_player_car(self) -> CarState:
+    def get_player_car(self) -> CarState | None:
         """Retrieve the primary player car."""
         for car in self.cars:
             if car.is_player:
                 return car
-        return self.cars[0]
+        return self.cars[0] if self.cars else None
 
     def apply_action(self, action: StrategyAction, target_car_id: str | None = None):
         """Applies a strategic decision to the player car (or specified car)."""
@@ -238,7 +238,7 @@ class RaceSimulator:
             # Update Fuel Burn
             mode_burn = 1.20 if car.driving_mode == DrivingMode.PUSH else (0.80 if car.driving_mode == DrivingMode.CONSERVE else 1.0)
             burn = car.fuel_burn_per_lap_kg * mode_burn
-            car.fuel_kg = max(0.5, car.fuel_kg - burn)
+            car.fuel_kg = max(0.0, car.fuel_kg - burn)
 
             # Reset pit status after completing the lap
             car.in_pit = False

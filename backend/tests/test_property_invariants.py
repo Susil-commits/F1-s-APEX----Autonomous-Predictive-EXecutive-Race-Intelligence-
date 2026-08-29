@@ -51,7 +51,7 @@ def test_invariant_tyre_age_monotonic_and_pit_reset() -> None:
             continue  # Mid-pit transition
         elif pitted and not player.in_pit and player.pit_count > 0 and last_age > 10:
             # After pit stop, age must have reset
-            assert player.tyre_age_laps <= 2, f"Tyre age did not reset after pit: {player.tyre_age_laps}"
+            assert player.tyre_age_laps <= 1, f"Tyre age did not reset after pit: {player.tyre_age_laps}"
             pitted = False
             last_age = player.tyre_age_laps
         else:

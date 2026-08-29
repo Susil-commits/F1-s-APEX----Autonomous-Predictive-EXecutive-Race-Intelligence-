@@ -146,30 +146,37 @@ def benchmark_ablation(seed: int, n_races: int) -> dict[str, Any]:
 def benchmark_safe_rl_coverage() -> dict[str, Any]:
     """Verify safe RL guardrail blocks all scenario masks with zero exceptions."""
     from backend.app.simulator.engine import RaceSimulator
+    from backend.app.simulator.models import SafetyCarStatus, TrackCondition
     from backend.app.strategy.safe_rl_guardrail import ActionMaskGuardrail
 
     scenarios_tested = 0
     violations = 0
     results = []
 
-    sim = RaceSimulator(track_name="silverstone", seed=42, grid_size=5, enable_dynamic_weather=False)
-    for _ in range(10):
-        sim.step()
-    state = sim.get_state()
-
-    scenario_labels = [
-        "mid_race_normal",
-        "tyre_cliff_scenario",
-        "wet_weather_scenario",
+    # Test distinct emergency & regulatory scenarios
+    test_configs = [
+        ("mid_race_normal", lambda s: None),
+        ("tyre_cliff_extreme_wear", lambda s: setattr(s.cars[0], "tyre_wear_pct", 85.0)),
+        ("wet_weather_torrential", lambda s: (setattr(s.weather, "condition", TrackCondition.WET), setattr(s.weather, "rain_intensity", 0.95))),
+        ("dry_weather_bone_dry", lambda s: (setattr(s.weather, "condition", TrackCondition.DRY), setattr(s.weather, "rain_intensity", 0.0), setattr(s.weather, "rain_probability_next_5_laps", 0.05))),
+        ("in_pit_lane_transition", lambda s: setattr(s.cars[0], "in_pit", True)),
+        ("final_lap_intact_tyres", lambda s: (setattr(s, "current_lap", s.total_laps), setattr(s.cars[0], "tyre_wear_pct", 20.0))),
+        ("red_flag_session_suspended", lambda s: setattr(s, "safety_car", SafetyCarStatus.RED_FLAG)),
     ]
-    for scenario in scenario_labels:
+
+    for scenario_name, modifier in test_configs:
         try:
+            sim = RaceSimulator(track_name="silverstone", seed=42, grid_size=5, enable_dynamic_weather=False)
+            for _ in range(10):
+                sim.step()
+            state = sim.get_state()
+            modifier(state)
             mask = ActionMaskGuardrail.get_action_mask(state)
             scenarios_tested += 1
-            results.append({"scenario": scenario, "allowed_actions": int(mask.sum())})
+            results.append({"scenario": scenario_name, "allowed_actions": int(mask.sum())})
         except Exception as exc:
             violations += 1
-            results.append({"scenario": scenario, "error": str(exc)})
+            results.append({"scenario": scenario_name, "error": str(exc)})
 
     return {
         "benchmark": "safe_rl_coverage",

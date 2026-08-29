@@ -1,9 +1,9 @@
 {
   "apex_benchmark_version": "1.0",
-  "timestamp": "2026-08-19T14:39:40.885376+00:00",
+  "timestamp": "2026-08-29T14:04:16.264572+00:00",
   "seed": 42,
   "mode": "quick",
-  "total_elapsed_s": 4.91,
+  "total_elapsed_s": 5.36,
   "gate_j_passed": true,
   "gate_e_passed": true,
   "gate_g_passed": true,
@@ -87,13 +87,13 @@
         {
           "team_name": "Team Gamma (Tyre-Focused)",
           "archetype": "Tyre Preserver",
-          "points": 7,
+          "points": 5,
           "wins": 0,
           "podiums": 0,
           "top5s": 0,
           "dnfs": 0,
           "races_run": 3,
-          "avg_finish": 9.0,
+          "avg_finish": 9.33,
           "strategy_distribution": {}
         },
         {
@@ -110,13 +110,13 @@
         }
       ],
       "benchmark": "championship",
-      "elapsed_s": 0.56
+      "elapsed_s": 0.72
     },
     {
       "configs_run": 9,
       "total_races_per_config": 3,
       "seed": 42,
-      "elapsed_s": 4.25,
+      "elapsed_s": 4.53,
       "reports": {
         "FULL": {
           "config": "FULL",
@@ -127,7 +127,7 @@
           "podium_rate": 0.667,
           "dnf_rate": 0.0,
           "avg_points": 17.0,
-          "avg_race_time_s": 4804.8,
+          "avg_race_time_s": 4804.6,
           "total_points": 51
         },
         "NO_RL": {
@@ -139,7 +139,7 @@
           "podium_rate": 0.667,
           "dnf_rate": 0.0,
           "avg_points": 17.0,
-          "avg_race_time_s": 4804.8,
+          "avg_race_time_s": 4804.6,
           "total_points": 51
         },
         "NO_WEATHER": {
@@ -151,7 +151,7 @@
           "podium_rate": 0.667,
           "dnf_rate": 0.0,
           "avg_points": 17.0,
-          "avg_race_time_s": 4804.8,
+          "avg_race_time_s": 4804.6,
           "total_points": 51
         },
         "NO_TYRE_ML": {
@@ -163,7 +163,7 @@
           "podium_rate": 0.667,
           "dnf_rate": 0.0,
           "avg_points": 17.0,
-          "avg_race_time_s": 4804.8,
+          "avg_race_time_s": 4804.6,
           "total_points": 51
         },
         "NO_MC": {
@@ -175,7 +175,7 @@
           "podium_rate": 0.667,
           "dnf_rate": 0.0,
           "avg_points": 17.0,
-          "avg_race_time_s": 4804.8,
+          "avg_race_time_s": 4804.6,
           "total_points": 51
         },
         "NO_RISK": {
@@ -187,7 +187,7 @@
           "podium_rate": 0.667,
           "dnf_rate": 0.0,
           "avg_points": 17.0,
-          "avg_race_time_s": 4804.8,
+          "avg_race_time_s": 4804.6,
           "total_points": 51
         },
         "NO_SAFETY": {
@@ -199,7 +199,7 @@
           "podium_rate": 0.667,
           "dnf_rate": 0.0,
           "avg_points": 17.0,
-          "avg_race_time_s": 4804.8,
+          "avg_race_time_s": 4804.6,
           "total_points": 51
         },
         "RULE_ONLY": {
@@ -223,7 +223,7 @@
           "podium_rate": 0.667,
           "dnf_rate": 0.0,
           "avg_points": 14.67,
-          "avg_race_time_s": 4854.5,
+          "avg_race_time_s": 4854.4,
           "total_points": 44
         }
       },
@@ -249,7 +249,7 @@
           "podium_rate": 0.667,
           "dnf_rate": 0.0,
           "avg_points": 17.0,
-          "avg_race_time_s": 4804.8,
+          "avg_race_time_s": 4804.6,
           "total_points": 51
         },
         {
@@ -261,7 +261,7 @@
           "podium_rate": 0.667,
           "dnf_rate": 0.0,
           "avg_points": 17.0,
-          "avg_race_time_s": 4804.8,
+          "avg_race_time_s": 4804.6,
           "total_points": 51
         },
         {
@@ -273,7 +273,7 @@
           "podium_rate": 0.667,
           "dnf_rate": 0.0,
           "avg_points": 17.0,
-          "avg_race_time_s": 4804.8,
+          "avg_race_time_s": 4804.6,
           "total_points": 51
         },
         {
@@ -285,7 +285,7 @@
           "podium_rate": 0.667,
           "dnf_rate": 0.0,
           "avg_points": 17.0,
-          "avg_race_time_s": 4804.8,
+          "avg_race_time_s": 4804.6,
           "total_points": 51
         },
         {
@@ -297,7 +297,7 @@
           "podium_rate": 0.667,
           "dnf_rate": 0.0,
           "avg_points": 17.0,
-          "avg_race_time_s": 4804.8,
+          "avg_race_time_s": 4804.6,
           "total_points": 51
         },
         {
@@ -309,7 +309,7 @@
           "podium_rate": 0.667,
           "dnf_rate": 0.0,
           "avg_points": 17.0,
-          "avg_race_time_s": 4804.8,
+          "avg_race_time_s": 4804.6,
           "total_points": 51
         },
         {
@@ -321,7 +321,7 @@
           "podium_rate": 0.667,
           "dnf_rate": 0.0,
           "avg_points": 17.0,
-          "avg_race_time_s": 4804.8,
+          "avg_race_time_s": 4804.6,
           "total_points": 51
         },
         {
@@ -333,7 +333,7 @@
           "podium_rate": 0.667,
           "dnf_rate": 0.0,
           "avg_points": 14.67,
-          "avg_race_time_s": 4854.5,
+          "avg_race_time_s": 4854.4,
           "total_points": 44
         }
       ],
@@ -342,7 +342,7 @@
     },
     {
       "benchmark": "safe_rl_coverage",
-      "scenarios_tested": 3,
+      "scenarios_tested": 7,
       "violations": 0,
       "passed": true,
       "results": [
@@ -351,12 +351,28 @@
           "allowed_actions": 7
         },
         {
-          "scenario": "tyre_cliff_scenario",
+          "scenario": "tyre_cliff_extreme_wear",
           "allowed_actions": 7
         },
         {
-          "scenario": "wet_weather_scenario",
+          "scenario": "wet_weather_torrential",
+          "allowed_actions": 5
+        },
+        {
+          "scenario": "dry_weather_bone_dry",
           "allowed_actions": 7
+        },
+        {
+          "scenario": "in_pit_lane_transition",
+          "allowed_actions": 7
+        },
+        {
+          "scenario": "final_lap_intact_tyres",
+          "allowed_actions": 3
+        },
+        {
+          "scenario": "red_flag_session_suspended",
+          "allowed_actions": 3
         }
       ]
     }

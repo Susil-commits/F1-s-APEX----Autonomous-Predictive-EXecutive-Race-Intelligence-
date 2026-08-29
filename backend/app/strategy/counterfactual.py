@@ -7,6 +7,9 @@ from typing import Any, TypedDict
 
 from backend.app.simulator.engine import RaceSimulator
 from backend.app.simulator.models import RaceState, StrategyAction
+from backend.app.strategy.counterfactual_quality import (
+    counterfactual_quality_engine,
+)
 
 
 class CandidateOption(TypedDict):
@@ -45,6 +48,8 @@ class CounterfactualChecker:
                 sim_clone.step(player_action=StrategyAction.MAINTAIN)
 
             clone_player = sim_clone.get_player_car()
+            if clone_player is None:
+                continue
 
             # Estimate tyre cliff risk probability
             cliff_risk_pct = 95.0 if clone_player.tyre_cliff_reached else min(100.0, max(0.0, (clone_player.tyre_wear_pct - 50.0) * 2.5))
@@ -57,7 +62,7 @@ class CounterfactualChecker:
                 "projected_tyre_wear_pct": round(clone_player.tyre_wear_pct, 1),
                 "projected_compound": clone_player.tyre_compound.value,
                 "cliff_reached": clone_player.tyre_cliff_reached,
-                "cliff_risk_pct": round(float(cliff_risk_pct), 1),
+                "cliff_risk_pct": round(cliff_risk_pct, 1),
             })
 
         # Rank by finishing position ascending, tie-break by gap to leader
@@ -97,34 +102,22 @@ class CounterfactualChecker:
                 break
             base_sim.step(player_action=StrategyAction.MAINTAIN)
             p = base_sim.get_player_car()
-            base_trajectory.append({
-                "lap": base_sim.current_lap,
-                "position": p.position,
-                "gap_to_leader_s": round(p.gap_to_leader_s, 2),
-                "tyre_wear_pct": round(p.tyre_wear_pct, 1),
-                "tyre_compound": p.tyre_compound.value,
-                "cliff_reached": p.tyre_cliff_reached,
-            })
+            if p is not None:
+                base_trajectory.append({
+                    "lap": base_sim.current_lap,
+                    "position": p.position,
+                    "gap_to_leader_s": round(p.gap_to_leader_s, 2),
+                    "tyre_wear_pct": round(p.tyre_wear_pct, 1),
+                    "tyre_compound": p.tyre_compound.value,
+                    "cliff_reached": p.tyre_cliff_reached,
+                })
 
         # Alternate simulator (proposed action on first lap, then maintain)
         alt_sim = RaceSimulator.from_state(historical_state)
         alt_trajectory = []
         alt_sim.step(player_action=action_enum)
         p_alt = alt_sim.get_player_car()
-        alt_trajectory.append({
-            "lap": alt_sim.current_lap,
-            "position": p_alt.position,
-            "gap_to_leader_s": round(p_alt.gap_to_leader_s, 2),
-            "tyre_wear_pct": round(p_alt.tyre_wear_pct, 1),
-            "tyre_compound": p_alt.tyre_compound.value,
-            "cliff_reached": p_alt.tyre_cliff_reached,
-        })
-
-        for _ in range(rollout_laps - 1):
-            if alt_sim.is_finished:
-                break
-            alt_sim.step(player_action=StrategyAction.MAINTAIN)
-            p_alt = alt_sim.get_player_car()
+        if p_alt is not None:
             alt_trajectory.append({
                 "lap": alt_sim.current_lap,
                 "position": p_alt.position,
@@ -133,6 +126,21 @@ class CounterfactualChecker:
                 "tyre_compound": p_alt.tyre_compound.value,
                 "cliff_reached": p_alt.tyre_cliff_reached,
             })
+
+        for _ in range(rollout_laps - 1):
+            if alt_sim.is_finished:
+                break
+            alt_sim.step(player_action=StrategyAction.MAINTAIN)
+            p_alt = alt_sim.get_player_car()
+            if p_alt is not None:
+                alt_trajectory.append({
+                    "lap": alt_sim.current_lap,
+                    "position": p_alt.position,
+                    "gap_to_leader_s": round(p_alt.gap_to_leader_s, 2),
+                    "tyre_wear_pct": round(p_alt.tyre_wear_pct, 1),
+                    "tyre_compound": p_alt.tyre_compound.value,
+                    "cliff_reached": p_alt.tyre_cliff_reached,
+                })
 
         final_base = base_trajectory[-1] if base_trajectory else {}
         final_alt = alt_trajectory[-1] if alt_trajectory else {}
@@ -149,12 +157,9 @@ class CounterfactualChecker:
         undercut_probability_pct = 0.0
         if is_pit_action:
             fresh_tyre_delta = 1.25  # seconds faster on fresh rubber
-            gap_ahead = float(historical_state.cars[0].gap_to_car_ahead_s) if historical_state.cars else 2.5
+            player_car = next((c for c in historical_state.cars if c.is_player), historical_state.cars[0] if historical_state.cars else None)
+            gap_ahead = player_car.gap_to_car_ahead_s if player_car else 2.5
             undercut_probability_pct = min(100.0, max(10.0, round((fresh_tyre_delta * rollout_laps / max(1.0, gap_ahead)) * 50.0, 1)))
-
-        from backend.app.strategy.counterfactual_quality import (
-            counterfactual_quality_engine,
-        )
 
         quality_report = counterfactual_quality_engine.generate_full_quality_report(
             total_rollouts=1000,

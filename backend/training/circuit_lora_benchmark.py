@@ -266,13 +266,13 @@ def train_circuit_lora_adapter(
     return summary
 
 
-def run_multi_circuit_lora_benchmark(save_report: bool = True) -> dict[str, Any]:
+def run_multi_circuit_lora_benchmark(epochs: int = 10, rank: int = 8, save_report: bool = True) -> dict[str, Any]:
     """Trains adapters across all 4 key Grand Prix circuits and produces benchmark matrix."""
     CIRCUITS_DIR.mkdir(parents=True, exist_ok=True)
     results: dict[str, Any] = {}
 
     for circuit_id in ["monaco", "monza", "spa", "silverstone"]:
-        res = train_circuit_lora_adapter(circuit_id=circuit_id, epochs=10, rank=8)
+        res = train_circuit_lora_adapter(circuit_id=circuit_id, epochs=epochs, rank=rank)
         results[circuit_id] = res
 
     # Aggregate metrics
@@ -303,9 +303,11 @@ def run_multi_circuit_lora_benchmark(save_report: bool = True) -> dict[str, Any]
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Multi-Circuit LoRA Benchmark for APEX")
     parser.add_argument("--circuit", type=str, default="all", choices=["monaco", "monza", "spa", "silverstone", "all"])
+    parser.add_argument("--epochs", type=int, default=10, help="Number of fine-tuning epochs per circuit")
+    parser.add_argument("--rank", type=int, default=8, help="LoRA rank dimension")
     args = parser.parse_args()
 
     if args.circuit == "all":
-        run_multi_circuit_lora_benchmark()
+        run_multi_circuit_lora_benchmark(epochs=args.epochs, rank=args.rank)
     else:
-        train_circuit_lora_adapter(circuit_id=args.circuit)
+        train_circuit_lora_adapter(circuit_id=args.circuit, epochs=args.epochs, rank=args.rank)
