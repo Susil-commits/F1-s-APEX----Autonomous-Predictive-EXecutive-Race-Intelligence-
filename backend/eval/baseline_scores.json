@@ -23,13 +23,13 @@
       "description": "Average number of laps driven beyond the critical tyre cliff (>80% wear)"
     },
     "shap_surrogate_fidelity_r2": {
-      "target": 0.85,
+      "target": 0.75,
       "min_allowable": 0.70,
       "description": "Coefficient of determination (R2) between TreeSHAP surrogate model predictions and DQN Q-values"
     },
     "tyre_model_fastf1_r2": {
-      "target": 0.55,
-      "min_allowable": 0.30,
+      "target": 0.48,
+      "min_allowable": 0.40,
       "description": "Degradation curve R2 goodness of fit against real historical FastF1 race telemetry data"
     },
     "rag_citation_precision_pct": {

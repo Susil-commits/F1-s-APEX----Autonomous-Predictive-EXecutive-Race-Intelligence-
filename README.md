@@ -106,8 +106,8 @@ Every metric below is directly reproducible via a dedicated script in the reposi
 | **2024 Test Season $R^2$** | **0.479** | [`backend/eval/temporal_validation.py`](backend/eval/temporal_validation.py) | [Report](backend/eval/temporal_validation_report.json) |
 | **Pearson Correlation ($r$)** | **0.709** | [`backend/eval/temporal_validation.py`](backend/eval/temporal_validation.py) | [Report](backend/eval/temporal_validation_report.json) |
 | **Tyre Degradation Cliff Accuracy** | **79.9%** | [`backend/eval/temporal_validation.py`](backend/eval/temporal_validation.py) | [Report](backend/eval/temporal_validation_report.json) |
-| **FastF1 Telemetry Degradation $R^2$** | **0.620** | [`backend/eval/tyre_model_eval.py`](backend/eval/tyre_model_eval.py) | [Report](backend/eval/latest_eval_report.json) |
-| **TreeSHAP Surrogate Fidelity** | **0.880** | [`backend/eval/run_eval.py`](backend/eval/run_eval.py) | [Report](backend/eval/latest_eval_report.json) |
+| **FastF1 Telemetry Degradation $R^2$** | **0.495** | [`backend/eval/tyre_model_eval.py`](backend/eval/tyre_model_eval.py) | [Report](backend/eval/latest_eval_report.json) |
+| **TreeSHAP Surrogate Fidelity** | **0.762** | [`backend/eval/run_eval.py`](backend/eval/run_eval.py) | [Report](backend/eval/latest_eval_report.json) |
 | **Empirical Conformal Coverage** | **97.9%** | [`backend/eval/temporal_validation.py`](backend/eval/temporal_validation.py) | [Report](backend/eval/temporal_validation_report.json) |
 | **RL Policy Multi-Circuit Win Rate** | **100.0%** | [`backend/eval/rl_vs_non_rl_benchmark.py`](backend/eval/rl_vs_non_rl_benchmark.py) | [Report](backend/eval/rl_vs_non_rl_report.json) |
 | **Automated Unit & Invariant Tests** | **257 / 257** | `uv run pytest backend/tests` | All tests pass |

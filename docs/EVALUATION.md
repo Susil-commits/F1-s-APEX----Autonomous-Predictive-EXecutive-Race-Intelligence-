@@ -42,6 +42,11 @@ uv run python -m backend.eval.temporal_validation
 | **XGBoost + Conformal Calibration** | **0.495** | **0.613** | **0.429** | **0.717** | **78.7%** |
 | **Full Sequential Horizon (2024)** | **0.479** | **0.623** | **0.430** | **0.709** | **79.9%** |
 
+> [!NOTE]
+> **Engineering Honesty Note (Linear Baseline vs. Tree Regressor)**:
+> On the 2024 test holdout, the linear regression baseline ($R^2 = 0.500$) slightly edges out XGBoost ($R^2 = 0.495$). Physical tyre degradation is fundamentally quadratic in tyre age ($\Delta t \approx c_1 \cdot \text{age} + c_2 \cdot \text{age}^2$), which a linear model over $(age, age^2, \text{compound})$ captures smoothly without boundary step-variance. Gradient boosted tree models partition continuous degradation into axis-aligned intervals, introducing mild discretization variance at stint margins in the absence of high-frequency car dynamics telemetry.
+> **Next Feature Planned**: Integrating cornering lateral acceleration ($a_y$) and braking energy dissipation from FastF1 channel telemetry, combined with Physics-Informed Neural Network (PINN) loss regularization to enforce strictly monotonic curvature, enabling nonlinear estimators to decisively surpass the quadratic baseline.
+
 ![Temporal Validation Architecture](../backend/models/temporal_validation_folds.png)
 *Figure 1: (Left) Walk-Forward expanding-window cross-validation timeline across 2018–2024 seasons. (Right) Anti-leakage audit: comparing APEX's strict temporal split against a naive random split, quantifying the optimism bias gap caused by future stint/lap leakage.*
 
@@ -55,9 +60,11 @@ Evaluates tyre wear and degradation delta predictions against real session laps 
 uv run python -m backend.eval.tyre_model_eval
 ```
 
-- **Observed $R^2$**: `0.62`
-- **Mean Absolute Degradation Error**: `0.118s / lap`
-- **Degradation Cliff Detection**: Identified critical cliff within $\pm 1.2$ laps of physical telemetry.
+- **Observed $R^2$**: `0.495`
+- **Mean Absolute Degradation Error (MAE)**: `0.429s / lap`
+- **Root Mean Squared Error (RMSE)**: `0.613s / lap`
+- **Pearson Correlation ($r$)**: `0.717`
+- **Degradation Cliff Detection Accuracy**: `79.0%`
 
 ![Compound Degradation Curves](../backend/models/temporal_degradation_curves.png)
 *Figure 2: Longitudinal compound degradation across chronological horizons (Soft, Medium, Hard) on 14,223 genuine FastF1 laps. Shows 2018–2022 training fit curves against real 2023 validation and 2024 holdout test laps.*
@@ -66,15 +73,16 @@ uv run python -m backend.eval.tyre_model_eval
 
 ## 4. Reinforcement Learning vs. Heuristic Baselines
 
-Evaluates the Deep Q-Network (DQN) pit strategist against human rule engines and naive 1-stop/2-stop baselines across 1,000 simulated race sessions:
+Evaluates the Deep Q-Network (DQN) and PPO pit strategists against human rule engines and heuristic baselines across multi-circuit simulated race sessions:
 
 ```bash
 uv run python -m backend.eval.rl_vs_non_rl_benchmark
 ```
 
-- **DQN Outright Win Rate**: `100.0%` (vs. rule baseline `64.2%`)
-- **Average Gap to Winner**: `0.00s` (DQN winning baseline)
-- **Blown Tyre Laps**: `0.2 laps / race` (prevents catastrophic punctures by respecting tyre life envelopes)
+- **APEX Hybrid Policy (Production RL + MC)**: `100.0%` Win Rate, `100.0%` Podium Rate, `P1.00` Average Finish.
+- **DQN Standalone Strategy**: `50.0%` Win Rate, `100.0%` Podium Rate, `P1.50` Average Finish, `87.5%` Pit Timing Efficiency.
+- **Rule-Based Baseline**: `50.0%` Win Rate, `50.0%` Podium Rate, `P4.00` Average Finish.
+- **Supervised Policy (Behavior Cloning)**: `0.0%` Win Rate, `P10.0` Average Finish (illustrating distributional shift when cloned policies encounter unforeseen tyre degradation states without interactive exploration).
 
 ---
 

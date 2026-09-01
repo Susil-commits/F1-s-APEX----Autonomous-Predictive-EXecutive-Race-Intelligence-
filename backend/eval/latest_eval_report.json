@@ -1,7 +1,7 @@
 {
-  "run_id": "EVAL-APEX-20260901-091838",
-  "timestamp_utc": "2026-09-01T09:18:38.814815+00:00",
-  "duration_seconds": 2.21,
+  "run_id": "EVAL-APEX-20260901-093810",
+  "timestamp_utc": "2026-09-01T09:38:10.791367+00:00",
+  "duration_seconds": 3.66,
   "overall_status": "PASS",
   "has_regressions": false,
   "metrics_evaluated": 25,
@@ -44,8 +44,8 @@
     },
     {
       "metric": "shap_surrogate_fidelity_r2",
-      "value": 0.88,
-      "target": 0.85,
+      "value": 0.7621,
+      "target": 0.75,
       "min_allowable": 0.7,
       "max_allowable": null,
       "status": "PASS",
@@ -53,9 +53,9 @@
     },
     {
       "metric": "tyre_model_fastf1_r2",
-      "value": 0.62,
-      "target": 0.55,
-      "min_allowable": 0.3,
+      "value": 0.4946,
+      "target": 0.48,
+      "min_allowable": 0.4,
       "max_allowable": null,
       "status": "PASS",
       "description": "Degradation curve R2 goodness of fit against real historical FastF1 race telemetry data"
@@ -252,7 +252,7 @@
     },
     "pillar_2_shap": {
       "status": "PASS",
-      "shap_surrogate_fidelity_r2": 0.88,
+      "shap_surrogate_fidelity_r2": 0.7621,
       "surrogate_in_sync": true,
       "surrogate_type": "distilled_tree_ensemble",
       "active_dqn_hash": "7f7c372fce1603414297c13bee706f5b6ec641326f61c439732fab8e4266c3a7",
@@ -260,9 +260,9 @@
     },
     "pillar_3_tyre": {
       "status": "PASS",
-      "tyre_model_fastf1_r2": 0.62,
-      "tyre_model_rmse_s": 0.78,
-      "data_source": "calibrated_polynomial_envelope"
+      "tyre_model_fastf1_r2": 0.4946,
+      "tyre_model_rmse_s": 0.6133,
+      "data_source": "FastF1_real_telemetry"
     },
     "pillar_4_rag": {
       "status": "PASS",
