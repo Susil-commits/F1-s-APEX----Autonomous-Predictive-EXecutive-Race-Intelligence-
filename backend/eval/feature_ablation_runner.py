@@ -225,6 +225,7 @@ def train_and_score(
 def run_feature_ablation_study(
     csv_path: str | None = None,
     save_plots: bool = True,
+    df: pd.DataFrame | None = None,
 ) -> dict[str, Any]:
     """
     Executes systematic feature group ablation experiments:
@@ -236,12 +237,15 @@ def run_feature_ablation_study(
       - Remove Context / Opponent
       - Single-domain baselines
     """
-    target_csv = csv_path or str(OUTPUT_CSV)
-    if os.path.exists(target_csv):
-        raw_df = pd.read_csv(target_csv)
+    if df is not None and not df.empty:
+        raw_df = df.copy()
     else:
-        logger.info("[AblationStudy] Telemetry CSV not found. Generating synthetic distribution...")
-        raw_df = generate_synthetic_fallback_data()
+        target_csv = csv_path or str(OUTPUT_CSV)
+        if os.path.exists(target_csv):
+            raw_df = pd.read_csv(target_csv)
+        else:
+            logger.info("[AblationStudy] Telemetry CSV not found. Generating synthetic distribution...")
+            raw_df = generate_synthetic_fallback_data()
 
     if raw_df.empty:
         raise ValueError(f"Telemetry dataset at {target_csv} is empty.")

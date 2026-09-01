@@ -15,30 +15,29 @@ CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "fastf1_cache"
 OUTPUT_CSV = os.path.join(os.path.dirname(__file__), "..", "data", "real_tyre_data.csv")
 
 # Standard multi-season benchmark sessions covering distinct regulatory eras:
-# 2018-2021 (13-inch tyre era), 2022-2023 (18-inch ground-effect era), 2024 (tuning), 2025 (prospective)
+# 2018-2021 (13-inch tyre era), 2022 (18-inch ground-effect transition), 2023 (validation), 2024 (prospective test)
 DEFAULT_RACES: list[tuple[int, str, str]] = [
-    # 2018–2023 Historical Training Corpus
-    (2023, "Silverstone", "R"),
-    (2023, "Monza", "R"),
-    (2023, "Belgium", "R"),
-    (2023, "Spanish Grand Prix", "R"),
-    (2023, "Bahrain", "R"),
-    (2023, "Austria", "R"),
+    # 2018–2022 Historical Training Corpus
+    (2018, "Silverstone", "R"),
+    (2018, "Monza", "R"),
+    (2019, "Monza", "R"),
+    (2019, "Silverstone", "R"),
+    (2020, "Silverstone", "R"),
+    (2020, "Monza", "R"),
+    (2021, "Silverstone", "R"),
+    (2021, "Monza", "R"),
     (2022, "Silverstone", "R"),
     (2022, "Monza", "R"),
     (2022, "Austria", "R"),
-    (2021, "Silverstone", "R"),
-    (2021, "Monza", "R"),
-    (2020, "Silverstone", "R"),
-    (2019, "Monza", "R"),
-    (2018, "Silverstone", "R"),
-    # 2024 Validation Horizon
-    (2024, "Silverstone", "R"),
+    # 2023 Validation Horizon
+    (2023, "Silverstone", "R"),
+    (2023, "Monza", "R"),
+    (2023, "Belgium", "R"),
+    (2023, "Austria", "R"),
+    # 2024 Prospective Test Horizon
+    (2024, "Bahrain", "R"),
+    (2024, "Austria", "R"),
     (2024, "Monza", "R"),
-    (2024, "Spa", "R"),
-    # 2025 Prospective Test Holdout
-    (2025, "Silverstone", "R"),
-    (2025, "Monza", "R"),
 ]
 
 COMPOUND_NORM_MAP = {
@@ -369,7 +368,7 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="APEX FastF1 Telemetry Fetcher")
     parser.add_argument("--quick", action="store_true", help="Fetch 1 race only for quick test")
-    parser.add_argument("--allow-synthetic", action="store_true", default=True, help="Allow fallback synthetic data if offline")
+    parser.add_argument("--allow-synthetic", action="store_true", default=False, help="Allow fallback synthetic data if offline")
     parser.add_argument("--synthetic-only", action="store_true", default=False, help="Directly generate 2018-2025 synthetic dataset")
     parser.add_argument("--version", type=str, default="v1.0_telemetry", help="Dataset version identifier")
     parser.add_argument("--output", type=str, default=OUTPUT_CSV, help="Output CSV file path")

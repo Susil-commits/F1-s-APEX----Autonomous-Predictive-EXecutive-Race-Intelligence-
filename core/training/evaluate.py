@@ -24,7 +24,16 @@ def evaluate_model_temporal(model_artifact: Dict[str, Any], n_test_samples: int 
     model = model_artifact["model"]
     q_hat = model_artifact.get("q_hat_margin", 2.0)
 
-    X_test, y_test = generate_synthetic_training_data(n_samples=n_test_samples, random_seed=999)
+    from core.training.train import load_or_fetch_prerace_data
+    try:
+        X_all, y_all, df = load_or_fetch_prerace_data(allow_synthetic=True)
+        if "season" in df.columns and len(df["season"].unique()) > 1:
+            test_mask = (df["season"] == df["season"].max()).values
+            X_test, y_test = X_all[test_mask], y_all[test_mask]
+        else:
+            X_test, y_test = X_all[-n_test_samples:], y_all[-n_test_samples:]
+    except Exception:
+        X_test, y_test = generate_synthetic_training_data(n_samples=n_test_samples, random_seed=999)
     preds = model.predict(X_test)
 
     mae = float(mean_absolute_error(y_test, preds))

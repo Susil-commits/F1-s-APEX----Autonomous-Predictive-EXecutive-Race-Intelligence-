@@ -11,7 +11,7 @@ from .raw_storage import RawStorageManager
 
 logger = logging.getLogger(__name__)
 
-BASE_JOLPICA_URL = "https://api.jolpica.com/ergast/f1"
+BASE_JOLPICA_URL = "https://api.jolpi.ca/ergast/f1"
 
 
 class JolpicaDataLoader:

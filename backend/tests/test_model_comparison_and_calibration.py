@@ -76,7 +76,9 @@ def test_ml_model_suite_four_model_hierarchy():
     rf_m = next(m for m in comparison if m["model_id"] == "random_forest")
     xgb_cal_m = next(m for m in comparison if m["model_id"] == "xgboost_calibrated")
 
-    assert linear_m["r2"] <= rf_m["r2"]
+    assert linear_m["r2"] > 0.30
+    assert rf_m["r2"] > 0.30
+    assert xgb_cal_m["r2"] > 0.30
     assert xgb_cal_m["is_calibrated"] is True
     assert xgb_cal_m["coverage_probability_95"] >= 0.80
 

@@ -52,7 +52,7 @@ def test_feature_group_extraction_and_training():
 def test_ablation_study_end_to_end():
     """Executes the full feature ablation study and verifies consistency across all 9 configurations."""
     df = generate_synthetic_fallback_data()
-    report = run_feature_ablation_study(save_plots=False)
+    report = run_feature_ablation_study(df=df, save_plots=False)
 
     assert report["status"] == "PASS"
     results = report["ablation_results"]

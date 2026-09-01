@@ -8,6 +8,7 @@ from typing import Any
 
 import joblib
 import numpy as np
+import pandas as pd
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.linear_model import LinearRegression
 
@@ -35,6 +36,7 @@ CIRCUIT_DEGRADATION_SEVERITY: dict[str, float] = {
     "silverstone": 1.15,  # High-speed lateral loads (Maggotts/Becketts)
     "suzuka": 1.20,       # High lateral S-curves
     "spa": 1.05,          # High-speed compression & elevation changes
+    "belgium": 1.05,
     "austria": 1.00,      # Medium wear, short lap
     "interlagos": 0.95,   # Medium-low degradation
     "zandvoort": 1.10,    # Banked corners, high lateral load
@@ -167,9 +169,17 @@ class TyreMLSuite:
         """
         from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
         from backend.training.datasets.temporal_splitter import TemporalSplitter
-        from backend.training.fetch_fastf1_data import generate_synthetic_fallback_data
+        from backend.training.fetch_fastf1_data import (
+            OUTPUT_CSV,
+            generate_synthetic_fallback_data,
+        )
 
-        working_df = df if (df is not None and not getattr(df, "empty", True)) else generate_synthetic_fallback_data()
+        if df is not None and not getattr(df, "empty", True):
+            working_df = df
+        elif os.path.exists(OUTPUT_CSV):
+            working_df = pd.read_csv(OUTPUT_CSV)
+        else:
+            working_df = generate_synthetic_fallback_data()
 
         comp_series = working_df["compound"].astype(str).str.upper().map(lambda c: self.COMP_RATE_MAP.get(c, 0.055)).fillna(0.055).astype(float)
         ages = working_df["tyre_age"].astype(float).values
@@ -190,12 +200,14 @@ class TyreMLSuite:
         else:
             stint_laps = ages
 
-        if "driver_fastest_lap_s" in working_df.columns:
-            base_paces = working_df["driver_fastest_lap_s"].astype(float).values
-        else:
-            base_paces = np.full_like(ages, 88.5)
+        circuit_scale_map = {"silverstone": 1.0, "monza": 0.92, "austria": 0.74, "belgium": 1.23, "spa": 1.23, "bahrain": 1.04}
+        circuit_scale = (
+            working_df["circuit"].map(lambda c: circuit_scale_map.get(str(c).lower(), 1.0)).values
+            if "circuit" in working_df.columns
+            else np.ones_like(ages)
+        )
 
-        X = np.column_stack([comp_series.values, ages, age_sq, abrasions, stints, stint_laps, base_paces])
+        X = np.column_stack([comp_series.values, ages, age_sq, abrasions, circuit_scale, stints, stint_laps])
         y = working_df[target_col].astype(float).values
 
         # Strict Temporal Split: Train (2018-2022), Val (2023), Test (2024)
@@ -338,12 +350,14 @@ class TyreMLSuite:
         else:
             stint_laps = ages
 
-        if "driver_fastest_lap_s" in df.columns:
-            base_paces = df["driver_fastest_lap_s"].astype(float).values
-        else:
-            base_paces = np.full_like(ages, 88.5)
+        circuit_scale_map = {"silverstone": 1.0, "monza": 0.92, "austria": 0.74, "belgium": 1.23, "spa": 1.23, "bahrain": 1.04}
+        circuit_scale = (
+            df["circuit"].map(lambda c: circuit_scale_map.get(str(c).lower(), 1.0)).values
+            if "circuit" in df.columns
+            else np.ones_like(ages)
+        )
 
-        X = np.column_stack([comp_series.values, ages, age_sq, abrasions, stints, stint_laps, base_paces])
+        X = np.column_stack([comp_series.values, ages, age_sq, abrasions, circuit_scale, stints, stint_laps])
         y = df[target_col].astype(float).values
 
         # Strict Temporal Split: Train (2018-2022), Val (2023), Test (2024)

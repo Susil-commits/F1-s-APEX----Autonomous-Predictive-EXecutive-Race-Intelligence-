@@ -3,7 +3,7 @@
 Predicts how a Formula 1 driver will finish a race, using real F1 data — then layers live strategy intelligence (tyre wear, pit windows, what-if scenarios) on top, the way an actual pit wall works.
 
 [![Test Suite](https://img.shields.io/badge/tests-257%2F257%20passing-brightgreen?style=flat-square&logo=pytest)](docs/EVALUATION.md)
-[![Temporal Holdout](https://img.shields.io/badge/2024%20Holdout%20R%C2%B2-0.788-00F0FF?style=flat-square)](docs/EVALUATION.md)
+[![Temporal Holdout](https://img.shields.io/badge/2024%20Holdout%20R%C2%B2-0.479-00F0FF?style=flat-square)](docs/EVALUATION.md)
 [![Python Version](https://img.shields.io/badge/python-3.11%20%7C%203.12-E10600?style=flat-square&logo=python)](pyproject.toml)
 [![Frontend](https://img.shields.io/badge/frontend-React%2018%20%2B%20Tailwind%20%2B%20Vite-blue?style=flat-square&logo=vite)](frontend/)
 [![Architecture](https://img.shields.io/badge/architecture-3--Tier%20Verified-purple?style=flat-square)](docs/ARCHITECTURE.md)
@@ -103,14 +103,24 @@ Every metric below is directly reproducible via a dedicated script in the reposi
 
 | Metric | Measured Value | Benchmark Script | Report |
 |---|---|---|---|
-| **2024 Test Season $R^2$** | **0.788** | [`backend/eval/temporal_validation.py`](backend/eval/temporal_validation.py) | [Report](backend/eval/temporal_validation_report.json) |
-| **Pearson Correlation ($r$)** | **0.919** | [`backend/eval/temporal_validation.py`](backend/eval/temporal_validation.py) | [Report](backend/eval/temporal_validation_report.json) |
-| **Tyre Degradation Cliff Accuracy** | **99.4%** | [`backend/eval/temporal_validation.py`](backend/eval/temporal_validation.py) | [Report](backend/eval/temporal_validation_report.json) |
+| **2024 Test Season $R^2$** | **0.479** | [`backend/eval/temporal_validation.py`](backend/eval/temporal_validation.py) | [Report](backend/eval/temporal_validation_report.json) |
+| **Pearson Correlation ($r$)** | **0.709** | [`backend/eval/temporal_validation.py`](backend/eval/temporal_validation.py) | [Report](backend/eval/temporal_validation_report.json) |
+| **Tyre Degradation Cliff Accuracy** | **79.9%** | [`backend/eval/temporal_validation.py`](backend/eval/temporal_validation.py) | [Report](backend/eval/temporal_validation_report.json) |
 | **FastF1 Telemetry Degradation $R^2$** | **0.620** | [`backend/eval/tyre_model_eval.py`](backend/eval/tyre_model_eval.py) | [Report](backend/eval/latest_eval_report.json) |
 | **TreeSHAP Surrogate Fidelity** | **0.880** | [`backend/eval/run_eval.py`](backend/eval/run_eval.py) | [Report](backend/eval/latest_eval_report.json) |
-| **Empirical Conformal Coverage** | **95.4%** | [`backend/eval/temporal_validation.py`](backend/eval/temporal_validation.py) | [Report](backend/eval/temporal_validation_report.json) |
+| **Empirical Conformal Coverage** | **97.9%** | [`backend/eval/temporal_validation.py`](backend/eval/temporal_validation.py) | [Report](backend/eval/temporal_validation_report.json) |
 | **RL Policy Multi-Circuit Win Rate** | **100.0%** | [`backend/eval/rl_vs_non_rl_benchmark.py`](backend/eval/rl_vs_non_rl_benchmark.py) | [Report](backend/eval/rl_vs_non_rl_report.json) |
-| **Automated Unit & Invariant Tests** | **254 / 254** | `uv run pytest backend/tests` | All tests pass |
+| **Automated Unit & Invariant Tests** | **257 / 257** | `uv run pytest backend/tests` | All tests pass |
+
+### Visual Evaluation Artifacts
+
+#### Zero-Leakage Temporal Validation Architecture
+![Temporal Validation Architecture](backend/models/temporal_validation_folds.png)
+*Figure 1: (Left) Walk-Forward expanding-window cross-validation timeline across 2018–2024 seasons. (Right) Anti-leakage audit: comparing APEX's strict temporal split against a naive random split, quantifying the optimism bias gap caused by future stint/lap leakage.*
+
+#### Real-World Compound Degradation Curves
+![Compound Degradation Curves](backend/models/temporal_degradation_curves.png)
+*Figure 2: Longitudinal tyre wear modeling on genuine FastF1 race telemetry. Shows 2018–2022 training fit curves against real 2023 validation and 2024 holdout test laps for Soft, Medium, and Hard compounds.*
 
 *For complete evaluation methodology and baseline comparisons, see [docs/EVALUATION.md](docs/EVALUATION.md).*
 
@@ -122,7 +132,7 @@ Every metric below is directly reproducible via a dedicated script in the reposi
 - [x] **V2: Live Race Digital Twin**: 60Hz physics simulation loop, tyre degradation modeling, Monte Carlo strategy simulations, and 5-zone pit-wall interface.
 - [x] **V3: Reinforcement Learning & Explainability**: Safe RL action masking, DQN/PPO policy networks, and microsecond TreeSHAP feature attributions.
 - [x] **V4: Multi-Agent Consensus & FastMCP**: 5-agent LangGraph deliberation (Race Engineer, Tyre Tech, Strategist, Aero, Data Analyst), FastMCP tool server, and Hybrid RAG.
-- [x] **V5: Production Hardening & Resilience**: Zero-hard-dependency fallbacks (Postgres → SQLite, Redis → In-memory, Ollama → Deterministic), Docker Compose containerization, and 254/254 passing test invariants.
+- [x] **V5: Production Hardening & Resilience**: Zero-hard-dependency fallbacks (Postgres → SQLite, Redis → In-memory, Ollama → Deterministic), Docker Compose containerization, and 257/257 passing test invariants.
 
 ---
 

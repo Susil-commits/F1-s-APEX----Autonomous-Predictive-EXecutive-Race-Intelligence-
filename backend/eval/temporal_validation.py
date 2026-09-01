@@ -79,7 +79,9 @@ def prepare_features_and_target(
     age_sq = (ages / 20.0) ** 2
 
     if "circuit" in df.columns:
-        abrasions = df["circuit"].map(lambda c: TyreModel.get_circuit_degradation_factor(str(c))).values
+        abrasions = df["circuit"].map(
+            lambda c: 1.05 if any(x in str(c).lower() for x in ["belg", "spa"]) else TyreModel.get_circuit_degradation_factor(str(c))
+        ).values
     else:
         abrasions = np.ones_like(ages)
 
@@ -93,21 +95,23 @@ def prepare_features_and_target(
     else:
         stint_laps = ages
 
-    if "driver_fastest_lap_s" in df.columns:
-        base_paces = df["driver_fastest_lap_s"].astype(float).values
-    else:
-        base_paces = np.full_like(ages, 88.5)
+    circuit_scale_map = {"silverstone": 1.0, "monza": 0.92, "austria": 0.74, "belgium": 1.23, "spa": 1.23, "bahrain": 1.04}
+    circuit_scale = (
+        df["circuit"].map(lambda c: circuit_scale_map.get(str(c).lower(), 1.0)).values
+        if "circuit" in df.columns
+        else np.ones_like(ages)
+    )
 
     feature_names = [
         "compound_rate",
         "tyre_age",
         "tyre_age_sq_scaled",
         "circuit_abrasion",
+        "circuit_scale",
         "stint_number",
         "stint_lap",
-        "driver_causal_base_pace",
     ]
-    X = np.column_stack([comp_series.values, ages, age_sq, abrasions, stints, stint_laps, base_paces])
+    X = np.column_stack([comp_series.values, ages, age_sq, abrasions, circuit_scale, stints, stint_laps])
     y = df[target_col].astype(float).values
     return X, y, feature_names
 
@@ -267,11 +271,15 @@ def run_temporal_validation(
     if os.path.exists(target_csv):
         df = pd.read_csv(target_csv)
     else:
-        logger.info("[TemporalValidation] Telemetry CSV not found. Generating multi-season distribution...")
-        df = generate_synthetic_fallback_data()
+        logger.info("[TemporalValidation] Telemetry CSV not found. Ingesting real F1 telemetry across 2018-2024...")
+        df = fetch_all_real_races(output_path=target_csv, allow_synthetic_fallback=False)
 
     if df.empty:
         raise ValueError(f"Telemetry dataset at {target_csv} is empty.")
+
+    is_real_telemetry = bool("data_source" in df.columns and (df["data_source"] == "fastf1_real").any())
+    data_source_label = "FastF1 Real Telemetry" if is_real_telemetry else "Synthetic Fallback Distribution"
+    logger.info(f"[TemporalValidation] Loaded {len(df)} records ({data_source_label})")
 
     # 1. Fixed Horizon Temporal Split (Train: 2018-2022, Val: 2023, Test: 2024)
     config = TemporalSplitConfig(
@@ -367,6 +375,13 @@ def run_temporal_validation(
     report_payload = {
         "timestamp_utc": datetime.now(UTC).isoformat(),
         "status": "PASS" if integrity_report.is_valid else "LEAKAGE_DETECTED",
+        "data_provenance": {
+            "dataset_path": str(target_csv),
+            "is_verified_real": is_real_telemetry,
+            "provenance": data_source_label,
+            "total_records": len(df),
+            "seasons_present": sorted([int(s) for s in df["season"].unique()]) if "season" in df.columns else [],
+        },
         "temporal_integrity": integrity_report.model_dump(),
         "fixed_horizon_evaluation": {
             "train_seasons": [2018, 2019, 2020, 2021, 2022],
@@ -560,9 +575,13 @@ if __name__ == "__main__":
     args = parser.parse_args()
 
     report = run_temporal_validation(csv_path=args.data)
+    prov = report.get("data_provenance", {})
+    prov_text = f"{prov.get('provenance', 'Unknown')} ({'VERIFIED REAL TELEMETRY' if prov.get('is_verified_real') else 'SYNTHETIC'})"
     print("\n" + "=" * 70)
     print("APEX TEMPORAL VALIDATION HARNESS (ZERO-LEAKAGE)")
     print("=" * 70)
+    print(f"Data Provenance:             {prov_text}")
+    print(f"Dataset Records:             {prov.get('total_records', 0)} laps across seasons {prov.get('seasons_present', [])}")
     print(f"Status:                      {report['status']}")
     print(f"Train Seasons:               {report['fixed_horizon_evaluation']['train_seasons']}")
     print(f"Validation Season:           {report['fixed_horizon_evaluation']['validation_season']}")

@@ -1,6 +1,21 @@
 {
-  "timestamp_utc": "2026-09-01T07:44:16.738880+00:00",
+  "timestamp_utc": "2026-09-01T09:06:25.367046+00:00",
   "status": "PASS",
+  "data_provenance": {
+    "dataset_path": "C:\\Users\\nayak\\OneDrive\\Desktop\\Projects\\AIML\\APEX\\backend\\training\\..\\data\\real_tyre_data.csv",
+    "is_verified_real": true,
+    "provenance": "FastF1 Real Telemetry",
+    "total_records": 14223,
+    "seasons_present": [
+      2018,
+      2019,
+      2020,
+      2021,
+      2022,
+      2023,
+      2024
+    ]
+  },
   "temporal_integrity": {
     "is_valid": true,
     "max_train_season": 2022,
@@ -23,26 +38,26 @@
     ],
     "validation_season": 2023,
     "test_season": 2024,
-    "train_records": 9829,
-    "val_records": 3561,
-    "test_records": 3558,
+    "train_records": 7526,
+    "val_records": 3514,
+    "test_records": 3183,
     "validation_2023_metrics": {
-      "r2": 0.6339,
-      "rmse": 0.312,
-      "mae": 0.1357,
-      "pearson_r": 0.8915,
-      "cliff_accuracy": 0.9854,
-      "train_samples": 9829,
-      "val_samples": 3561
+      "r2": 0.2657,
+      "rmse": 0.8516,
+      "mae": 0.5398,
+      "pearson_r": 0.5458,
+      "cliff_accuracy": 0.7703,
+      "train_samples": 7526,
+      "val_samples": 3514
     },
     "test_2024_metrics": {
-      "r2": 0.7883,
-      "rmse": 0.2019,
-      "mae": 0.1044,
-      "pearson_r": 0.9194,
-      "cliff_accuracy": 0.9941,
-      "train_samples": 13390,
-      "val_samples": 3558
+      "r2": 0.4791,
+      "rmse": 0.6227,
+      "mae": 0.43,
+      "pearson_r": 0.7092,
+      "cliff_accuracy": 0.7989,
+      "train_samples": 11040,
+      "val_samples": 3183
     }
   },
   "model_comparison": {
@@ -50,50 +65,50 @@
     "models": [
       {
         "model_name": "Linear baseline",
-        "r2": 0.156,
-        "rmse": 0.4032,
-        "mae": 0.2525,
-        "pearson_r": 0.5028,
-        "cliff_accuracy": 0.98,
-        "expected_calibration_error": 0.0001,
-        "coverage_probability_95": 0.95,
-        "mean_interval_width_s": 0.8017,
+        "r2": 0.4997,
+        "rmse": 0.6102,
+        "mae": 0.431,
+        "pearson_r": 0.724,
+        "cliff_accuracy": 0.8077,
+        "expected_calibration_error": 0.0006,
+        "coverage_probability_95": 0.9497,
+        "mean_interval_width_s": 2.1559,
         "is_calibrated": false
       },
       {
         "model_name": "Random Forest",
-        "r2": 0.2818,
-        "rmse": 0.3719,
-        "mae": 0.1689,
-        "pearson_r": 0.8619,
-        "cliff_accuracy": 0.9798,
-        "expected_calibration_error": 0.0005,
-        "coverage_probability_95": 0.95,
-        "mean_interval_width_s": 0.7903,
+        "r2": 0.4816,
+        "rmse": 0.6211,
+        "mae": 0.4339,
+        "pearson_r": 0.7093,
+        "cliff_accuracy": 0.7766,
+        "expected_calibration_error": 0.0001,
+        "coverage_probability_95": 0.9497,
+        "mean_interval_width_s": 2.1346,
         "is_calibrated": false
       },
       {
         "model_name": "XGBoost",
-        "r2": 0.5043,
-        "rmse": 0.309,
-        "mae": 0.1324,
-        "pearson_r": 0.876,
-        "cliff_accuracy": 0.9862,
-        "expected_calibration_error": 0.0065,
-        "coverage_probability_95": 0.95,
-        "mean_interval_width_s": 0.5422,
+        "r2": 0.4948,
+        "rmse": 0.6132,
+        "mae": 0.4285,
+        "pearson_r": 0.7171,
+        "cliff_accuracy": 0.787,
+        "expected_calibration_error": 0.0002,
+        "coverage_probability_95": 0.9497,
+        "mean_interval_width_s": 2.1023,
         "is_calibrated": false
       },
       {
         "model_name": "XGBoost + calibration",
-        "r2": 0.5043,
-        "rmse": 0.309,
-        "mae": 0.1324,
-        "pearson_r": 0.876,
-        "cliff_accuracy": 0.9862,
-        "expected_calibration_error": 0.0065,
-        "coverage_probability_95": 0.9545,
-        "mean_interval_width_s": 0.5917,
+        "r2": 0.4948,
+        "rmse": 0.6132,
+        "mae": 0.4285,
+        "pearson_r": 0.7171,
+        "cliff_accuracy": 0.787,
+        "expected_calibration_error": 0.0002,
+        "coverage_probability_95": 0.9793,
+        "mean_interval_width_s": 2.7089,
         "is_calibrated": true
       }
     ]
@@ -101,80 +116,80 @@
   "prediction_calibration": {
     "target_coverage": 0.95,
     "empirical_coverage_95": 1.0,
-    "expected_calibration_error": 0.0638,
-    "mean_interval_width_s": 0.3736,
-    "winkler_score": 0.3736,
-    "brier_score_cliff": 0.0016,
-    "q_hat_margin_s": 0.2621,
-    "is_well_calibrated": false,
+    "expected_calibration_error": 0.0006,
+    "mean_interval_width_s": 3.3427,
+    "winkler_score": 3.3427,
+    "brier_score_cliff": 0.0368,
+    "q_hat_margin_s": 2.2058,
+    "is_well_calibrated": true,
     "reliability_diagram_bins": [
       {
         "nominal_confidence": 0.1,
-        "empirical_coverage": 0.3999,
-        "calibration_gap": 0.2999,
-        "interval_margin_s": 0.0
-      },
-      {
-        "nominal_confidence": 0.2,
-        "empirical_coverage": 0.3999,
-        "calibration_gap": 0.2011,
-        "interval_margin_s": 0.0
-      },
-      {
-        "nominal_confidence": 0.3,
-        "empirical_coverage": 0.3999,
-        "calibration_gap": 0.1022,
-        "interval_margin_s": 0.0
-      },
-      {
-        "nominal_confidence": 0.4,
-        "empirical_coverage": 0.3999,
-        "calibration_gap": 0.0033,
-        "interval_margin_s": 0.0
-      },
-      {
-        "nominal_confidence": 0.5,
-        "empirical_coverage": 0.4983,
-        "calibration_gap": 0.0028,
+        "empirical_coverage": 0.104,
+        "calibration_gap": 0.004,
         "interval_margin_s": 0.001
       },
       {
+        "nominal_confidence": 0.2,
+        "empirical_coverage": 0.1989,
+        "calibration_gap": 0.0,
+        "interval_margin_s": 0.008
+      },
+      {
+        "nominal_confidence": 0.3,
+        "empirical_coverage": 0.2981,
+        "calibration_gap": 0.0004,
+        "interval_margin_s": 0.013
+      },
+      {
+        "nominal_confidence": 0.4,
+        "empirical_coverage": 0.3971,
+        "calibration_gap": 0.0004,
+        "interval_margin_s": 0.018
+      },
+      {
+        "nominal_confidence": 0.5,
+        "empirical_coverage": 0.4954,
+        "calibration_gap": 0.0001,
+        "interval_margin_s": 0.023
+      },
+      {
         "nominal_confidence": 0.59,
-        "empirical_coverage": 0.5961,
-        "calibration_gap": 0.0017,
-        "interval_margin_s": 0.003
+        "empirical_coverage": 0.5944,
+        "calibration_gap": 0.0,
+        "interval_margin_s": 0.028
       },
       {
         "nominal_confidence": 0.69,
-        "empirical_coverage": 0.6945,
-        "calibration_gap": 0.0012,
-        "interval_margin_s": 0.004
+        "empirical_coverage": 0.6937,
+        "calibration_gap": 0.0004,
+        "interval_margin_s": 0.033
       },
       {
         "nominal_confidence": 0.79,
-        "empirical_coverage": 0.7923,
-        "calibration_gap": 0.0001,
-        "interval_margin_s": 0.006
+        "empirical_coverage": 0.792,
+        "calibration_gap": 0.0002,
+        "interval_margin_s": 0.038
       },
       {
         "nominal_confidence": 0.89,
-        "empirical_coverage": 0.8909,
-        "calibration_gap": 0.0002,
-        "interval_margin_s": 0.01
+        "empirical_coverage": 0.891,
+        "calibration_gap": 0.0001,
+        "interval_margin_s": 0.046
       },
       {
         "nominal_confidence": 0.99,
         "empirical_coverage": 0.9899,
         "calibration_gap": 0.0001,
-        "interval_margin_s": 0.046
+        "interval_margin_s": 0.072
       }
     ]
   },
   "walk_forward_expanding_window_cv": {
     "total_folds": 4,
-    "avg_r2": 0.2525,
-    "avg_rmse": 0.3162,
-    "avg_mae": 0.1482,
+    "avg_r2": 0.3506,
+    "avg_rmse": 0.6562,
+    "avg_mae": 0.4543,
     "folds": [
       {
         "fold_idx": 1,
@@ -185,17 +200,17 @@
           2020
         ],
         "val_season": 2021,
-        "train_samples": 5756,
-        "val_samples": 1977,
+        "train_samples": 3709,
+        "val_samples": 1520,
         "notes": "",
         "metrics": {
-          "r2": 0.9647,
-          "rmse": 0.122,
-          "mae": 0.0922,
-          "pearson_r": 0.9822,
-          "cliff_accuracy": 0.997,
-          "train_samples": 5756,
-          "val_samples": 1977
+          "r2": 0.1751,
+          "rmse": 0.6095,
+          "mae": 0.4568,
+          "pearson_r": 0.5097,
+          "cliff_accuracy": 0.7789,
+          "train_samples": 3709,
+          "val_samples": 1520
         }
       },
       {
@@ -208,17 +223,17 @@
           2021
         ],
         "val_season": 2022,
-        "train_samples": 7733,
-        "val_samples": 2096,
+        "train_samples": 5229,
+        "val_samples": 2297,
         "notes": "Major F1 Aerodynamic & 18-inch Tyre Regulation Transition Fold",
         "metrics": {
-          "r2": -1.3769,
-          "rmse": 0.6291,
-          "mae": 0.2607,
-          "pearson_r": 0.8055,
-          "cliff_accuracy": 0.9547,
-          "train_samples": 7733,
-          "val_samples": 2096
+          "r2": 0.4825,
+          "rmse": 0.541,
+          "mae": 0.3908,
+          "pearson_r": 0.6986,
+          "cliff_accuracy": 0.8041,
+          "train_samples": 5229,
+          "val_samples": 2297
         }
       },
       {
@@ -232,17 +247,17 @@
           2022
         ],
         "val_season": 2023,
-        "train_samples": 9829,
-        "val_samples": 3561,
+        "train_samples": 7526,
+        "val_samples": 3514,
         "notes": "",
         "metrics": {
-          "r2": 0.6339,
-          "rmse": 0.312,
-          "mae": 0.1357,
-          "pearson_r": 0.8915,
-          "cliff_accuracy": 0.9854,
-          "train_samples": 9829,
-          "val_samples": 3561
+          "r2": 0.2657,
+          "rmse": 0.8516,
+          "mae": 0.5398,
+          "pearson_r": 0.5458,
+          "cliff_accuracy": 0.7703,
+          "train_samples": 7526,
+          "val_samples": 3514
         }
       },
       {
@@ -257,28 +272,28 @@
           2023
         ],
         "val_season": 2024,
-        "train_samples": 13390,
-        "val_samples": 3558,
+        "train_samples": 11040,
+        "val_samples": 3183,
         "notes": "Pre-Prospective Calibration Fold",
         "metrics": {
-          "r2": 0.7883,
-          "rmse": 0.2019,
-          "mae": 0.1044,
-          "pearson_r": 0.9194,
-          "cliff_accuracy": 0.9941,
-          "train_samples": 13390,
-          "val_samples": 3558
+          "r2": 0.4791,
+          "rmse": 0.6227,
+          "mae": 0.43,
+          "pearson_r": 0.7092,
+          "cliff_accuracy": 0.7989,
+          "train_samples": 11040,
+          "val_samples": 3183
         }
       }
     ]
   },
   "leakage_bias_diagnostic": {
-    "leaked_random_split_r2": 0.8897,
-    "strict_temporal_test_r2": 0.7883,
-    "leaked_random_split_rmse": 0.1767,
-    "strict_temporal_test_rmse": 0.2019,
-    "r2_optimism_bias_delta": 0.1014,
-    "rmse_optimism_bias_delta": 0.0252,
+    "leaked_random_split_r2": 0.5868,
+    "strict_temporal_test_r2": 0.4791,
+    "leaked_random_split_rmse": 0.5368,
+    "strict_temporal_test_rmse": 0.6227,
+    "r2_optimism_bias_delta": 0.1077,
+    "rmse_optimism_bias_delta": 0.0859,
     "conclusion": "Random splitting artificially inflates R\u00b2 due to future lap/stint leakage. APEX's strict temporal split (Train: 2018-2022 | Val: 2023 | Test: 2024) accurately reflects true out-of-sample race generalizability."
   },
   "feature_provenance": {
@@ -287,9 +302,9 @@
       "tyre_age",
       "tyre_age_sq_scaled",
       "circuit_abrasion",
+      "circuit_scale",
       "stint_number",
-      "stint_lap",
-      "driver_causal_base_pace"
+      "stint_lap"
     ],
     "causal_guarantee": "Expanding left-closed past-only pace baseline (cummin().shift(1))",
     "scaler_isolation": "Fitted strictly on train slice (T <= t_val)"
