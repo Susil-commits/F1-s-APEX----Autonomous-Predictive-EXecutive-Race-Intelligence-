@@ -2,6 +2,21 @@
 @tailwind components;
 @tailwind utilities;
 
+:root {
+  --apex-red: #E10600;
+  --apex-bg: #08090C;
+  --apex-card: #0E1017;
+  --apex-border: #1F2432;
+  --apex-cyan: #00F0FF;
+  --apex-yellow: #FFD000;
+  --apex-green: #00E676;
+  
+  /* Authentic F1 Sector-Color System */
+  --sector-purple: #D946EF;  /* Fastest sector of session */
+  --sector-green: #00E676;   /* Personal best sector */
+  --sector-yellow: #FFD000;  /* Standard sector time */
+}
+
 @layer base {
   body {
     background-color: #08090C;
@@ -131,3 +146,26 @@
   pointer-events: none;
   animation: scanline 4s linear infinite;
 }
+
+/* F1 Pit-Wall Panel Status Indicators */
+.border-status-alert {
+  border-left: 4px solid #E10600 !important;
+}
+.border-status-telemetry {
+  border-left: 4px solid #00F0FF !important;
+}
+.border-status-nominal {
+  border-left: 4px solid #00E676 !important;
+}
+.border-status-caution {
+  border-left: 4px solid #FFD000 !important;
+}
+
+/* F1 Sector Colors */
+.text-sector-purple { color: #D946EF; }
+.bg-sector-purple { background-color: #D946EF; }
+.text-sector-green { color: #00E676; }
+.bg-sector-green { background-color: #00E676; }
+.text-sector-yellow { color: #FFD000; }
+.bg-sector-yellow { background-color: #FFD000; }
+

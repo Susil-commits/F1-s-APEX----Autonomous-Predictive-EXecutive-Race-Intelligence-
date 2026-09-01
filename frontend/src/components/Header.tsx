@@ -1,35 +1,23 @@
 import React, { useState, useEffect } from 'react';
-import { useRaceStore, WorkspaceTab } from '../store/raceStore';
+import { useRaceStore } from '../store/raceStore';
 import {
-  Activity,
   CloudRain,
   Sun,
   ShieldAlert,
-  Wifi,
-  Radio,
-  Volume2,
-  VolumeX,
-  Gauge,
-  MapPin,
-  Mic,
-  MicOff,
-  Flame,
-  Scale,
-  ShieldCheck,
   Zap,
-  Brain,
-  TrendingUp,
-  GitBranch,
-  Layers,
-  Workflow,
-  Terminal,
-  AlertTriangle,
-  Server,
-  BarChart2,
+  MapPin,
+  Clock,
+  Gauge,
+  SlidersHorizontal,
 } from 'lucide-react';
 import { CIRCUIT_DATABASE } from '../data/trackGeometries';
-import { audioEngine, VoicePersona } from '../utils/audioEngine';
-import { voiceRadio } from '../utils/voiceRadioRecognition';
+
+export type AppMode = 'simple' | 'pitwall';
+
+interface HeaderProps {
+  appMode: AppMode;
+  onSelectMode: (mode: AppMode) => void;
+}
 
 const AVAILABLE_CIRCUITS = [
   { id: 'silverstone', name: 'Silverstone Circuit', flag: '🇬🇧' },
@@ -43,29 +31,24 @@ const AVAILABLE_CIRCUITS = [
   { id: 'redbullring', name: 'Red Bull Ring (Spielberg)', flag: '🇦🇹' },
 ];
 
-export const Header: React.FC = () => {
-  const {
-    raceState,
-    setRaceState,
-    connected,
-    isRunning,
-    activeTab,
-    setActiveTab,
-    audioMuted,
-    toggleAudioMute,
-    voiceRadioEnabled,
-    toggleVoiceRadio,
-  } = useRaceStore();
-
-  const [activePersona, setActivePersona] = useState<VoicePersona>('apex_core');
+export const Header: React.FC<HeaderProps> = ({ appMode, onSelectMode }) => {
+  const { raceState, setRaceState, connected } = useRaceStore();
   const [isChangingTrack, setIsChangingTrack] = useState<boolean>(false);
-  const [isMicListening, setIsMicListening] = useState<boolean>(false);
+  const [currentTimeUTC, setCurrentTimeUTC] = useState<string>('');
 
   useEffect(() => {
-    const unsub = voiceRadio.subscribeStatus((listening) => {
-      setIsMicListening(listening);
-    });
-    return () => unsub();
+    const updateTime = () => {
+      const d = new Date();
+      setCurrentTimeUTC(
+        `${d.getUTCHours().toString().padStart(2, '0')}:${d
+          .getUTCMinutes()
+          .toString()
+          .padStart(2, '0')}:${d.getUTCSeconds().toString().padStart(2, '0')} UTC`
+      );
+    };
+    updateTime();
+    const interval = setInterval(updateTime, 1000);
+    return () => clearInterval(interval);
   }, []);
 
   const current_lap = raceState?.current_lap || 1;
@@ -76,7 +59,7 @@ export const Header: React.FC = () => {
   const trackName = raceState?.track?.name || 'Silverstone Circuit';
   const trackDistance = raceState?.track?.lap_distance_km || 5.89;
 
-  // Format race clock
+  // Format race session time
   const minutes = Math.floor(race_time_s / 60);
   const seconds = (race_time_s % 60).toFixed(1);
   const formattedTime = `${minutes.toString().padStart(2, '0')}:${seconds.padStart(4, '0')}`;
@@ -109,124 +92,123 @@ export const Header: React.FC = () => {
       trackName.toLowerCase().includes(c.id) || trackName.toLowerCase().includes(c.name.toLowerCase())
     )?.id || 'silverstone';
 
-  // 10 Core AI / ML Decision Intelligence Workspaces
-  const CORE_WORKSPACES: { id: WorkspaceTab; label: string; icon: React.ReactNode }[] = [
-    { id: 'tactical', label: 'AI Strategist', icon: <Brain className="w-3.5 h-3.5" /> },
-    { id: 'race_state', label: 'Race State', icon: <Activity className="w-3.5 h-3.5" /> },
-    { id: 'prediction_explorer', label: 'Prediction ML', icon: <TrendingUp className="w-3.5 h-3.5 text-cyan-400" /> },
-    { id: 'counterfactual_lab', label: 'Counterfactuals', icon: <GitBranch className="w-3.5 h-3.5 text-amber-400" /> },
-    { id: 'strategy_policy', label: 'Decision Policy', icon: <ShieldCheck className="w-3.5 h-3.5 text-emerald-400" /> },
-    { id: 'explainability', label: 'TreeSHAP', icon: <Layers className="w-3.5 h-3.5 text-purple-400" /> },
-    { id: 'data_lineage', label: 'Data Lineage', icon: <Workflow className="w-3.5 h-3.5 text-blue-400" /> },
-    { id: 'agent_trace', label: 'Agent Trace', icon: <Terminal className="w-3.5 h-3.5 text-yellow-400" /> },
-    { id: 'ablation_study', label: 'Ablation Study', icon: <BarChart2 className="w-3.5 h-3.5 text-rose-400" /> },
-    { id: 'error_monitoring', label: 'Error & Monitoring', icon: <AlertTriangle className="w-3.5 h-3.5 text-orange-400" /> },
-  ];
-
   return (
-    <>
-      <header className="w-full bg-[#0B0D13]/95 backdrop-blur-xl border-b border-[#232736] px-4 lg:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-50 shadow-2xl shadow-black/80">
-        {/* Brand & Track Info */}
+    <header className="w-full bg-[#090B10]/95 backdrop-blur-xl border-b border-[#1F2432] px-4 lg:px-6 py-2.5 flex flex-wrap items-center justify-between gap-3 sticky top-0 z-50 shadow-2xl shadow-black/80 relative">
+      {/* Red underline accent */}
+      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#E10600] to-transparent opacity-80" />
+
+      {/* Brand & Track Info */}
+      <div className="flex items-center gap-3">
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-3">
-            {/* Official F1 Red Angle Box */}
-            <div className="h-9 px-3 rounded bg-gradient-to-r from-[#E10600] to-[#B30000] flex items-center justify-center shadow-lg shadow-red-600/30 border-t border-white/20 -skew-x-12">
-              <span className="font-black text-sm tracking-tighter text-white uppercase skew-x-12 flex items-center gap-1.5">
-                <Zap className="w-3.5 h-3.5 fill-white" />
-                APEX
+          {/* Official F1 Red Angle Box */}
+          <div className="h-9 px-3 rounded bg-gradient-to-r from-[#E10600] to-[#B30000] flex items-center justify-center shadow-lg shadow-red-600/30 border-t border-white/20 -skew-x-12">
+            <span className="font-black text-sm tracking-tighter text-white uppercase skew-x-12 flex items-center gap-1.5 font-sans">
+              <Zap className="w-3.5 h-3.5 fill-white" />
+              APEX
+            </span>
+          </div>
+
+          <div>
+            <div className="flex items-center gap-1.5">
+              <span className="font-black text-sm tracking-wider text-white font-sans">RACE INTELLIGENCE</span>
+              <span className="text-[9px] font-mono font-black uppercase px-1.5 py-0.5 rounded bg-red-950 text-red-400 border border-red-800">
+                F1 OPS
               </span>
             </div>
-
-            <div>
-              <div className="flex items-center gap-1.5">
-                <span className="font-black text-sm tracking-wider text-white">DECISION INTELLIGENCE</span>
-                <span className="text-[9px] font-mono font-black uppercase px-1.5 py-0.5 rounded bg-red-950 text-red-400 border border-red-800">
-                  AI/ML
-                </span>
-              </div>
-              <p className="text-[10px] text-slate-400 font-mono tracking-tight">Sequential Decision Platform</p>
-            </div>
-          </div>
-
-          <div className="h-6 w-px bg-[#232736] hidden md:block" />
-
-          {/* Interactive Circuit Switcher */}
-          <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#131722] border border-[#232736] text-xs font-mono">
-            <MapPin className="w-3.5 h-3.5 text-[#E10600]" />
-            <select
-              value={currentTrackKey}
-              onChange={(e) => handleTrackChange(e.target.value)}
-              disabled={isChangingTrack}
-              className="bg-transparent text-white font-bold focus:outline-none cursor-pointer text-xs"
-              title="Switch Active Grand Prix Circuit"
-            >
-              {AVAILABLE_CIRCUITS.map((c) => (
-                <option key={c.id} value={c.id} className="bg-[#0B0D13] text-white">
-                  {c.flag} {c.name}
-                </option>
-              ))}
-            </select>
-            <span className="text-slate-400 text-[10px]">({trackDistance} km)</span>
+            <p className="text-[10px] text-slate-400 font-mono tracking-tight">Formula 1 Predictive & Executive Engine</p>
           </div>
         </div>
 
-        {/* 10 Core AI / ML Decision Intelligence Navigation Tabs */}
-        <div className="flex items-center gap-1 bg-[#07090E] p-1 rounded-lg border border-[#232736] text-xs font-mono order-3 lg:order-2 overflow-x-auto max-w-full">
-          {CORE_WORKSPACES.map((tab) => {
-            const isActive = activeTab === tab.id || (tab.id === 'tactical' && activeTab === 'ai_assistant');
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`flex items-center gap-1.5 px-2.5 py-1 rounded transition-all whitespace-nowrap ${
-                  isActive
-                    ? 'bg-[#E10600] text-white font-black shadow-md shadow-red-600/30'
-                    : 'text-slate-300 hover:text-white hover:bg-[#161B28]'
-                }`}
-              >
-                {tab.icon}
-                <span className="font-sans font-bold text-[11px]">{tab.label}</span>
-              </button>
-            );
-          })}
+        <div className="h-6 w-px bg-[#232736] hidden md:block" />
+
+        {/* Interactive Circuit Switcher */}
+        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#131722] border border-[#232736] text-xs font-mono">
+          <MapPin className="w-3.5 h-3.5 text-[#E10600]" />
+          <select
+            value={currentTrackKey}
+            onChange={(e) => handleTrackChange(e.target.value)}
+            disabled={isChangingTrack}
+            className="bg-transparent text-white font-bold focus:outline-none cursor-pointer text-xs"
+            title="Switch Active Grand Prix Circuit"
+          >
+            {AVAILABLE_CIRCUITS.map((c) => (
+              <option key={c.id} value={c.id} className="bg-[#0B0D13] text-white">
+                {c.flag} {c.name}
+              </option>
+            ))}
+          </select>
+          <span className="text-slate-400 text-[10px]">({trackDistance} km)</span>
+        </div>
+      </div>
+
+      {/* CENTER STAGE: DRS-STYLE DUAL-MODE TOGGLE */}
+      <div className="flex items-center bg-[#07090E] p-1 rounded-xl border border-[#232736] shadow-inner font-mono text-xs order-3 lg:order-2">
+        <button
+          onClick={() => onSelectMode('simple')}
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+            appMode === 'simple'
+              ? 'bg-[#E10600] text-white font-black shadow-md shadow-red-600/40'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-[#121520]'
+          }`}
+        >
+          <Zap className="w-3.5 h-3.5" />
+          <span className="font-bold uppercase tracking-wider">Simple Mode (V1)</span>
+        </button>
+
+        <button
+          onClick={() => onSelectMode('pitwall')}
+          className={`flex items-center gap-2 px-3.5 py-1.5 rounded-lg transition-all cursor-pointer ${
+            appMode === 'pitwall'
+              ? 'bg-[#E10600] text-white font-black shadow-md shadow-red-600/40'
+              : 'text-slate-400 hover:text-slate-200 hover:bg-[#121520]'
+          }`}
+        >
+          <Gauge className="w-3.5 h-3.5" />
+          <span className="font-bold uppercase tracking-wider">Pit-Wall Mode (V2)</span>
+        </button>
+      </div>
+
+      {/* RIGHT: BROADCAST LOWER-THIRD CLOCK & TELEMETRY */}
+      <div className="flex items-center gap-2 lg:gap-3 order-2 lg:order-3">
+        {/* Broadcast Live Session Clock */}
+        <div className="hidden sm:flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#10131B] border border-[#232736] text-xs font-mono text-slate-300">
+          <Clock className="w-3.5 h-3.5 text-[#00F0FF]" />
+          <span className="font-bold text-white tracking-widest">{currentTimeUTC}</span>
         </div>
 
-        {/* Right Telemetry & Status Indicators */}
-        <div className="flex items-center gap-2 lg:gap-3 order-2 lg:order-3">
-          {/* Weather Badge */}
-          <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#131722] border border-[#232736] text-xs font-mono">
-            {isRain ? (
-              <CloudRain className="w-3.5 h-3.5 text-cyan-400 animate-bounce" />
-            ) : (
-              <Sun className="w-3.5 h-3.5 text-amber-400" />
-            )}
-            <span className="font-bold text-white text-[11px]">{weather.track_temp_c}°C</span>
-          </div>
-
-          {/* Safety Car Badge */}
-          {safety_car !== 'NONE' && (
-            <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-yellow-950 border border-yellow-700 text-[10px] font-mono font-bold text-yellow-300 animate-pulse">
-              <ShieldAlert className="w-3.5 h-3.5 text-yellow-400" />
-              <span>{safety_car}</span>
-            </div>
+        {/* Weather Badge */}
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#131722] border border-[#232736] text-xs font-mono">
+          {isRain ? (
+            <CloudRain className="w-3.5 h-3.5 text-cyan-400 animate-bounce" />
+          ) : (
+            <Sun className="w-3.5 h-3.5 text-amber-400" />
           )}
-
-          {/* Lap Counter */}
-          <div className="px-2.5 py-1 rounded bg-[#131722] border border-[#232736] text-xs font-mono font-bold text-slate-200">
-            <span className="text-[#E10600]">L{current_lap}</span>/{total_laps}
-          </div>
-
-          {/* Live WS Status Indicator */}
-          <div className="flex items-center gap-1 px-2 py-1 rounded bg-[#131722] border border-[#232736] text-[11px] font-mono">
-            <div
-              className={`w-2 h-2 rounded-full ${
-                connected ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50' : 'bg-red-500 animate-ping'
-              }`}
-            />
-            <span className="text-slate-300 text-[10px] hidden sm:inline">{connected ? '60Hz' : 'OFFLINE'}</span>
-          </div>
+          <span className="font-bold text-white text-[11px]">{weather.track_temp_c}°C</span>
         </div>
-      </header>
-    </>
+
+        {/* Safety Car Badge */}
+        {safety_car !== 'NONE' && (
+          <div className="flex items-center gap-1 px-2 py-0.5 rounded bg-yellow-950 border border-yellow-700 text-[10px] font-mono font-bold text-yellow-300 animate-pulse">
+            <ShieldAlert className="w-3.5 h-3.5 text-yellow-400" />
+            <span>{safety_car}</span>
+          </div>
+        )}
+
+        {/* Lap Counter */}
+        <div className="px-2.5 py-1 rounded bg-[#131722] border border-[#232736] text-xs font-mono font-bold text-slate-200">
+          <span className="text-[#E10600]">L{current_lap}</span>/{total_laps}
+        </div>
+
+        {/* Live WS Status Indicator */}
+        <div className="flex items-center gap-1.5 px-2 py-1 rounded bg-[#131722] border border-[#232736] text-[11px] font-mono">
+          <div
+            className={`w-2 h-2 rounded-full ${
+              connected ? 'bg-emerald-500 shadow-sm shadow-emerald-500/50' : 'bg-red-500 animate-ping'
+            }`}
+          />
+          <span className="text-slate-300 text-[10px] hidden sm:inline">{connected ? 'LIVE' : 'OFFLINE'}</span>
+        </div>
+      </div>
+    </header>
   );
 };
