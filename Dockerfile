@@ -4,13 +4,14 @@
 # ==============================================================================
 
 # --- Stage 1: Build React Vite Frontend ---
-FROM node:20-alpine AS frontend-builder
+FROM node:20-slim AS frontend-builder
 WORKDIR /app/frontend
 
 COPY frontend/package.json frontend/package-lock.json ./
-RUN npm ci --prefer-offline --no-audit
+RUN npm install --prefer-offline --no-audit
 
 COPY frontend/ ./
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 RUN npm run build
 
 # --- Stage 2: Production Python Runtime ---

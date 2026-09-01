@@ -1,11 +1,12 @@
 # Stage 1: Build React Vite App
-FROM node:20-alpine AS builder
+FROM node:20-slim AS builder
 WORKDIR /app
 
 COPY package.json package-lock.json ./
-RUN npm ci
+RUN npm install --prefer-offline --no-audit
 
 COPY . ./
+ENV NODE_OPTIONS="--max-old-space-size=2048"
 RUN npm run build
 
 # Stage 2: Serve with Nginx

@@ -8,6 +8,9 @@ export default defineConfig({
       output: {
         manualChunks(id) {
           if (id.includes('node_modules')) {
+            if (id.includes('three')) {
+              return 'vendor-three';
+            }
             if (id.includes('recharts') || id.includes('d3-') || id.includes('victory-vendor')) {
               return 'vendor-charts';
             }
@@ -19,7 +22,7 @@ export default defineConfig({
         },
       },
     },
-    chunkSizeWarningLimit: 600,
+    chunkSizeWarningLimit: 1000,
   },
   server: {
     port: 3000,
