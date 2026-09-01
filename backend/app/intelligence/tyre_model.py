@@ -395,9 +395,9 @@ class TyreMLSuite:
         if XGB_AVAILABLE and xgb is not None:
             try:
                 self.xgb_model = xgb.XGBRegressor(
-                    n_estimators=250,
-                    max_depth=7,
-                    learning_rate=0.04,
+                    n_estimators=160,
+                    max_depth=5,
+                    learning_rate=0.05,
                     subsample=0.85,
                     colsample_bytree=0.85,
                     random_state=42,

@@ -1,7 +1,7 @@
 {
-  "run_id": "EVAL-APEX-20260901-090700",
-  "timestamp_utc": "2026-09-01T09:07:00.959823+00:00",
-  "duration_seconds": 5.53,
+  "run_id": "EVAL-APEX-20260901-091838",
+  "timestamp_utc": "2026-09-01T09:18:38.814815+00:00",
+  "duration_seconds": 2.21,
   "overall_status": "PASS",
   "has_regressions": false,
   "metrics_evaluated": 25,
@@ -134,7 +134,7 @@
     },
     {
       "metric": "counterfactual_latency_p95_ms",
-      "value": 2.34,
+      "value": 2.31,
       "target": 5.8,
       "min_allowable": null,
       "max_allowable": 15.0,
@@ -279,7 +279,7 @@
       "prediction_ece_error": 0.0006,
       "prediction_picp_coverage_pct": 100.0,
       "counterfactual_stability_pct": 87.5,
-      "counterfactual_latency_p95_ms": 2.34,
+      "counterfactual_latency_p95_ms": 2.31,
       "walk_forward_avg_r2": 0.3506
     },
     "pillar_6_agent": {
