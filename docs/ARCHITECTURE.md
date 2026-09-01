@@ -1,12 +1,37 @@
 # APEX System Architecture & Subsystem Micro-Architectures
 
-> **In Plain English:** APEX is an end-to-end decision intelligence platform that ingests 60Hz vehicle telemetry, evaluates predictive degradation and weather shifts, and executes 1,000+ counterfactual race simulations to recommend optimal, safety-verified pit-wall actions with complete data-lineage tracing.
+> **In Plain English:** APEX predicts race finishing positions using real Formula 1 data, then layers live strategy intelligence (tyre degradation, pit windows, Monte Carlo counterfactuals) and agentic deliberation on top, matching how an actual F1 pit wall functions.
 
-APEX (Autonomous Predictive & EXecutive Race Intelligence) is composed of modular, decoupled sub-architectures that execute an end-to-end verifiable decision pipeline:
+---
+
+## 0. Three-Tier Architectural Decomposition
+
+The repository is cleanly partitioned into three tiers mapping directly to the V1 → V2 → V4 design lifecycle:
 
 ```
-Context → Retrieval → Tool → Reasoning → Constraint → Decision → Evidence
+f1-apex/
+├── core/             # Tier 1 — The Provably-Correct Predictive Baseline (V1)
+│   ├── ingestion/    # Jolpica / FastF1 adapters with point-in-time constraints
+│   ├── features/     # Pre-race feature builder (zero outcome leakage)
+│   ├── training/     # XGBoost + conformal calibration trainer & evaluators
+│   └── api/          # Lightweight standalone predict service (race_id + driver_id -> finish)
+├── intelligence/     # Tier 2 — Live Race Strategy, Digital Twin & Physics ML (V2)
+│   ├── strategy/     # Monte Carlo rollouts, DQN/PPO policies, counterfactual optimizer
+│   ├── models/       # FastF1 tyre degradation, weather radar, vehicle health, TreeSHAP
+│   ├── simulator/    # Millisecond race physics engine with safety cars & pit windows
+│   ├── twin/         # State store, SQLite/PostgreSQL persistence, telemetry buffers
+│   └── streaming/    # Kafka event broker & FastF1 producer/consumer daemons
+└── agents/           # Tier 3 — Multi-Agent Deliberation, RAG & MCP (V3/V4)
+    ├── langgraph/    # LangGraph state machine & 5-agent consensus deliberation
+    ├── rag/          # Hybrid BM25/Dense retrieval over historical Grand Prix decisions
+    └── mcp/          # FastMCP tool server exposing real-time telemetry to LLMs
 ```
+
+| Tier | Primary Capability | Key Contract | Operational Footprint |
+|---|---|---|---|
+| **Tier 1: Core (V1)** | Real F1 pre-race priors → trained model → predicted finish | `race_id + driver_id → predicted finish + model version + data snapshot` | Lightweight single process (no Kafka/Redis required) |
+| **Tier 2: Intelligence (V2)** | 60Hz vehicle digital twin, tyre physics, Monte Carlo what-if | 1,000+ stochastic rollouts, TreeSHAP feature attributions | Full race digital twin with telemetry cache |
+| **Tier 3: Agents (V3/V4)** | LangGraph orchestration, RAG, domain MCP tools | Multi-agent consensus, structured debrief evidence | Orchestrated agentic tools |
 
 ---
 
@@ -500,4 +525,21 @@ flowchart LR
         LoRAAdapters --> AdapterDir
     end
 ```
+
+---
+
+### 🛡️ Sub-Architecture 13: System Resilience & Graceful Degradation
+
+APEX is engineered with zero-hard-dependency resilience: every database, cache, or neural model is fronted by deterministic fallbacks, local buffers, and explicit status signals.
+
+| Subsystem / Dependency | Failure Mode | Fallback Path | Impact |
+|---|---|---|---|
+| **PostgreSQL 16** | Connection refused / timeout | SQLite local engine (`apex_twin.db`) | **Zero Downtime**. All telemetry & audit logs persist locally. |
+| **Redis 7** | Socket error / connection refused | Thread-safe in-memory cache dict (`store.py`) | **Zero Downtime**. Telemetry broadcasts without dropping frames. |
+| **Ollama / LLM** | HTTP connection refused / 500 | Deterministic rule-based radio synthesis | **Zero Downtime**. Emits structured radio messages grounded in delta Q. |
+| **TreeSHAP Surrogates** | Model missing / weight drift | Exact analytical game-theoretic marginal calculation | **Zero Downtime**. Emits `DRIFT_DETECTED` warning; explanations valid. |
+| **FastF1 Telemetry** | Rate limit / network error | Calibrated physics polynomial wear envelope | **Zero Downtime**. Logs `"synthetic_fallback"` status without fake data. |
+| **Dense Embeddings** | PyTorch allocation error | Lexical BM25 token matching with strict refusal | **Zero Downtime**. Returns `"model_used": "deterministic_grounded_fallback"`. |
+| **PINN Tyre Residuals** | Missing PyTorch weights | Base analytical tyre friction model ($\Delta \mu = 0$) | **Zero Downtime**. Proceeds with verified physical equations. |
+
 
