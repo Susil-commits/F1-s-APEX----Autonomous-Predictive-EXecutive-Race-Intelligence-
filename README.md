@@ -109,8 +109,13 @@ Every metric below is directly reproducible via a dedicated script in the reposi
 | **FastF1 Telemetry Degradation $R^2$** | **0.495** | [`backend/eval/tyre_model_eval.py`](backend/eval/tyre_model_eval.py) | [Report](backend/eval/latest_eval_report.json) |
 | **TreeSHAP Surrogate Fidelity** | **0.762** | [`backend/eval/run_eval.py`](backend/eval/run_eval.py) | [Report](backend/eval/latest_eval_report.json) |
 | **Empirical Conformal Coverage** | **97.9%** | [`backend/eval/temporal_validation.py`](backend/eval/temporal_validation.py) | [Report](backend/eval/temporal_validation_report.json) |
-| **RL Policy Multi-Circuit Win Rate** | **100.0%** | [`backend/eval/rl_vs_non_rl_benchmark.py`](backend/eval/rl_vs_non_rl_benchmark.py) | [Report](backend/eval/rl_vs_non_rl_report.json) |
+| **APEX Hybrid Controller Win Rate** | **100.0%** | [`backend/eval/rl_vs_non_rl_benchmark.py`](backend/eval/rl_vs_non_rl_benchmark.py) | [Report](backend/eval/rl_vs_non_rl_report.json) |
 | **Automated Unit & Invariant Tests** | **257 / 257** | `uv run pytest backend/tests` | All tests pass |
+
+> [!NOTE]
+> **Controller Benchmarking & Hybrid Architecture**:
+> Standalone neural RL policies underperform the heuristic baseline in unconstrained multi-circuit racing: PPO achieves a **0.0%** win rate (cumulative reward is 40.5% lower due to exploration variance across multi-stint horizons), while standalone DQN achieves **50.0%**.
+> APEX resolves this through its **Hybrid Controller** (`apex_hybrid`), which synthesizes RL action priors with deterministic tyre safety guardrails, conformal wear boundaries, and Monte Carlo tree rollouts to achieve a verified **100.0% win rate** (matching the heuristic baseline) while reducing constraint violations to 1.
 
 ### Visual Evaluation Artifacts
 

@@ -14,7 +14,7 @@ Every metric documented in APEX is reproducible on demand using dedicated evalua
 | **Real Tyre Degradation** | FastF1 Lap Telemetry $R^2$ | **0.620** | [`backend/eval/tyre_model_eval.py`](file:///backend/eval/tyre_model_eval.py) | [`backend/eval/latest_eval_report.json`](file:///backend/eval/latest_eval_report.json) |
 | **SHAP Explainer Fidelity** | TreeSHAP Surrogate $R^2$ | **0.880** | [`backend/eval/run_eval.py`](file:///backend/eval/run_eval.py) | [`backend/eval/latest_eval_report.json`](file:///backend/eval/latest_eval_report.json) |
 | **Conformal Calibration** | Empirical 95% Coverage | **97.9%** | [`backend/eval/temporal_validation.py`](file:///backend/eval/temporal_validation.py) | [`backend/eval/temporal_validation_report.json`](file:///backend/eval/temporal_validation_report.json) |
-| **RL Policy Execution** | Multi-circuit Win Rate | **100.0%** | [`backend/eval/rl_vs_non_rl_benchmark.py`](file:///backend/eval/rl_vs_non_rl_benchmark.py) | [`backend/eval/rl_vs_non_rl_report.json`](file:///backend/eval/rl_vs_non_rl_report.json) |
+| **APEX Hybrid Controller** | Multi-circuit Win Rate | **100.0%** | [`backend/eval/rl_vs_non_rl_benchmark.py`](file:///backend/eval/rl_vs_non_rl_benchmark.py) | [`backend/eval/rl_vs_non_rl_report.json`](file:///backend/eval/rl_vs_non_rl_report.json) |
 | **Automated Test Suite** | Passing Unit/Integration Tests | **257 / 257** | `uv run pytest backend/tests` | Test runner logs |
 
 ---
@@ -79,10 +79,17 @@ Evaluates the Deep Q-Network (DQN) and PPO pit strategists against human rule en
 uv run python -m backend.eval.rl_vs_non_rl_benchmark
 ```
 
-- **APEX Hybrid Policy (Production RL + MC)**: `100.0%` Win Rate, `100.0%` Podium Rate, `P1.00` Average Finish.
-- **DQN Standalone Strategy**: `50.0%` Win Rate, `100.0%` Podium Rate, `P1.50` Average Finish, `87.5%` Pit Timing Efficiency.
-- **Rule-Based Baseline**: `50.0%` Win Rate, `50.0%` Podium Rate, `P4.00` Average Finish.
-- **Supervised Policy (Behavior Cloning)**: `0.0%` Win Rate, `P10.0` Average Finish (illustrating distributional shift when cloned policies encounter unforeseen tyre degradation states without interactive exploration).
+- **APEX Hybrid Policy (Production RL + MC)**: `100.0%` Win Rate, `100.0%` Podium Rate, `P1.00` Average Finish, `1` constraint violation.
+- **Heuristic Baseline**: `100.0%` Win Rate, `100.0%` Podium Rate, `P1.00` Average Finish, `0` constraint violations.
+- **DQN Standalone Strategy**: `50.0%` Win Rate, `100.0%` Podium Rate, `P1.50` Average Finish, `87.5%` Pit Timing Efficiency, `2` constraint violations.
+- **Rule-Based Baseline**: `50.0%` Win Rate, `50.0%` Podium Rate, `P4.00` Average Finish, `0` constraint violations.
+- **PPO Policy (Safe RL)**: `0.0%` Win Rate, `50.0%` Podium Rate, `P6.00` Average Finish, `-40.5%` reward vs heuristic baseline, `4` constraint violations.
+- **Supervised Policy (Behavior Cloning)**: `0.0%` Win Rate, `0.0%` Podium Rate, `P10.0` Average Finish (illustrating distributional shift when cloned policies encounter unforeseen tyre degradation states without interactive exploration).
+
+> [!NOTE]
+> **Engineering Honesty Note (Why APEX Built a Hybrid Controller)**:
+> Standalone pure RL policies underperform the heuristic baseline: PPO scores a `0.0%` win rate with cumulative reward `40.5%` lower than the heuristic, and DQN achieves `50.0%`. In complex multi-stint race horizons with stochastic weather transitions, unconstrained neural policies exhibit exploratory dithering and sub-optimal stint pacing.
+> Rather than relying on pure neural RL, APEX introduces the **APEX Hybrid Controller**, blending RL action-value priors with deterministic safety guardrails, conformal tyre wear envelopes, and Monte Carlo tree search rollouts. The hybrid controller recovers full performance, matching the heuristic's `100.0%` multi-circuit win rate while maintaining the adaptive responsiveness of RL under dynamic track state transitions.
 
 ---
 
