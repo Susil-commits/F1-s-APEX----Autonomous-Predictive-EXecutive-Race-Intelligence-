@@ -21,6 +21,6 @@ COPY backend/models/apex_core_v1_model.joblib /app/backend/models/apex_core_v1_m
 EXPOSE 8000
 
 HEALTHCHECK --interval=15s --timeout=5s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/ || exit 1
+    CMD curl -f http://localhost:8000/api/health || exit 1
 
 CMD ["uvicorn", "core.api.main:app", "--host", "0.0.0.0", "--port", "8000"]
