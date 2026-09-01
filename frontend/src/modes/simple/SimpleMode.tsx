@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Flag, Play, RotateCcw, AlertCircle, Sparkles, CheckCircle2, ChevronRight } from 'lucide-react';
 import { PredictionCard, PredictionData } from './PredictionCard';
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+
 interface SimpleModeProps {
   onSwitchToPitWall: () => void;
 }
@@ -54,7 +56,7 @@ export const SimpleMode: React.FC<SimpleModeProps> = ({ onSwitchToPitWall }) => 
 
     try {
       // Attempt call to APEX Core backend endpoint
-      const res = await fetch('/api/core/predict', {
+      const res = await fetch(`${API_BASE}/api/core/predict`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
