@@ -40,10 +40,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY --from=ghcr.io/astral-sh/uv:latest /uv /uvx /bin/
 
 # Step 1: Copy dependency manifests and project docs required by pyproject.toml
-COPY pyproject.toml uv.lock APEX_Architecture_and_Design.md README.md ./
+COPY pyproject.toml uv.lock README.md ./
 RUN uv sync --frozen --no-install-project --no-dev
 
 # Step 2: Copy application source code, agent loops, and benchmarks
+COPY core/ /app/core/
+COPY intelligence/ /app/intelligence/
 COPY backend/ /app/backend/
 COPY agents/ /app/agents/
 COPY benchmarks/ /app/benchmarks/

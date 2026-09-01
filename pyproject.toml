@@ -2,7 +2,7 @@
 name = "apex"
 version = "0.1.0"
 description = "APEX — Autonomous Predictive & EXecutive Race Intelligence"
-readme = "APEX_Architecture_and_Design.md"
+readme = "README.md"
 requires-python = ">=3.11, <3.13"
 dependencies = [
     "fastapi>=0.115.0",
@@ -50,12 +50,12 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["backend*", "context*", "agents*"]
+include = ["core*", "intelligence*", "backend*", "context*", "agents*"]
 exclude = ["frontend*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
-testpaths = ["backend/tests"]
+testpaths = ["backend/tests", "tests"]
 pythonpath = [".", "backend"]
 
 [tool.uv.sources]

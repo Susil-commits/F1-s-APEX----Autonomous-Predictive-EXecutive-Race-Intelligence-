@@ -94,11 +94,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+from core.api.predict import router as core_predict_router
+
 # Register REST routers
 app.include_router(auth_router)
 app.include_router(jobs_router)
 app.include_router(router)
 app.include_router(metrics_router)
+app.include_router(core_predict_router)
 
 @app.get("/api/version")
 async def get_version():
