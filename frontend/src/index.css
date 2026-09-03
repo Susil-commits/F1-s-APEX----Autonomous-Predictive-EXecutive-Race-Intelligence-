@@ -3,32 +3,30 @@
 @tailwind utilities;
 
 :root {
-  --apex-red: #E10600;
-  --apex-bg: #08090C;
-  --apex-card: #0E1017;
-  --apex-border: #1F2432;
-  --apex-cyan: #00F0FF;
-  --apex-yellow: #FFD000;
-  --apex-green: #00E676;
-  
-  /* Authentic F1 Sector-Color System */
-  --sector-purple: #D946EF;  /* Fastest sector of session */
-  --sector-green: #00E676;   /* Personal best sector */
-  --sector-yellow: #FFD000;  /* Standard sector time */
+  --f1-red: #E10600;
+  --f1-red-dark: #B30000;
+  --f1-carbon: #15151E;
+  --f1-carbon-dark: #0B0D12;
+  --f1-card: #1E1E28;
+  --f1-card-hover: #262634;
+  --f1-border: #383844;
+  --f1-cyan: #00F0FF;
+  --f1-gold: #FFB800;
+  --f1-green: #177B2B;
 }
 
 @layer base {
   body {
-    background-color: #08090C;
+    background-color: #0B0D12;
     color: #FFFFFF;
-    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+    font-family: 'Titillium Web', 'Inter', system-ui, -apple-system, sans-serif;
     overflow-x: hidden;
     background-image: 
-      radial-gradient(ellipse 90% 40% at 50% -10%, rgba(225, 6, 0, 0.22) 0%, transparent 70%),
-      radial-gradient(ellipse 60% 40% at 100% 100%, rgba(225, 6, 0, 0.08) 0%, transparent 60%),
+      radial-gradient(ellipse 90% 40% at 50% -10%, rgba(225, 6, 0, 0.28) 0%, transparent 70%),
+      radial-gradient(ellipse 60% 40% at 100% 100%, rgba(225, 6, 0, 0.12) 0%, transparent 60%),
       linear-gradient(rgba(255, 255, 255, 0.02) 1px, transparent 1px),
       linear-gradient(90deg, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
-    background-size: 100% 100%, 100% 100%, 28px 28px, 28px 28px;
+    background-size: 100% 100%, 100% 100%, 32px 32px, 32px 32px;
   }
 }
 
@@ -38,134 +36,65 @@
   height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #060709;
+  background: #0B0D12;
 }
 ::-webkit-scrollbar-thumb {
-  background: #2A1010;
+  background: #2E1515;
   border: 1px solid #E10600;
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
   background: #E10600;
-  box-shadow: 0 0 8px #E10600;
+  box-shadow: 0 0 10px #E10600;
 }
 
-/* Formula 1 Carbon Pit-Wall Glass Panels */
-.glass-panel {
-  background: linear-gradient(145deg, rgba(16, 18, 26, 0.94) 0%, rgba(10, 11, 16, 0.98) 100%);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.09);
-  box-shadow: 0 10px 35px 0 rgba(0, 0, 0, 0.65), inset 0 1px 0 rgba(255, 255, 255, 0.06);
-}
-
-.glass-panel:hover {
-  border-color: rgba(225, 6, 0, 0.35);
-}
-
-.glass-panel-glow {
-  background: linear-gradient(145deg, rgba(22, 18, 22, 0.95) 0%, rgba(10, 11, 16, 0.98) 100%);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(225, 6, 0, 0.45);
-  box-shadow: 0 0 30px rgba(225, 6, 0, 0.18), inset 0 0 15px rgba(225, 6, 0, 0.06);
-}
-
-.glass-panel-subtle {
-  background: rgba(14, 16, 23, 0.7);
-  backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-}
-
-/* Formula 1 Racing Red & High-Contrast Glow Effects */
-.glow-f1-red {
-  text-shadow: 0 0 10px rgba(225, 6, 0, 0.8), 0 0 25px rgba(225, 6, 0, 0.4);
-}
-
-.glow-white {
-  text-shadow: 0 0 10px rgba(255, 255, 255, 0.75);
-}
-
-.glow-cyan {
-  text-shadow: 0 0 10px rgba(0, 240, 255, 0.65);
-}
-
-.glow-amber {
-  text-shadow: 0 0 10px rgba(255, 140, 0, 0.65);
-}
-
-.glow-green {
-  text-shadow: 0 0 10px rgba(0, 230, 118, 0.65);
-}
-
-.border-glow-f1-red {
-  border-color: rgba(225, 6, 0, 0.6);
-  box-shadow: 0 0 20px rgba(225, 6, 0, 0.25);
-}
-
-/* F1 Carbon Fiber Weave Texture */
-.bg-carbon {
-  background-color: #0A0C11;
-  background-image: 
-    linear-gradient(45deg, #050608 25%, transparent 25%), 
-    linear-gradient(-45deg, #050608 25%, transparent 25%), 
-    linear-gradient(45deg, transparent 75%, #050608 75%), 
-    linear-gradient(-45deg, transparent 75%, #050608 75%);
-  background-size: 6px 6px;
-  background-position: 0 0, 0 3px, 3px -3px, -3px 0px;
-}
-
-/* Authentic F1 Speed Diagonal Stripe */
-.f1-stripe {
-  background: repeating-linear-gradient(
-    -45deg,
-    #E10600,
-    #E10600 8px,
-    #000000 8px,
-    #000000 16px
-  );
-}
-
-.f1-badge {
-  background: linear-gradient(135deg, #E10600 0%, #B30000 100%);
-  color: #FFFFFF;
-  font-weight: 900;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-/* Active CRT Telemetry Scanline */
-.radar-sweep {
+/* F1 Signature Chamfered Speed Card */
+.f1-card {
+  background: linear-gradient(160deg, #1A1A24 0%, #12121A 100%);
+  border: 1px solid #2B2B38;
+  border-radius: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
   position: relative;
-  overflow: hidden;
-}
-.radar-sweep::after {
-  content: "";
-  position: absolute;
-  top: 0; left: 0; right: 0; height: 100%;
-  background: linear-gradient(180deg, transparent 0%, rgba(225, 6, 0, 0.08) 50%, transparent 100%);
-  pointer-events: none;
-  animation: scanline 4s linear infinite;
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* F1 Pit-Wall Panel Status Indicators */
-.border-status-alert {
-  border-left: 4px solid #E10600 !important;
-}
-.border-status-telemetry {
-  border-left: 4px solid #00F0FF !important;
-}
-.border-status-nominal {
-  border-left: 4px solid #00E676 !important;
-}
-.border-status-caution {
-  border-left: 4px solid #FFD000 !important;
+.f1-card:hover {
+  border-color: rgba(225, 6, 0, 0.5);
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 24px rgba(225, 6, 0, 0.15);
 }
 
-/* F1 Sector Colors */
-.text-sector-purple { color: #D946EF; }
-.bg-sector-purple { background-color: #D946EF; }
-.text-sector-green { color: #00E676; }
-.bg-sector-green { background-color: #00E676; }
-.text-sector-yellow { color: #FFD000; }
-.bg-sector-yellow { background-color: #FFD000; }
+.f1-card-active {
+  background: linear-gradient(160deg, #221A20 0%, #151118 100%);
+  border-color: #E10600 !important;
+  box-shadow: 0 0 28px rgba(225, 6, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
 
+/* F1 Slanted Speed Angle */
+.f1-angle {
+  transform: skewX(-12deg);
+}
+.f1-angle-reverse {
+  transform: skewX(12deg);
+}
+
+/* F1 Red Gradient Racing Bar */
+.f1-racing-bar {
+  background: linear-gradient(90deg, #E10600 0%, #FF1801 50%, #B30000 100%);
+}
+
+/* F1 Official Red Glow */
+.glow-f1-red {
+  text-shadow: 0 0 12px rgba(225, 6, 0, 0.85), 0 0 24px rgba(225, 6, 0, 0.45);
+}
+
+/* Subtle Carbon Fiber Background */
+.bg-carbon {
+  background-color: #0E1017;
+  background-image: 
+    linear-gradient(45deg, #090B10 25%, transparent 25%), 
+    linear-gradient(-45deg, #090B10 25%, transparent 25%), 
+    linear-gradient(45deg, transparent 75%, #090B10 75%), 
+    linear-gradient(-45deg, transparent 75%, #090B10 75%);
+  background-size: 8px 8px;
+  background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
+}

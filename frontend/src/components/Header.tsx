@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Zap, Clock, Activity } from 'lucide-react';
+import { Clock, ShieldCheck, Activity, ChevronRight } from 'lucide-react';
 
 export const Header: React.FC = () => {
   const [currentTimeUTC, setCurrentTimeUTC] = useState<string>('');
@@ -20,46 +20,63 @@ export const Header: React.FC = () => {
   }, []);
 
   return (
-    <header className="w-full bg-[#090B10]/95 backdrop-blur-xl border-b border-[#1F2432] px-4 lg:px-8 py-3 flex items-center justify-between sticky top-0 z-50 shadow-2xl shadow-black/80 relative">
-      {/* Red underline accent */}
-      <div className="absolute bottom-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-[#E10600] to-transparent opacity-80" />
+    <header className="w-full bg-[#0D0F16]/95 backdrop-blur-2xl border-b border-[#242633] px-4 lg:px-10 py-3 flex flex-wrap items-center justify-between sticky top-0 z-50 shadow-2xl shadow-black/90 relative">
+      {/* Official F1 Red Racing Stripe Accent Bottom */}
+      <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#E10600] via-[#FF1801] to-[#990000]" />
 
-      {/* Brand & Subtitle */}
-      <div className="flex items-center gap-3">
-        {/* Official F1 Red Angle Box */}
-        <div className="h-9 px-3.5 rounded bg-gradient-to-r from-[#E10600] to-[#B30000] flex items-center justify-center shadow-lg shadow-red-600/30 border-t border-white/20 -skew-x-12">
-          <span className="font-black text-sm tracking-tighter text-white uppercase skew-x-12 flex items-center gap-1.5 font-sans">
-            <Zap className="w-3.5 h-3.5 fill-white" />
-            APEX
-          </span>
-        </div>
+      {/* LEFT: Official Formula 1 Brand & APEX Identifier */}
+      <div className="flex items-center gap-5">
+        <a href="/" className="flex items-center gap-4 group cursor-pointer">
+          {/* Official F1 SVG Logo */}
+          <div className="h-8 flex items-center">
+            <img
+              src="/f1/f1-logo.svg"
+              alt="Formula 1"
+              className="h-7 w-auto object-contain transition-transform group-hover:scale-105"
+            />
+          </div>
 
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-black text-sm tracking-wider text-white font-sans">RACE INTELLIGENCE</span>
-            <span className="text-[9px] font-mono font-black uppercase px-1.5 py-0.5 rounded bg-red-950 text-red-400 border border-red-800">
-              V1 CORE
+          {/* Slanted APEX Red Badge */}
+          <div className="h-7 px-3 rounded bg-gradient-to-r from-[#E10600] to-[#B30000] flex items-center justify-center shadow-lg shadow-red-600/30 f1-angle">
+            <span className="font-black text-xs tracking-wider text-white uppercase f1-angle-reverse font-f1">
+              APEX PREDICTOR
             </span>
           </div>
-          <p className="text-[10px] text-slate-400 font-mono tracking-tight">
-            Autonomous Pre-Race Predictive Intelligence · Conformal Calibration
-          </p>
+        </a>
+
+        <div className="h-6 w-px bg-[#242633] hidden md:block" />
+
+        {/* F1 Quick Metadata Badges */}
+        <div className="hidden lg:flex items-center gap-3 text-xs font-f1 font-semibold text-slate-300">
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#161822] border border-[#2B2E3D]">
+            <span className="w-2 h-2 rounded-full bg-[#E10600] animate-pulse" />
+            <span className="text-white">FIA Verified Data</span>
+            <span className="text-slate-400 text-[10px]">· Jolpica / FastF1</span>
+          </span>
+
+          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#161822] border border-[#2B2E3D]">
+            <ShieldCheck className="w-3.5 h-3.5 text-[#00F0FF]" />
+            <span className="text-white">Split-Conformal</span>
+            <span className="text-[#00F0FF] font-mono text-[10px]">90% Coverage</span>
+          </span>
         </div>
       </div>
 
-      {/* Right side stats */}
+      {/* RIGHT: Live Broadcast Session Clock & Status Indicator */}
       <div className="flex items-center gap-3">
         {/* Broadcast Live Session Clock */}
-        <div className="hidden sm:flex items-center gap-1.5 px-3 py-1 rounded bg-[#10131B] border border-[#232736] text-xs font-mono text-slate-300">
-          <Clock className="w-3.5 h-3.5 text-[#00F0FF]" />
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#151722] border border-[#262A3B] text-xs font-mono text-slate-200 shadow-inner">
+          <Clock className="w-3.5 h-3.5 text-[#E10600]" />
           <span className="font-bold text-white tracking-widest">{currentTimeUTC}</span>
         </div>
 
-        {/* Engine Status Indicator */}
-        <div className="flex items-center gap-1.5 px-3 py-1 rounded bg-[#131722] border border-[#232736] text-xs font-mono">
-          <Activity className="w-3.5 h-3.5 text-emerald-400" />
-          <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-sm shadow-emerald-500/50" />
-          <span className="text-slate-200 font-bold text-[11px]">ONLINE</span>
+        {/* Active Telemetry Beacon */}
+        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#151722] border border-[#262A3B] text-xs font-f1">
+          <div className="relative flex h-2.5 w-2.5">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+          </div>
+          <span className="text-slate-200 font-bold text-xs uppercase tracking-wider">LIVE 2026 ENGINE</span>
         </div>
       </div>
     </header>
