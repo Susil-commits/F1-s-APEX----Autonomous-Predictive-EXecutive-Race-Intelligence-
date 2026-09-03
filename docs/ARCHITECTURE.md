@@ -44,21 +44,27 @@
               └────────────────────────────┘
 ```
 
-## Features (zero-leakage pre-race priors)
+## Features & Domain Reasoning (Zero-Leakage Pre-Race Priors)
 
-| Feature | Source |
-|---------|--------|
-| Grid position (normalised) | Qualifying result |
-| Constructor points share | Championship standings |
-| Driver rolling avg finish (5-race) | Historical results |
-| Driver total starts | Historical results |
-| Quali Δ to pole (seconds) | Qualifying lap times |
-| Circuit downforce index | Circuit metadata |
-| Circuit overtaking index | Circuit metadata |
-| Rain probability | Weather forecast |
-| Compound soft indicator | Pre-race tyre nominations |
-| Compound wet indicator | Pre-race tyre nominations |
-| Circuit lap count | Circuit metadata |
+APEX constructs a normalized 9-dimensional feature vector using **strictly point-in-time facts verifiably known prior to race start**. No live telemetry, lap times, pitstop deltas, or in-race sensor streams are utilized, ensuring absolute immunity to lookahead bias.
+
+Every feature was selected based on fundamental aerodynamic, mechanical, and sporting principles governing Formula 1:
+
+| Feature | Feature Key | Source | Domain Reasoning |
+|---|---|---|---|
+| **Constructor Points Share** | `constructor_pts_share` | Constructors' Standings | Team machinery pace dominates modern Formula 1. The top 3 constructors routinely capture >60% of all championship points. Car aerodynamic efficiency and power unit reliability set the baseline envelope for both drivers. |
+| **Starting Grid Slot** | `grid_position_norm` | Official Qualifying Result | Starting grid position strongly dictates race finish (Spearman $\rho = 0.78$). First-corner track position determines traffic exposure, dirty air severity, and vulnerability to lap-1 collisions. |
+| **Driver 5-Race Rolling Average** | `driver_rolling_finish_norm` | Historical Race Results | Recent form over the last 5 Grands Prix captures short-term driver confidence, tyre management form, and synergy with recent aerodynamic upgrade packages far better than lifetime career averages. |
+| **Qualifying Pace Delta to Pole** | `quali_delta_to_pole_s` | Q3 Session Classification | The absolute time delta (in seconds) to the pole-sitter provides an unbiased quantitative measurement of single-lap raw package pace and tyre activation efficiency. |
+| **Circuit Downforce Demand** | `circuit_downforce_index` | Track Engineering Profile | High-downforce circuits (Monaco, Singapore, Hungaroring) are highly overtaking-resistant, heavily preserving starting grid positions. Low-drag circuits (Monza, Spa) allow significantly more DRS-assisted overtakes. |
+| **Circuit Power Sensitivity** | `circuit_power_sensitivity` | Track Engineering Profile | Circuits with prolonged full-throttle sections (Monza, Spa, Baku) reward engine thermal efficiency and MGU-K deployment over low-speed mechanical cornering grip. |
+| **Street Circuit Indicator** | `circuit_is_street_track` | Track Classification | Street circuits feature zero runoff, unforgiving concrete barriers, and elevated Safety Car probabilities (~75%+ at Singapore/Monaco/Baku), dramatically amplifying non-linear outcome variance. |
+| **Forecasted Rain Probability** | `race_rain_prob` | Official Meteorological Prior | Precipitation reduces tyre grip thresholds, nullifies pure aerodynamic downforce advantages, introduces intermediate/wet pitstop crossover gambles, and multiplies attrition. |
+| **Driver Circuit Experience** | `driver_circuit_experience` | Historical Career Starts | Previous race starts at the specific track capture driver familiarity with braking reference markers, kerb ride characteristics, and thermal tyre degradation nuances. |
+
+```
+Pre-Race Inputs  ──▶  PreRaceFeatureBuilder  ──▶  9-dim Float32 Tensor [0.0, 1.0]  ──▶  CatBoost Model
+```
 
 ## Data
 

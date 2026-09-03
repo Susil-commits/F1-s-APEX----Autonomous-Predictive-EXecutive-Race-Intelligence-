@@ -5,19 +5,23 @@ Maps:
 """
 from __future__ import annotations
 
+import logging
 import os
+import threading
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
 import joblib
 import numpy as np
-from fastapi import APIRouter
-from pydantic import BaseModel, Field
+from fastapi import APIRouter, HTTPException
+from pydantic import BaseModel, Field, field_validator
 
 from core.features.feature_builder import (
     PRE_RACE_FEATURE_NAMES,
     PreRaceFeatureBuilder,
 )
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/core", tags=["Core Predictor"])
 
@@ -25,7 +29,7 @@ MODEL_FILE = os.path.join(
     os.path.dirname(__file__), "..", "models", "apex_core_v1_model.joblib"
 )
 
-# Reference 2024/2025 driver profiles for pre-race starting priors
+# Reference 2024/2025/2026 driver profiles for pre-race starting priors
 DRIVER_ROSTER: Dict[str, Dict[str, Any]] = {
     "VER": {"name": "Max Verstappen", "team": "Red Bull Racing", "default_grid": 1, "pts_share": 0.28, "rolling_avg": 2.1, "starts": 10},
     "NOR": {"name": "Lando Norris", "team": "McLaren", "default_grid": 2, "pts_share": 0.24, "rolling_avg": 2.8, "starts": 6},
@@ -34,6 +38,7 @@ DRIVER_ROSTER: Dict[str, Dict[str, Any]] = {
     "SAI": {"name": "Carlos Sainz", "team": "Ferrari", "default_grid": 5, "pts_share": 0.21, "rolling_avg": 4.8, "starts": 9},
     "HAM": {"name": "Lewis Hamilton", "team": "Mercedes", "default_grid": 6, "pts_share": 0.16, "rolling_avg": 5.2, "starts": 17},
     "RUS": {"name": "George Russell", "team": "Mercedes", "default_grid": 7, "pts_share": 0.16, "rolling_avg": 5.8, "starts": 6},
+    "ANT": {"name": "Kimi Antonelli", "team": "Mercedes", "default_grid": 7, "pts_share": 0.16, "rolling_avg": 7.0, "starts": 0},
     "PER": {"name": "Sergio Perez", "team": "Red Bull Racing", "default_grid": 8, "pts_share": 0.28, "rolling_avg": 7.4, "starts": 13},
     "ALO": {"name": "Fernando Alonso", "team": "Aston Martin", "default_grid": 9, "pts_share": 0.08, "rolling_avg": 8.5, "starts": 19},
     "STR": {"name": "Lance Stroll", "team": "Aston Martin", "default_grid": 10, "pts_share": 0.08, "rolling_avg": 11.2, "starts": 7},
@@ -50,32 +55,48 @@ DRIVER_ROSTER: Dict[str, Dict[str, Any]] = {
 }
 
 _CACHED_MODEL: Any = None
+_MODEL_LOCK = threading.Lock()
 
 
 def get_core_model() -> Any:
-    """Loads or trains on-demand the core V1 prediction model."""
+    """Loads or trains on-demand the core V1 prediction model with thread safety."""
     global _CACHED_MODEL
     if _CACHED_MODEL is not None:
         return _CACHED_MODEL
 
-    if os.path.exists(MODEL_FILE):
-        try:
-            _CACHED_MODEL = joblib.load(MODEL_FILE)
+    with _MODEL_LOCK:
+        if _CACHED_MODEL is not None:
             return _CACHED_MODEL
-        except Exception:
-            pass
 
-    # Train fallback baseline
-    from core.training.train import train_finishing_position_model
-    _CACHED_MODEL = train_finishing_position_model(save_path=MODEL_FILE)
-    return _CACHED_MODEL
+        if os.path.exists(MODEL_FILE):
+            try:
+                _CACHED_MODEL = joblib.load(MODEL_FILE)
+                return _CACHED_MODEL
+            except Exception:
+                pass
+
+        # Train fallback baseline
+        from core.training.train import train_finishing_position_model
+        _CACHED_MODEL = train_finishing_position_model(save_path=MODEL_FILE)
+        return _CACHED_MODEL
 
 
 class PredictRequest(BaseModel):
     race_id: str = Field(..., description="Circuit identifier or race code (e.g. 'silverstone', 'monza')")
     driver_id: str = Field(..., description="Driver 3-letter abbreviation (e.g. 'VER', 'HAM', 'NOR')")
     grid_position: Optional[int] = Field(None, ge=1, le=20, description="Override grid position")
-    rain_probability: Optional[float] = Field(None, ge=0.0, le=1.0, description="Override rain forecast")
+    rain_probability: Optional[float] = Field(None, description="Override rain forecast (clamped to [0.0, 1.0])")
+
+    @field_validator("rain_probability", mode="before")
+    @classmethod
+    def clamp_rain_prob(cls, v: Any) -> Optional[float]:
+        if v is None:
+            return None
+        try:
+            val = float(v)
+            return float(np.clip(val, 0.0, 1.0))
+        except (ValueError, TypeError):
+            raise ValueError("rain_probability must be a numeric value")
 
 
 class FeatureContribution(BaseModel):
@@ -108,7 +129,13 @@ class PredictResponse(BaseModel):
 @router.post("/predict", response_model=PredictResponse)
 async def predict_finish(req: PredictRequest):
     """Tier 1 Provably-Correct Pre-Race Finish Predictor."""
-    driver_key = req.driver_id.upper()
+    raw_driver = req.driver_id.strip() if req.driver_id else ""
+    if not raw_driver or not raw_driver.isalpha() or len(raw_driver) != 3:
+        raise HTTPException(
+            status_code=400,
+            detail="Invalid driver_id: must be a 3-letter F1 driver abbreviation (e.g. 'VER', 'HAM', 'NOR').",
+        )
+    driver_key = raw_driver.upper()
     if driver_key not in DRIVER_ROSTER:
         # Default generic driver profile
         profile = {
@@ -143,6 +170,19 @@ async def predict_finish(req: PredictRequest):
     conformal_meta = artifact.get("conformal", {})
     trained_through = artifact.get("model_trained_through_race_id", "season_2023_finale")
     cal_n = conformal_meta.get("calibration_samples", artifact.get("metrics", {}).get("n_cal_samples", 200))
+
+    # Production Durability: Drift & Staleness check (>90 days recommendation)
+    snapshot_str = artifact.get("data_snapshot_utc")
+    if snapshot_str:
+        try:
+            snapshot_dt = datetime.fromisoformat(snapshot_str.replace("Z", "+00:00"))
+            age_days = (datetime.now(timezone.utc) - snapshot_dt).days
+            if age_days > 90:
+                logger.warning(
+                    f"[APEX Production Drift] Model checkpoint is {age_days} days old (>90 days). Automatic retrain recommended."
+                )
+        except Exception:
+            pass
 
     # Predict continuous finish position
     raw_pred = float(model.predict(feat_vec.reshape(1, -1))[0])
