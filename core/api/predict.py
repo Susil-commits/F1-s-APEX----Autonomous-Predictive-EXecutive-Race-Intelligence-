@@ -1,7 +1,7 @@
 """APEX Core V1 Predict Endpoint.
 
 Maps:
-    race_id + driver_id -> predicted finishing position + confidence band + model version + data snapshot
+    race_id + driver_id -> predicted finishing position + split conformal band + model version + data snapshot
 """
 from __future__ import annotations
 
@@ -11,11 +11,10 @@ from typing import Any, Dict, List, Optional
 
 import joblib
 import numpy as np
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter
 from pydantic import BaseModel, Field
 
 from core.features.feature_builder import (
-    CIRCUIT_PROFILES,
     PRE_RACE_FEATURE_NAMES,
     PreRaceFeatureBuilder,
 )
@@ -98,6 +97,9 @@ class PredictResponse(BaseModel):
     win_probability_pct: float
     podium_probability_pct: float
     model_version: str
+    winning_model_family: Optional[str] = None
+    model_trained_through_race_id: Optional[str] = None
+    calibration_samples: Optional[int] = None
     data_snapshot_utc: str
     feature_contributions: List[FeatureContribution]
     summary_explanation: str
@@ -137,12 +139,16 @@ async def predict_finish(req: PredictRequest):
     artifact = get_core_model()
     model = artifact["model"]
     q_hat = artifact.get("q_hat_margin", 2.0)
+    winning_family = artifact.get("winning_model_family", "catboost")
+    conformal_meta = artifact.get("conformal", {})
+    trained_through = artifact.get("model_trained_through_race_id", "season_2023_finale")
+    cal_n = conformal_meta.get("calibration_samples", artifact.get("metrics", {}).get("n_cal_samples", 200))
 
     # Predict continuous finish position
     raw_pred = float(model.predict(feat_vec.reshape(1, -1))[0])
     pred_pos = int(np.clip(np.round(raw_pred), 1, 20))
 
-    # Conformal 90% confidence interval
+    # Split Conformal 90% confidence interval
     lower = int(np.clip(np.floor(raw_pred - q_hat), 1, 20))
     upper = int(np.clip(np.ceil(raw_pred + q_hat), 1, 20))
 
@@ -165,11 +171,19 @@ async def predict_finish(req: PredictRequest):
         "circuit_is_street_track": "Street Track Volatility",
     }
 
-    # Extract tree feature importances
-    importances = model.feature_importances_
+    # Extract tree feature importances uniformly across GBR, XGBoost, CatBoost
+    raw_importances = getattr(model, "feature_importances_", None)
+    if raw_importances is None and hasattr(model, "get_feature_importance"):
+        raw_importances = model.get_feature_importance()
+
+    if raw_importances is not None and np.sum(raw_importances) > 0:
+        norm_importances = (np.array(raw_importances, dtype=float) / float(np.sum(raw_importances))) * 100.0
+    else:
+        norm_importances = np.ones(len(PRE_RACE_FEATURE_NAMES)) * (100.0 / len(PRE_RACE_FEATURE_NAMES))
+
     contributions = []
     for idx, name in enumerate(PRE_RACE_FEATURE_NAMES):
-        imp = float(importances[idx]) * 100.0
+        imp = float(norm_importances[idx])
         val = feat_dict.get(name, 0.0)
         # Direction
         if name in ["grid_position_norm", "quali_delta_to_pole_s", "driver_rolling_finish_norm"]:
@@ -191,7 +205,7 @@ async def predict_finish(req: PredictRequest):
     summary = (
         f"{profile['name']} qualifies P{grid} for the {circuit_id.title()} GP. "
         f"Based on {profile['team']}'s points share and recent rolling form, "
-        f"APEX projects a P{pred_pos} finish with a 90% confidence window between P{lower} and P{upper}."
+        f"APEX ({winning_family}) projects a P{pred_pos} finish with a 90% split-conformal window between P{lower} and P{upper}."
     )
 
     return PredictResponse(
@@ -205,6 +219,9 @@ async def predict_finish(req: PredictRequest):
         win_probability_pct=round(win_prob, 1),
         podium_probability_pct=round(podium_prob, 1),
         model_version=artifact.get("version", "core-v1.0.0"),
+        winning_model_family=winning_family,
+        model_trained_through_race_id=trained_through,
+        calibration_samples=cal_n,
         data_snapshot_utc=datetime.now(timezone.utc).isoformat(),
         feature_contributions=contributions[:5],
         summary_explanation=summary,

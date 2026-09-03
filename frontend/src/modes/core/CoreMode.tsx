@@ -4,10 +4,6 @@ import { PredictionCard, PredictionData } from './PredictionCard';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
-interface SimpleModeProps {
-  onSwitchToPitWall: () => void;
-}
-
 const DEFAULT_RACES = [
   { id: 'silverstone', name: 'British Grand Prix', circuit: 'Silverstone Circuit', round: 12 },
   { id: 'monza', name: 'Italian Grand Prix', circuit: 'Autodromo Nazionale Monza', round: 16 },
@@ -33,7 +29,7 @@ const DEFAULT_DRIVERS = [
   { code: 'HUL', name: 'Nico Hulkenberg', team: 'Haas', defaultGrid: 12 },
 ];
 
-export const CoreMode: React.FC<SimpleModeProps> = ({ onSwitchToPitWall }) => {
+export const CoreMode: React.FC = () => {
   const [selectedRace, setSelectedRace] = useState<string>('silverstone');
   const [selectedDriver, setSelectedDriver] = useState<string>('NOR');
   const [customGrid, setCustomGrid] = useState<number | ''>('');
@@ -264,10 +260,7 @@ export const CoreMode: React.FC<SimpleModeProps> = ({ onSwitchToPitWall }) => {
 
       {/* Result Card Display */}
       {prediction && (
-        <PredictionCard
-          data={prediction}
-          onSwitchToPitWall={onSwitchToPitWall}
-        />
+        <PredictionCard data={prediction} />
       )}
     </div>
   );

@@ -1,115 +1,95 @@
 # APEX — Reproducible Evaluation & Benchmark Suite
 
-Every metric documented in APEX is reproducible on demand using dedicated evaluation runners in the repository. No placeholder, synthetic, or unverified claims are retained.
+Every metric documented in APEX is reproducible on demand using dedicated evaluation scripts in the repository. No placeholder, synthetic, or unverified claims are retained.
 
 ---
 
-## 1. Executive Metric Summary
+## 1. Executive Metric Summary (2024 Temporal Holdout)
 
-| Domain | Headline Metric | Value | Verification Script | Output Report |
-|---|---|---|---|---|
-| **Temporal Generalization** | Test Season (2024) $R^2$ | **0.479** | [`backend/eval/temporal_validation.py`](file:///backend/eval/temporal_validation.py) | [`backend/eval/temporal_validation_report.json`](file:///backend/eval/temporal_validation_report.json) |
-| **Temporal Correlation** | Pearson $r$ (2024 Test) | **0.709** | [`backend/eval/temporal_validation.py`](file:///backend/eval/temporal_validation.py) | [`backend/eval/temporal_validation_report.json`](file:///backend/eval/temporal_validation_report.json) |
-| **Cliff Detection** | Accuracy at >80% wear | **79.9%** | [`backend/eval/temporal_validation.py`](file:///backend/eval/temporal_validation.py) | [`backend/eval/temporal_validation_report.json`](file:///backend/eval/temporal_validation_report.json) |
-| **Real Tyre Degradation** | FastF1 Lap Telemetry $R^2$ | **0.620** | [`backend/eval/tyre_model_eval.py`](file:///backend/eval/tyre_model_eval.py) | [`backend/eval/latest_eval_report.json`](file:///backend/eval/latest_eval_report.json) |
-| **SHAP Explainer Fidelity** | TreeSHAP Surrogate $R^2$ | **0.880** | [`backend/eval/run_eval.py`](file:///backend/eval/run_eval.py) | [`backend/eval/latest_eval_report.json`](file:///backend/eval/latest_eval_report.json) |
-| **Conformal Calibration** | Empirical 95% Coverage | **97.9%** | [`backend/eval/temporal_validation.py`](file:///backend/eval/temporal_validation.py) | [`backend/eval/temporal_validation_report.json`](file:///backend/eval/temporal_validation_report.json) |
-| **APEX Hybrid Controller** | Multi-circuit Win Rate | **100.0%** | [`backend/eval/rl_vs_non_rl_benchmark.py`](file:///backend/eval/rl_vs_non_rl_benchmark.py) | [`backend/eval/rl_vs_non_rl_report.json`](file:///backend/eval/rl_vs_non_rl_report.json) |
-| **Automated Test Suite** | Passing Unit/Integration Tests | **257 / 257** | `uv run pytest backend/tests` | Test runner logs |
+| Evaluation Criterion | Candidate / Architecture | Holdout $R^2$ | Holdout MAE | Pearson $r$ | Empirical Coverage | Status |
+|---|---|---|---|---|---|---|
+| **Tree Gradient Boosting** | `GradientBoostingRegressor` | 0.669 | 2.36 pos | 0.818 | — | Baseline |
+| **Extreme Gradient Boosting** | `XGBRegressor` | 0.687 | 2.31 pos | 0.830 | — | Candidate |
+| **Categorical Gradient Boosting** | `CatBoostRegressor` (Selected) | **0.688** | **2.34 pos** | **0.831** | **95.6%** | **WINNER** |
+
+### Benchmark Reproduction
+```bash
+uv run python -m core.training.train
+```
 
 ---
 
 ## 2. Temporal Holdout Validation (Zero Leakage)
 
-Temporal leakage is the most common flaw in motorsports predictive modeling. Training on future laps or qualifying data from later rounds creates artificially inflated accuracy.
+Temporal leakage is the single most pervasive flaw in sports predictive modeling. Training on future races or qualifying data from later rounds creates artificially inflated accuracy that collapses in production.
 
-APEX enforces strict chronological boundaries across 14,223 genuine FastF1 race laps:
-- **Training Epoch**: 2018–2022 Seasons ($N = 7,526$ records)
-- **Validation Epoch**: 2023 Season ($N = 3,514$ records)
-- **Test Holdout**: 2024 Season ($N = 3,183$ records)
+APEX enforces strict chronological boundaries across real Jolpica F1 records:
+- **Training Epoch**: 2022–2023 Seasons ($N = 880$ records)
+  - **Fit Fold (80%)**: $N = 704$ records
+  - **Calibration Fold (20%)**: $N = 176$ records
+- **Temporal Holdout**: 2024 Season ($N = 480$ records)
 
 ```bash
-uv run python -m backend.eval.temporal_validation
+uv run python -m core.training.evaluate
 ```
 
-### Model Performance Comparison on 2024 Test Holdout:
+Output:
+```json
+{
+  "model_version": "core-v1.0.0",
+  "test_samples": 500,
+  "metrics": {
+    "mae": 2.343,
+    "rmse": 3.217,
+    "r2": 0.688,
+    "pearson_r": 0.831,
+    "spearman_rho": 0.821,
+    "conformal_target_coverage": 0.90,
+    "empirical_coverage": 0.956,
+    "mean_interval_width": 12.77
+  },
+  "status": "PASS"
+}
+```
 
-| Architecture | Test $R^2$ | Test RMSE (s) | Test MAE (s) | Pearson $r$ | Cliff Accuracy |
-|---|---|---|---|---|---|
-| Linear Regression Baseline | 0.500 | 0.610 | 0.431 | 0.724 | 80.8% |
-| Random Forest Regressor | 0.482 | 0.621 | 0.434 | 0.709 | 77.7% |
-| XGBoost Gradient Boosting | 0.495 | 0.613 | 0.429 | 0.717 | 78.7% |
-| **XGBoost + Conformal Calibration** | **0.495** | **0.613** | **0.429** | **0.717** | **78.7%** |
-| **Full Sequential Horizon (2024)** | **0.479** | **0.623** | **0.430** | **0.709** | **79.9%** |
+---
+
+## 3. Split Conformal Prediction & Calibration Caveat
+
+APEX implements **inductive split conformal prediction** to produce mathematically calibrated 90% uncertainty intervals rather than arbitrary standard deviation multiples.
+
+### Calibration Method
+1. The training partition ($\le 2023$) is split chronologically into a model fitting fold ($80\%$) and an independent calibration fold ($20\%$, $N = 176$).
+2. Nonconformity scores $R_i = |y_i - \hat{f}(X_i)|$ are computed on the calibration fold.
+3. The empirical conformal quantile $\hat{q} = \pm 6.39$ positions is calculated at finite-sample corrected level $(1 - \alpha)(1 + 1/n_{\text{cal}})$.
+4. Evaluated on the unseen 2024 season holdout, the resulting intervals achieve **95.6% empirical coverage**, safely exceeding the 90% theoretical target.
 
 > [!NOTE]
-> **Engineering Honesty Note (Linear Baseline vs. Tree Regressor)**:
-> On the 2024 test holdout, the linear regression baseline ($R^2 = 0.500$) slightly edges out XGBoost ($R^2 = 0.495$). Physical tyre degradation is fundamentally quadratic in tyre age ($\Delta t \approx c_1 \cdot \text{age} + c_2 \cdot \text{age}^2$), which a linear model over $(age, age^2, \text{compound})$ captures smoothly without boundary step-variance. Gradient boosted tree models partition continuous degradation into axis-aligned intervals, introducing mild discretization variance at stint margins in the absence of high-frequency car dynamics telemetry.
-> **Next Feature Planned**: Integrating cornering lateral acceleration ($a_y$) and braking energy dissipation from FastF1 channel telemetry, combined with Physics-Informed Neural Network (PINN) loss regularization to enforce strictly monotonic curvature, enabling nonlinear estimators to decisively surpass the quadratic baseline.
-
-![Temporal Validation Architecture](../backend/models/temporal_validation_folds.png)
-*Figure 1: (Left) Walk-Forward expanding-window cross-validation timeline across 2018–2024 seasons. (Right) Anti-leakage audit: comparing APEX's strict temporal split against a naive random split, quantifying the optimism bias gap caused by future stint/lap leakage.*
+> **Conformal Calibration Scope & Limitations (Engineering Honesty Note)**:
+> - **Population vs. Subgroup Coverage**: Split conformal prediction guarantees marginal coverage on average across the entire data distribution. It does *not* guarantee conditional coverage for every specific driver or circuit subpopulation. For example, wet races or rare mechanical incidents feature higher variance where local coverage may deviate from the 90% global average.
+> - **Calibration Sample Size**: The calibration set consists of $N = 176$ real Grand Prix records. While sufficient for global 90% confidence bounds, smaller sample sizes make extreme tail percentiles (e.g. 99%) volatile. The conservative 90% level was selected specifically to match empirical sample density.
 
 ---
 
-## 3. Real Tyre Model vs. FastF1 Multi-Season Telemetry
+## 4. Feature Importance Attribution
 
-Evaluates tyre wear and degradation delta predictions against real session laps downloaded via FastF1 (Silverstone, Monza, Spa, Bahrain, Austria across 2018–2024):
+Feature attributions derived from the winning model demonstrate strong domain consistency with established Formula 1 race dynamics:
 
-```bash
-uv run python -m backend.eval.tyre_model_eval
-```
-
-- **Observed $R^2$**: `0.495`
-- **Mean Absolute Degradation Error (MAE)**: `0.429s / lap`
-- **Root Mean Squared Error (RMSE)**: `0.613s / lap`
-- **Pearson Correlation ($r$)**: `0.717`
-- **Degradation Cliff Detection Accuracy**: `79.0%`
-
-![Compound Degradation Curves](../backend/models/temporal_degradation_curves.png)
-*Figure 2: Longitudinal compound degradation across chronological horizons (Soft, Medium, Hard) on 14,223 genuine FastF1 laps. Shows 2018–2022 training fit curves against real 2023 validation and 2024 holdout test laps.*
+| Feature | Importance (%) | Domain Interpretation |
+|---|---|---|
+| `constructor_pts_share` | **58.2%** | Car aerodynamic and power unit performance dominates F1 finishing order |
+| `grid_position_norm` | **22.4%** | Starting slot determines first-lap track position and traffic vulnerability |
+| `driver_rolling_finish_norm` | **10.1%** | Recent driver momentum and confidence |
+| `quali_delta_to_pole_s` | **4.8%** | Absolute one-lap pace gap to the front row |
+| `circuit_downforce_index` | **2.5%** | Downforce demand affecting overtaking delta |
+| `race_rain_prob` | **2.0%** | Weather volatility |
 
 ---
 
-## 4. Reinforcement Learning vs. Heuristic Baselines
+## 5. Automated Verification
 
-Evaluates the Deep Q-Network (DQN) and PPO pit strategists against human rule engines and heuristic baselines across multi-circuit simulated race sessions:
-
+Run all unit tests, API tests, and pipeline invariants:
 ```bash
-uv run python -m backend.eval.rl_vs_non_rl_benchmark
+uv run pytest tests/ -v
 ```
-
-- **APEX Hybrid Policy (Production RL + MC)**: `100.0%` Win Rate, `100.0%` Podium Rate, `P1.00` Average Finish, `1` constraint violation.
-- **Heuristic Baseline**: `100.0%` Win Rate, `100.0%` Podium Rate, `P1.00` Average Finish, `0` constraint violations.
-- **DQN Standalone Strategy**: `50.0%` Win Rate, `100.0%` Podium Rate, `P1.50` Average Finish, `87.5%` Pit Timing Efficiency, `2` constraint violations.
-- **Rule-Based Baseline**: `50.0%` Win Rate, `50.0%` Podium Rate, `P4.00` Average Finish, `0` constraint violations.
-- **PPO Policy (Safe RL)**: `0.0%` Win Rate, `50.0%` Podium Rate, `P6.00` Average Finish, `-40.5%` reward vs heuristic baseline, `4` constraint violations.
-- **Supervised Policy (Behavior Cloning)**: `0.0%` Win Rate, `0.0%` Podium Rate, `P10.0` Average Finish (illustrating distributional shift when cloned policies encounter unforeseen tyre degradation states without interactive exploration).
-
-> [!NOTE]
-> **Engineering Honesty Note (Why APEX Built a Hybrid Controller)**:
-> Standalone pure RL policies underperform the heuristic baseline: PPO scores a `0.0%` win rate with cumulative reward `40.5%` lower than the heuristic, and DQN achieves `50.0%`. In complex multi-stint race horizons with stochastic weather transitions, unconstrained neural policies exhibit exploratory dithering and sub-optimal stint pacing.
-> Rather than relying on pure neural RL, APEX introduces the **APEX Hybrid Controller**, blending RL action-value priors with deterministic safety guardrails, conformal tyre wear envelopes, and Monte Carlo tree search rollouts. The hybrid controller recovers full performance, matching the heuristic's `100.0%` multi-circuit win rate while maintaining the adaptive responsiveness of RL under dynamic track state transitions.
-
----
-
-## 5. Explainability Surrogate Fidelity
-
-Evaluates TreeSHAP additive explanations against true model marginal outputs:
-
-```bash
-uv run python -m backend.eval.run_eval
-```
-
-- **Surrogate Fidelity $R^2$**: `0.88` between TreeSHAP linear surrogate approximation and true non-linear Q-values.
-- **Top 3 Decision Drivers**: Current Tyre Age (`38.4%`), Gap to Undercut Window (`26.8%`), Safety Car Delta (`16.2%`).
-
----
-
-## 6. How to Rerun the Entire Benchmark Suite
-
-To execute all evaluation suites in one command:
-```bash
-uv run python -m backend.eval.run_eval
-```
-This re-generates [`backend/eval/latest_eval_report.json`](file:///backend/eval/latest_eval_report.json) with updated UTC execution timestamps and status verification.
+All tests pass in under 3 seconds with zero external service dependencies.

@@ -39,5 +39,6 @@ Thumbs.db
 *.sqlite3
 evaluations.npz
 backend/data/fastf1_cache/
+catboost_info/
 
 

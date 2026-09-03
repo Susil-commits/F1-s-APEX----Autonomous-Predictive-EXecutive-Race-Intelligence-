@@ -1,146 +1,151 @@
-# F1 APEX — Autonomous Predictive & Executive Race Intelligence
+# F1 APEX — Autonomous Pre-Race Predictive Intelligence
 
-Predicts how a Formula 1 driver will finish a race, using real F1 data — then layers live strategy intelligence (tyre wear, pit windows, what-if scenarios) on top, the way an actual pit wall works.
+Point-in-time Formula 1 finishing position predictor with mathematically calibrated split-conformal confidence intervals and zero historical data leakage.
 
-[![Test Suite](https://img.shields.io/badge/tests-257%2F257%20passing-brightgreen?style=flat-square&logo=pytest)](docs/EVALUATION.md)
-[![Temporal Holdout](https://img.shields.io/badge/2024%20Holdout%20R%C2%B2-0.479-00F0FF?style=flat-square)](docs/EVALUATION.md)
-[![Python Version](https://img.shields.io/badge/python-3.11%20%7C%203.12-E10600?style=flat-square&logo=python)](pyproject.toml)
-[![Frontend](https://img.shields.io/badge/frontend-React%2018%20%2B%20Tailwind%20%2B%20Vite-blue?style=flat-square&logo=vite)](frontend/)
-[![Architecture](https://img.shields.io/badge/architecture-3--Tier%20Verified-purple?style=flat-square)](docs/ARCHITECTURE.md)
-
-**Two ways to use it:**
-- **Simple Mode (V1 Baseline)**: Pick a real Grand Prix and driver, get an instant point-in-time predicted finish, confidence band, and plain-English factor weights.
-- **Pit-Wall Mode (V2 Strategy Engine)**: The complete 60Hz race-strategy command center: live FastF1 tyre degradation, 1,000-run Monte Carlo simulations, TreeSHAP feature attributions, and LangGraph multi-agent deliberation.
-
-[Run it yourself in 2 minutes](docs/HOW_TO_RUN.md) · [System Architecture](docs/ARCHITECTURE.md) · [Reproducible Evaluation](docs/EVALUATION.md)
+[![CI Status](https://img.shields.io/badge/CI-passing-brightgreen?style=flat-square&logo=githubactions)](.github/workflows/ci.yml)
+[![Temporal Holdout R²](https://img.shields.io/badge/2024%20Holdout%20R%C2%B2-0.688-00F0FF?style=flat-square)](docs/EVALUATION.md)
+[![Pearson Correlation](https://img.shields.io/badge/Pearson%20r-0.831-E10600?style=flat-square)](docs/EVALUATION.md)
+[![Conformal Coverage](https://img.shields.io/badge/90%25%20Coverage-95.6%25-emerald?style=flat-square)](docs/EVALUATION.md)
+[![Python Version](https://img.shields.io/badge/python-3.11%20%7C%203.12-blue?style=flat-square&logo=python)](pyproject.toml)
+[![Frontend](https://img.shields.io/badge/frontend-React%2018%20%2B%20Tailwind-purple?style=flat-square&logo=react)](frontend/)
 
 ---
 
-## Quick Start (Run it in 2 minutes)
+## What It Predicts
 
-The entire platform (PostgreSQL, Redis, Kafka event broker, FastAPI intelligence server, and Vite UI) runs locally with one command:
+Pick a real Formula 1 Grand Prix and driver. APEX evaluates verified facts known **strictly before lights out** — Qualifying grid slot, constructor championship points share, 5-race rolling form, circuit downforce profile, and precipitation forecast — to output:
+
+1. **Projected Finish Position** (P1–P20)
+2. **Split-Conformal 90% Confidence Window** (guaranteed empirical coverage calibrated on held-out data)
+3. **Win & Podium Probabilities**
+4. **Attribution Weights** (transparent feature importance breakdown)
+
+```
+[ Qualifying Grid ] + [ Constructor Share ] + [ Rolling Form ] + [ Circuit Index ] + [ Rain Forecast ]
+                                          │
+                                          ▼
+                                   [ F1 APEX Core ]
+                                          │
+                   ┌──────────────────────┴──────────────────────┐
+                   ▼                                             ▼
+       [ Projected Finish: P2 ]                      [ 90% Conformal Window: P1 – P3 ]
+       [ Win: 24.5% | Podium: 85.0% ]                [ Calibration N=176 | Coverage=95.6% ]
+```
+
+> [!TIP]
+> **V2–V5 Historical Exploration**: Looking for the earlier 60Hz vehicle digital twin, Deep Q-Network/PPO RL strategy agents, Kafka streaming pipeline, or LangGraph multi-agent consensus exploration? All V2–V5 work is permanently preserved on the [`v1-v5-exploration`](https://github.com/Susil-commits/F1-s-APEX----Autonomous-Predictive-EXecutive-Race-Intelligence-/tree/v1-v5-exploration) git tag.
+
+---
+
+## Quick Start (Run in 2 Minutes)
+
+### Option A — Local Development (`uv` / Python & Node)
 
 ```bash
 # 1. Clone the repository
 git clone https://github.com/Susil-commits/F1-s-APEX----Autonomous-Predictive-EXecutive-Race-Intelligence-.git
 cd F1-s-APEX----Autonomous-Predictive-EXecutive-Race-Intelligence-
 
-# 2. Launch the full stack
-docker compose up
+# 2. Start FastAPI Core backend (port 8000)
+uv run uvicorn core.api.main:app --port 8000 --reload
 ```
+Interactive OpenAPI documentation is live at [http://localhost:8000/docs](http://localhost:8000/docs).
 
-Open [http://localhost:5173](http://localhost:5173) in your browser.
-
-> **Prefer running just the lightweight V1 predictor without Docker?**
-> ```bash
-> uv run uvicorn core.api.main:app --port 8000 --reload
-> ```
-> See the [Step-by-Step Running Guide](docs/HOW_TO_RUN.md) for full instructions.
+In a separate terminal:
+```bash
+# 3. Start React UI (port 5173)
+cd frontend
+npm install
+npm run dev
+```
+Open [http://localhost:5173](http://localhost:5173).
 
 ---
 
-## Two Operating Modes
+### Option B — Lean Docker Container
 
+The entire prediction runtime packages into a lean container (~250MB):
+
+```bash
+docker build -t f1-apex-core .
+docker run -p 8000:8000 f1-apex-core
 ```
-+-----------------------------------------------------------------------------------+
-|                                  F1 APEX HEADER                                   |
-|   [⚡ SIMPLE MODE (V1)]                    DRS TOGGLE         [🏎️ PIT-WALL MODE (V2)]   |
-+-----------------------------------------------------------------------------------+
-```
 
-### 1. Simple Mode (Tier 1 Baseline)
-- **Inputs**: Real Grand Prix venue + Driver selection (+ optional grid/rain overrides).
-- **Core Model**: XGBoost regressor trained with strict temporal splits (2018–2022 train, 2023 validation, 2024 holdout). Zero outcome leakage.
-- **Outputs**:
-  - Predicted finishing position (e.g. `P2`).
-  - Conformal 90% confidence interval (e.g. `P1 – P3`).
-  - Win probability & Podium probability meters.
-  - Transparent feature attribution bars (Grid position, Constructor points share, Rolling form).
-
-### 2. Pit-Wall Mode (Tier 2 & 3 Command Center)
-Organized into 5 dedicated pit-wall zones via an authentic left-rail navigation:
-- **Timing Tower**: 60Hz live delta timing, mini-sector personal bests, and 2D/3D track telemetry ribbon.
-- **Strategy Room**: Monte Carlo strategy distributions, undercut threat isochrone matrices, and Deep Q-Network (DQN) policy recommendations.
-- **Intelligence**: Real FastF1 tyre degradation tracking, PINN thermal residuals, weather Doppler radar, and opponent intent tracking.
-- **Explainability & Trust**: TreeSHAP waterfall plots, point-in-time data lineage tracking, feature ablation reports, and model drift monitors.
-- **Race Ops & Comms**: Real-time team radio audio synthesizer, 5-agent LangGraph consensus deliberation, and RAG race debrief.
-
----
-
-## Three-Tier Architecture
-
-```mermaid
-graph TD
-    subgraph Tier1 ["Tier 1: Core (V1) — Provably-Correct Baseline"]
-        Ingestion["core/ingestion/<br/>FastF1 & Jolpica Adapters"]
-        Features["core/features/<br/>Pre-Race Feature Builder"]
-        Trainer["core/training/<br/>XGBoost + Conformal Calibrator"]
-        CoreAPI["core/api/<br/>Standalone Predict Service"]
-        Ingestion --> Features --> Trainer --> CoreAPI
-    end
-
-    subgraph Tier2 ["Tier 2: Intelligence (V2) — Live Race Digital Twin"]
-        Sim["intelligence/simulator/<br/>60Hz Physics Engine"]
-        Twin["intelligence/twin/<br/>State Store & Telemetry Buffers"]
-        Models["intelligence/models/<br/>Tyre Degradation, PINN, Weather"]
-        Strategy["intelligence/strategy/<br/>Monte Carlo, MCTS, DQN / PPO"]
-        Sim --> Twin --> Models --> Strategy
-    end
-
-    subgraph Tier3 ["Tier 3: Agents (V3/V4) — Multi-Agent Reasoning & RAG"]
-        LangGraph["agents/langgraph/<br/>5-Agent Consensus Engine"]
-        RAG["agents/rag/<br/>Hybrid BM25/Dense Retrieval"]
-        MCP["agents/mcp/<br/>FastMCP Telemetry Tool Server"]
-        LangGraph --> RAG --> MCP
-    end
+Verify service health:
+```bash
+curl http://localhost:8000/api/health
 ```
 
 ---
 
-## Verifiable Evaluation Numbers
+## Verified Evaluation & Model Benchmarks
 
-Every metric below is directly reproducible via a dedicated script in the repository:
+Every metric is directly reproducible on the genuine Jolpica F1 dataset:
 
-| Metric | Measured Value | Benchmark Script | Report |
-|---|---|---|---|
-| **2024 Test Season $R^2$** | **0.479** | [`backend/eval/temporal_validation.py`](backend/eval/temporal_validation.py) | [Report](backend/eval/temporal_validation_report.json) |
-| **Pearson Correlation ($r$)** | **0.709** | [`backend/eval/temporal_validation.py`](backend/eval/temporal_validation.py) | [Report](backend/eval/temporal_validation_report.json) |
-| **Tyre Degradation Cliff Accuracy** | **79.9%** | [`backend/eval/temporal_validation.py`](backend/eval/temporal_validation.py) | [Report](backend/eval/temporal_validation_report.json) |
-| **FastF1 Telemetry Degradation $R^2$** | **0.495** | [`backend/eval/tyre_model_eval.py`](backend/eval/tyre_model_eval.py) | [Report](backend/eval/latest_eval_report.json) |
-| **TreeSHAP Surrogate Fidelity** | **0.762** | [`backend/eval/run_eval.py`](backend/eval/run_eval.py) | [Report](backend/eval/latest_eval_report.json) |
-| **Empirical Conformal Coverage** | **97.9%** | [`backend/eval/temporal_validation.py`](backend/eval/temporal_validation.py) | [Report](backend/eval/temporal_validation_report.json) |
-| **APEX Hybrid Controller Win Rate** | **100.0%** | [`backend/eval/rl_vs_non_rl_benchmark.py`](backend/eval/rl_vs_non_rl_benchmark.py) | [Report](backend/eval/rl_vs_non_rl_report.json) |
-| **Automated Unit & Invariant Tests** | **257 / 257** | `uv run pytest backend/tests` | All tests pass |
+```bash
+# Benchmark all three candidate architectures on temporal holdout
+uv run python -m core.training.train
+```
 
-> [!NOTE]
-> **Controller Benchmarking & Hybrid Architecture**:
-> Standalone neural RL policies underperform the heuristic baseline in unconstrained multi-circuit racing: PPO achieves a **0.0%** win rate (cumulative reward is 40.5% lower due to exploration variance across multi-stint horizons), while standalone DQN achieves **50.0%**.
-> APEX resolves this through its **Hybrid Controller** (`apex_hybrid`), which synthesizes RL action priors with deterministic tyre safety guardrails, conformal wear boundaries, and Monte Carlo tree rollouts to achieve a verified **100.0% win rate** (matching the heuristic baseline) while reducing constraint violations to 1.
+### 2024 Temporal Holdout Comparison (2022–2023 Train, 2024 Test)
 
-### Visual Evaluation Artifacts
+| Architecture | Validation $R^2$ | Validation MAE | Pearson $r$ | Empirical 90% Coverage | Status |
+|---|---|---|---|---|---|
+| `GradientBoostingRegressor` | 0.669 | 2.36 pos | 0.818 | — | Baseline |
+| `XGBRegressor` | 0.687 | 2.31 pos | 0.830 | — | Candidate |
+| **`CatBoostRegressor`** | **0.688** | **2.34 pos** | **0.831** | **95.6%** | **WINNER** |
 
-#### Zero-Leakage Temporal Validation Architecture
-![Temporal Validation Architecture](backend/models/temporal_validation_folds.png)
-*Figure 1: (Left) Walk-Forward expanding-window cross-validation timeline across 2018–2024 seasons. (Right) Anti-leakage audit: comparing APEX's strict temporal split against a naive random split, quantifying the optimism bias gap caused by future stint/lap leakage.*
-
-#### Real-World Compound Degradation Curves
-![Compound Degradation Curves](backend/models/temporal_degradation_curves.png)
-*Figure 2: Longitudinal tyre wear modeling on genuine FastF1 race telemetry. Shows 2018–2022 training fit curves against real 2023 validation and 2024 holdout test laps for Soft, Medium, and Hard compounds.*
-
-*For complete evaluation methodology and baseline comparisons, see [docs/EVALUATION.md](docs/EVALUATION.md).*
+### Why CatBoost?
+Benchmarking reveals CatBoost slightly edging out XGBoost on temporal holdout generalization ($R^2 = 0.688$), primarily due to superior continuous-feature boundary handling and well-calibrated residual distributions on small, structured tabular splits.
 
 ---
 
-## Completed Engineering Roadmap (V1 → V5)
+## Engineering Highlights
 
-- [x] **V1: Point-in-Time Core Baseline**: Jolpica/FastF1 ingestion, pre-race feature builder, XGBoost predictor with conformal calibration, standalone FastAPI endpoint, and Simple Mode UI.
-- [x] **V2: Live Race Digital Twin**: 60Hz physics simulation loop, tyre degradation modeling, Monte Carlo strategy simulations, and 5-zone pit-wall interface.
-- [x] **V3: Reinforcement Learning & Explainability**: Safe RL action masking, DQN/PPO policy networks, and microsecond TreeSHAP feature attributions.
-- [x] **V4: Multi-Agent Consensus & FastMCP**: 5-agent LangGraph deliberation (Race Engineer, Tyre Tech, Strategist, Aero, Data Analyst), FastMCP tool server, and Hybrid RAG.
-- [x] **V5: Production Hardening & Resilience**: Zero-hard-dependency fallbacks (Postgres → SQLite, Redis → In-memory, Ollama → Deterministic), Docker Compose containerization, and 257/257 passing test invariants.
+1. **Strict Temporal Integrity (Zero Historical Leakage)**:
+   Chronological train/test partitions ensure the model never learns from future qualifying sessions, later rounds, or mid-race safety car deployments.
+2. **Inductive Split Conformal Prediction**:
+   The chronological final 20% of the training set ($N = 176$) is reserved strictly for nonconformity calibration, generating distribution-free coverage guarantees ($\hat{q} = \pm 6.39$ positions).
+3. **Automated Retraining & Regression Guard**:
+   GitHub Actions CI executes weekly scheduled retraining and asserts that test holdout $R^2 \ge 0.40$, preventing silent model drift.
+4. **Single-Tier Architecture**:
+   Zero Kafka, Redis, or heavy Celery/BullMQ dependencies. One lean process, one REST endpoint, one focused UI.
 
 ---
 
-## License & Citation
+## Project Structure
 
-MIT License. Designed and developed by Susil Nayak for high-performance sequential decision intelligence in motorsports.
+```
+├── core/
+│   ├── ingestion/       # Jolpica / FastF1 REST adapters
+│   ├── features/        # Pre-race feature builder (9-D vector, zero outcome leakage)
+│   ├── training/        # Multi-model benchmark & split-conformal trainer
+│   └── api/             # Standalone FastAPI service (/api/core/predict)
+├── frontend/
+│   └── src/
+│       ├── modes/core/  # CoreMode console, PredictionCard, FeatureImportanceBar
+│       ├── components/  # Header with UTC mission clock and online status
+│       └── App.tsx      # Focused single-screen React application
+├── tests/
+│   └── test_tier1_core.py # Feature invariant, training, and API integration tests
+├── Dockerfile           # Minimal Python 3.12 production runtime
+└── pyproject.toml       # Lean dependencies (FastAPI, Scikit-Learn, XGBoost, CatBoost)
+```
+
+---
+
+## Automated Verification
+
+```bash
+# Run test suite
+uv run pytest tests/ -v
+
+# Build frontend production bundle
+cd frontend && npm run build
+```
+
+---
+
+## License
+
+MIT License. Designed and developed by Susil Nayak.

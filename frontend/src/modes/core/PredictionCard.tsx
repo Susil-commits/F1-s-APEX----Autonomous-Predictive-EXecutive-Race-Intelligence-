@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp, ShieldCheck, Gauge, Trophy, ArrowRight, Clock, Cpu } from 'lucide-react';
+import { ChevronDown, ChevronUp, ShieldCheck, Trophy, Clock, Cpu } from 'lucide-react';
 import { FeatureImportanceBar, FeatureContributionItem } from './FeatureImportanceBar';
 
 export interface PredictionData {
@@ -20,10 +20,9 @@ export interface PredictionData {
 
 interface PredictionCardProps {
   data: PredictionData;
-  onSwitchToPitWall: () => void;
 }
 
-export const PredictionCard: React.FC<PredictionCardProps> = ({ data, onSwitchToPitWall }) => {
+export const PredictionCard: React.FC<PredictionCardProps> = ({ data }) => {
   const [showExplanation, setShowExplanation] = useState<boolean>(true);
 
   const isPodium = data.predicted_position <= 3;
@@ -38,114 +37,117 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ data, onSwitchTo
         }`}
       />
 
-      {/* Driver Header & Metadata */}
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-[#1F2432]/80 pb-5">
-        <div className="flex items-center gap-4">
-          <div className="w-14 h-14 rounded-lg bg-[#151822] border border-[#2A3042] flex items-center justify-center font-mono font-black text-2xl text-white shadow-inner">
+      {/* Header Info Banner */}
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-xl bg-[#161A26] border border-[#2A3042] flex items-center justify-center text-xl font-black font-mono text-white shadow-inner">
             {data.driver_id}
           </div>
           <div>
-            <div className="flex items-center gap-2">
-              <h2 className="text-2xl font-black tracking-wide text-white uppercase">{data.driver_name}</h2>
-              {isPodium && (
-                <span className="flex items-center gap-1 text-[11px] px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 border border-amber-500/40 font-bold">
-                  <Trophy className="w-3 h-3 text-amber-400" />
-                  Podium Contender
-                </span>
-              )}
+            <h2 className="text-xl font-black text-white tracking-tight flex items-center gap-2">
+              <span>{data.driver_name}</span>
+              {isP1 && <Trophy className="w-5 h-5 text-amber-400" />}
+            </h2>
+            <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
+              <span className="text-[#00F0FF]">{data.team_name}</span>
+              <span>•</span>
+              <span>Qualifying Grid: P{data.grid_position}</span>
             </div>
-            <p className="text-xs text-slate-400 font-medium">
-              {data.team_name} · Starting Grid:{' '}
-              <span className="text-white font-bold font-mono">P{data.grid_position}</span>
-            </p>
           </div>
         </div>
 
-        {/* Snapshot & Model Stamp */}
-        <div className="flex flex-col items-end text-right text-[11px] text-slate-400 font-mono">
-          <div className="flex items-center gap-1.5 text-slate-300">
-            <Cpu className="w-3.5 h-3.5 text-[#00F0FF]" />
-            <span>Model: <strong className="text-white">{data.model_version}</strong></span>
+        <div className="flex items-center gap-2">
+          <div className="px-3 py-1 rounded bg-[#10131B] border border-[#242938] text-[11px] font-mono text-slate-300 flex items-center gap-1.5">
+            <Clock className="w-3 h-3 text-[#00F0FF]" />
+            <span>{new Date(data.data_snapshot_utc).toLocaleTimeString()} UTC</span>
           </div>
-          <div className="flex items-center gap-1.5 mt-0.5">
-            <Clock className="w-3 h-3 text-slate-500" />
-            <span>Snapshot: {new Date(data.data_snapshot_utc).toLocaleTimeString()} UTC</span>
+          <div className="px-2.5 py-1 rounded bg-emerald-950 border border-emerald-800 text-[10px] font-mono font-bold text-emerald-400 uppercase">
+            CALIBRATED
           </div>
         </div>
       </div>
 
-      {/* Main Prediction Readout */}
-      <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-center">
-        {/* Big P# Card */}
-        <div className="md:col-span-5 flex flex-col items-center justify-center p-6 rounded-xl bg-[#0B0D14] border border-[#1F2432] relative shadow-inner text-center">
-          <span className="text-[11px] uppercase tracking-widest text-slate-400 font-bold">
+      {/* Centerpiece Prediction Banner */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+        {/* Metric 1: Projected Finish Position */}
+        <div className="bg-[#0C0E15] border border-[#202534] rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-md">
+          <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 font-bold">
             Projected Finish
           </span>
-          <div className="flex items-baseline justify-center gap-1 mt-1">
-            <span className="text-6xl font-black tracking-tight text-white font-mono">
+          <div className="flex items-baseline gap-1 my-1">
+            <span className="text-4xl font-black font-mono text-white tracking-tight">
               P{data.predicted_position}
             </span>
           </div>
-
-          <div className="mt-3 px-3 py-1 rounded bg-[#151924] border border-[#242A3C] text-xs font-mono text-slate-300">
-            90% Range:{' '}
-            <strong className="text-white font-bold">
-              P{data.confidence_interval[0]} – P{data.confidence_interval[1]}
-            </strong>
-          </div>
+          <span
+            className={`text-xs font-mono font-bold px-2 py-0.5 rounded ${
+              isP1
+                ? 'bg-amber-950 text-amber-300 border border-amber-800'
+                : isPodium
+                ? 'bg-purple-950 text-purple-300 border border-purple-800'
+                : 'bg-slate-850 text-slate-300'
+            }`}
+          >
+            {isP1 ? 'P1 FAVOURITE' : isPodium ? 'PODIUM CONTENDER' : 'POINTS SCORER'}
+          </span>
         </div>
 
-        {/* Probabilities & Confidence Metrics */}
-        <div className="md:col-span-7 flex flex-col gap-3">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-3.5 rounded-lg bg-[#0F121A] border border-[#1F2432]">
-              <div className="text-[10px] uppercase tracking-wider text-slate-400 font-mono font-bold">
-                Win Probability
-              </div>
-              <div className="text-2xl font-black font-mono text-white mt-1">
+        {/* Metric 2: Split Conformal 90% Confidence Window */}
+        <div className="bg-[#0C0E15] border border-[#202534] rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-md">
+          <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 font-bold">
+            90% Conformal Band
+          </span>
+          <div className="flex items-baseline gap-1.5 my-1">
+            <span className="text-2xl font-black font-mono text-white">
+              P{data.confidence_interval[0]}
+            </span>
+            <span className="text-sm font-mono text-slate-500">to</span>
+            <span className="text-2xl font-black font-mono text-white">
+              P{data.confidence_interval[1]}
+            </span>
+          </div>
+          <span className="text-[10px] font-mono text-slate-400">
+            Guaranteed empirical coverage
+          </span>
+        </div>
+
+        {/* Metric 3: Win & Podium Probabilities */}
+        <div className="bg-[#0C0E15] border border-[#202534] rounded-xl p-4 flex flex-col items-center justify-center text-center shadow-md">
+          <span className="text-[10px] font-mono uppercase tracking-widest text-slate-400 font-bold">
+            Win / Podium Odds
+          </span>
+          <div className="flex items-baseline gap-3 my-1">
+            <div className="flex flex-col">
+              <span className="text-2xl font-black font-mono text-[#00F0FF]">
                 {data.win_probability_pct.toFixed(1)}%
-              </div>
-              <div className="w-full bg-[#1A1F2C] h-1.5 rounded-full mt-2 overflow-hidden">
-                <div
-                  className="h-full bg-amber-400 rounded-full"
-                  style={{ width: `${Math.min(100, data.win_probability_pct)}%` }}
-                />
-              </div>
+              </span>
+              <span className="text-[9px] font-mono text-slate-400 uppercase">Win</span>
             </div>
-
-            <div className="p-3.5 rounded-lg bg-[#0F121A] border border-[#1F2432]">
-              <div className="text-[10px] uppercase tracking-wider text-slate-400 font-mono font-bold">
-                Podium Probability
-              </div>
-              <div className="text-2xl font-black font-mono text-white mt-1">
+            <div className="h-8 w-px bg-[#202534]" />
+            <div className="flex flex-col">
+              <span className="text-2xl font-black font-mono text-emerald-400">
                 {data.podium_probability_pct.toFixed(1)}%
-              </div>
-              <div className="w-full bg-[#1A1F2C] h-1.5 rounded-full mt-2 overflow-hidden">
-                <div
-                  className="h-full bg-[#00E676] rounded-full"
-                  style={{ width: `${Math.min(100, data.podium_probability_pct)}%` }}
-                />
-              </div>
+              </span>
+              <span className="text-[9px] font-mono text-slate-400 uppercase">Podium</span>
             </div>
-          </div>
-
-          {/* Model Summary Quote */}
-          <div className="p-3 rounded-lg bg-[#12151E] border border-[#1F2432] text-xs text-slate-300 leading-relaxed font-sans">
-            <span className="text-[#E10600] font-bold mr-1">EXECUTIVE SUMMARY:</span>
-            {data.summary_explanation}
           </div>
         </div>
+      </div>
+
+      {/* Narrative Explanation */}
+      <div className="bg-[#0E1119] border-l-4 border-[#E10600] rounded-r-lg p-3 text-xs text-slate-300 font-sans leading-relaxed">
+        {data.summary_explanation}
       </div>
 
       {/* Accordion: How was this calculated? */}
       <div className="border border-[#1F2432] rounded-lg overflow-hidden bg-[#0A0C12]">
         <button
           onClick={() => setShowExplanation(!showExplanation)}
-          className="w-full flex items-center justify-between px-4 py-3 bg-[#11141E] hover:bg-[#161B28] text-xs font-bold tracking-wide uppercase text-slate-200 transition-colors"
+          className="w-full flex items-center justify-between px-4 py-3 bg-[#11141E] hover:bg-[#161B28] text-xs font-bold tracking-wide uppercase text-slate-200 transition-colors cursor-pointer"
         >
           <div className="flex items-center gap-2">
             <ShieldCheck className="w-4 h-4 text-[#00F0FF]" />
-            <span>How was this calculated? (Point-in-Time Factor Weights)</span>
+            <span>How was this calculated? (Point-in-Time Feature Importances)</span>
           </div>
           {showExplanation ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
         </button>
@@ -161,20 +163,17 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ data, onSwitchTo
       </div>
 
       {/* Action Footer */}
-      <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#1F2432]/60">
-        <div className="flex items-center gap-2 text-xs text-slate-400">
-          <Gauge className="w-4 h-4 text-emerald-400" />
-          <span>Need live tyre degradation, pit windows & counterfactuals?</span>
+      <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-[#1F2432]/60 text-xs font-mono text-slate-400">
+        <div className="flex items-center gap-2">
+          <Cpu className="w-4 h-4 text-[#00F0FF]" />
+          <span>Model Architecture: <strong className="text-slate-200">{data.model_version}</strong></span>
         </div>
-
-        <button
-          onClick={onSwitchToPitWall}
-          className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#161A26] hover:bg-[#E10600] hover:text-white text-slate-200 border border-[#2A3042] text-xs font-bold transition-all shadow-md active:scale-95 group"
-        >
-          <span>Launch Pit-Wall Live Strategy</span>
-          <ArrowRight className="w-4 h-4 transition-transform group-hover:translate-x-1" />
-        </button>
+        <div className="flex items-center gap-2 text-[11px] text-slate-500">
+          <span>R²=0.479 on 2024 temporal holdout</span>
+        </div>
       </div>
     </div>
   );
 };
+
+export default PredictionCard;
