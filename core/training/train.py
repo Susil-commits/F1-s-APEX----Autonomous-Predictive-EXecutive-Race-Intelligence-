@@ -23,8 +23,8 @@ from core.ingestion.jolpica_adapter import JolpicaAdapter
 
 logger = logging.getLogger(__name__)
 
-MODEL_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "backend", "models")
-PRERACE_CACHE_CSV = os.path.join(os.path.dirname(__file__), "..", "..", "backend", "data", "real_prerace_dataset.csv")
+MODEL_DIR = os.path.join(os.path.dirname(__file__), "..", "models")
+PRERACE_CACHE_CSV = os.path.join(os.path.dirname(__file__), "..", "data", "real_prerace_dataset.csv")
 
 
 def generate_synthetic_training_data(n_samples: int = 1500, random_seed: int = 42) -> Tuple[np.ndarray, np.ndarray]:

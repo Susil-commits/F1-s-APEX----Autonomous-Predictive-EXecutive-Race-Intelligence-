@@ -1,26 +1,19 @@
-FROM python:3.12-slim AS runtime
-
-ENV PYTHONUNBUFFERED=1 \
-    PYTHONDONTWRITEBYTECODE=1 \
-    PORT=8000
+FROM python:3.12-slim
 
 WORKDIR /app
 
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    libgomp1 \
-    && rm -rf /var/lib/apt/lists/*
+COPY core/requirements.txt requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY core/requirements.txt ./core/requirements.txt
-RUN pip install --no-cache-dir -r core/requirements.txt
+COPY core/ ./core/
+COPY core/data/real_prerace_dataset.csv ./core/data/real_prerace_dataset.csv
+COPY core/models/apex_core_v1_model.joblib ./core/models/apex_core_v1_model.joblib
 
-COPY core/ /app/core/
-COPY backend/data/real_prerace_dataset.csv /app/backend/data/real_prerace_dataset.csv
-COPY backend/models/apex_core_v1_model.joblib /app/backend/models/apex_core_v1_model.joblib
+ENV PYTHONPATH=/app
 
 EXPOSE 8000
 
-HEALTHCHECK --interval=15s --timeout=5s --start-period=5s --retries=3 \
-    CMD curl -f http://localhost:8000/api/health || exit 1
+HEALTHCHECK --interval=30s --timeout=10s --start-period=15s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health')" || exit 1
 
 CMD ["uvicorn", "core.api.main:app", "--host", "0.0.0.0", "--port", "8000"]

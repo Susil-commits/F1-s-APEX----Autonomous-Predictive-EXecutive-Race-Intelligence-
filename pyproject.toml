@@ -1,7 +1,7 @@
 [project]
 name = "apex"
-version = "0.1.0"
-description = "APEX — Autonomous Predictive Race Intelligence"
+version = "1.0.0"
+description = "APEX — F1 Pre-Race Finishing Position Predictor (V1, single-tier)"
 readme = "README.md"
 requires-python = ">=3.11, <3.13"
 dependencies = [
@@ -26,13 +26,13 @@ requires = ["setuptools>=61.0"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
-include = ["core*", "backend*"]
-exclude = ["frontend*"]
+include = ["core*"]
+exclude = ["frontend*", "backend*"]
 
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
-pythonpath = [".", "backend"]
+pythonpath = ["."]
 
 [tool.ruff]
 target-version = "py312"

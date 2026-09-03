@@ -22,7 +22,7 @@ from core.features.feature_builder import (
 router = APIRouter(prefix="/api/core", tags=["Core Predictor"])
 
 MODEL_FILE = os.path.join(
-    os.path.dirname(__file__), "..", "..", "backend", "models", "apex_core_v1_model.joblib"
+    os.path.dirname(__file__), "..", "models", "apex_core_v1_model.joblib"
 )
 
 # Reference 2024/2025 driver profiles for pre-race starting priors
