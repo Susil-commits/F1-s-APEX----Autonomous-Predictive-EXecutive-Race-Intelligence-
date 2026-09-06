@@ -238,3 +238,45 @@ async def test_feature_attribution_structure_and_ordering():
         # Must be ordered descending by importance percentage
         importances = [c["importance_pct"] for c in contributions]
         assert importances == sorted(importances, reverse=True)
+
+
+def test_circuit_profiles_catalog_and_marina_bay_coverage():
+    """Verifies marina_bay key resolution and 100% circuit coverage against dataset."""
+    import os
+    import pandas as pd
+    from core.features.feature_builder import CIRCUIT_PROFILES
+    from core.training.train import PRERACE_CACHE_CSV
+
+    # Verify marina_bay exists and has correct physical profile
+    assert "marina_bay" in CIRCUIT_PROFILES
+    mb = CIRCUIT_PROFILES["marina_bay"]
+    assert mb["downforce"] == 0.95
+    assert mb["power"] == 0.35
+    assert mb["street"] == 1.0
+
+    # If dataset cache exists, verify 100% of unique circuit_ids are mapped
+    if os.path.exists(PRERACE_CACHE_CSV):
+        df = pd.read_csv(PRERACE_CACHE_CSV)
+        unique_circuits = set(df["circuit_id"].dropna().unique())
+        missing = unique_circuits - set(CIRCUIT_PROFILES.keys())
+        assert len(missing) == 0, f"Unmapped circuits found: {missing}"
+
+
+def test_evaluation_fallback_warning(caplog):
+    """Verifies that evaluate_model_temporal logs a visible warning when data loading falls back."""
+    import logging
+    from unittest.mock import patch
+
+    class DummyModel:
+        def predict(self, X):
+            import numpy as np
+            return np.ones(len(X)) * 5.0
+
+    dummy_artifact = {"model": DummyModel(), "q_hat_margin": 2.0}
+
+    with caplog.at_level(logging.WARNING):
+        with patch("core.training.train.load_or_fetch_prerace_data", side_effect=RuntimeError("Simulated failure")):
+            rep = evaluate_model_temporal(dummy_artifact, n_test_samples=10)
+            assert rep is not None
+            assert any("APEX EVALUATION WARNING" in record.message for record in caplog.records)
+

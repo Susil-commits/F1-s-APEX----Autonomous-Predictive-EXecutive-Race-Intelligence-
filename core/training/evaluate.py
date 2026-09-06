@@ -27,12 +27,25 @@ def evaluate_model_temporal(model_artifact: Dict[str, Any], n_test_samples: int 
     from core.training.train import load_or_fetch_prerace_data
     try:
         X_all, y_all, df = load_or_fetch_prerace_data(allow_synthetic=True)
+        if "data_source" in df.columns and (df["data_source"] == "synthetic_fallback").any():
+            fallback_msg = (
+                "[APEX EVALUATION WARNING] Dataset is running on synthetic fallback data! "
+                "Offline evaluation is not using real historical F1 records."
+            )
+            logger.warning(fallback_msg)
+            print(fallback_msg)
         if "season" in df.columns and len(df["season"].unique()) > 1:
             test_mask = (df["season"] == df["season"].max()).values
             X_test, y_test = X_all[test_mask], y_all[test_mask]
         else:
             X_test, y_test = X_all[-n_test_samples:], y_all[-n_test_samples:]
-    except Exception:
+    except Exception as exc:
+        fallback_msg = (
+            f"[APEX EVALUATION WARNING] Real data loading failed ({exc}). "
+            "Falling back to synthetic evaluation data via generate_synthetic_training_data()."
+        )
+        logger.warning(fallback_msg)
+        print(fallback_msg)
         X_test, y_test = generate_synthetic_training_data(n_samples=n_test_samples, random_seed=999)
     preds = model.predict(X_test)
 
