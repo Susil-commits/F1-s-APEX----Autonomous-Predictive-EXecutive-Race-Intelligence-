@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Trophy, ChevronDown, ChevronUp, Activity, Gauge, Flag, Zap, Compass, CheckCircle2 } from 'lucide-react';
 import { FeatureContributionItem } from './FeatureImportanceBar';
+import { F1_CDN_FALLBACK } from './data/constants';
 
 export interface PredictionData {
   race_id: string;
@@ -29,15 +30,27 @@ const DRIVER_METADATA: Record<
   VER: { number: 1, color: '#3671C6', country: '🇳🇱' },
   NOR: { number: 4, color: '#FF8000', country: '🇬🇧' },
   LEC: { number: 16, color: '#E80020', country: '🇲🇨' },
+  PIA: { number: 81, color: '#FF8000', country: '🇦🇺' },
   HAM: { number: 44, color: '#E80020', country: '🇬🇧' },
   RUS: { number: 63, color: '#00A19B', country: '🇬🇧' },
   ANT: { number: 12, color: '#00A19B', country: '🇮🇹' },
-  PIA: { number: 81, color: '#FF8000', country: '🇦🇺' },
   SAI: { number: 55, color: '#64C4FF', country: '🇪🇸' },
+  PER: { number: 11, color: '#3671C6', country: '🇲🇽' },
   ALO: { number: 14, color: '#229971', country: '🇪🇸' },
-  ALB: { number: 23, color: '#64C4FF', country: '🇹🇭' },
+  STR: { number: 18, color: '#229971', country: '🇨🇦' },
   TSU: { number: 22, color: '#6692FF', country: '🇯🇵' },
+  ALB: { number: 23, color: '#64C4FF', country: '🇹🇭' },
   HUL: { number: 27, color: '#52E252', country: '🇩🇪' },
+  RIC: { number: 3, color: '#6692FF', country: '🇦🇺' },
+  GAS: { number: 10, color: '#0093CC', country: '🇫🇷' },
+  OCO: { number: 31, color: '#0093CC', country: '🇫🇷' },
+  MAG: { number: 20, color: '#B6BABD', country: '🇩🇰' },
+  ZHO: { number: 24, color: '#52E252', country: '🇨🇳' },
+  BOT: { number: 77, color: '#52E252', country: '🇫🇮' },
+  SAR: { number: 2, color: '#64C4FF', country: '🇺🇸' },
+  BEA: { number: 87, color: '#B6BABD', country: '🇬🇧' },
+  LAW: { number: 30, color: '#6692FF', country: '🇳🇿' },
+  COL: { number: 43, color: '#64C4FF', country: '🇦🇷' },
 };
 
 export const PredictionCard: React.FC<PredictionCardProps> = ({ data }) => {
@@ -82,6 +95,11 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ data }) => {
                 className="w-full h-full object-contain drop-shadow-md z-10 hover:scale-105 transition-transform duration-300"
                 onError={(e) => {
                   const target = e.currentTarget;
+                  const cdn = F1_CDN_FALLBACK[data.driver_id];
+                  if (cdn && target.src !== cdn) {
+                    target.src = cdn;
+                    return;
+                  }
                   target.style.display = 'none';
                   if (target.nextElementSibling) {
                     (target.nextElementSibling as HTMLElement).style.display = 'flex';

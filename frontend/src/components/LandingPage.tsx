@@ -13,7 +13,7 @@ import {
   Shield,
   Zap,
 } from 'lucide-react';
-import { GRAND_PRIX_LIST, DRIVERS_LIST, OFFICIAL_SPONSORS } from '../modes/core/data/constants';
+import { GRAND_PRIX_LIST, DRIVERS_LIST, OFFICIAL_SPONSORS, F1_CDN_FALLBACK } from '../modes/core/data/constants';
 import { F1Aerodynamics3D } from './F1Aerodynamics3D';
 import { useTheme } from '../context/ThemeContext';
 import { Header } from './Header';
@@ -269,8 +269,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
                   alt={`${driver.firstName} ${driver.lastName}`}
                   className="h-full w-auto object-contain transition-transform duration-300 group-hover:scale-110 drop-shadow-md"
                   onError={(e) => {
-                    // Fallback to stylized initials if image fails
                     const target = e.currentTarget;
+                    const cdn = F1_CDN_FALLBACK[driver.code];
+                    if (cdn && target.src !== cdn) {
+                      target.src = cdn;
+                      return;
+                    }
                     target.style.display = 'none';
                     if (target.nextElementSibling) {
                       (target.nextElementSibling as HTMLElement).style.display = 'flex';

@@ -1,6 +1,6 @@
 import React from 'react';
 import { Check } from 'lucide-react';
-import { DriverItem } from '../data/constants';
+import { DriverItem, F1_CDN_FALLBACK } from '../data/constants';
 
 export interface DriverGridProps {
   drivers: DriverItem[];
@@ -21,7 +21,7 @@ export const DriverGrid: React.FC<DriverGridProps> = ({
       <div className="flex items-center justify-between">
         <span className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 font-bold flex items-center gap-2">
           <span className="text-[#E10600] font-black">#</span>
-          <span>Official 2026 Drivers</span>
+          <span>Official 2026 Grid Roster ({drivers.length} Drivers)</span>
         </span>
         {activeDriver && (
           <span className="text-xs font-mono text-slate-600 dark:text-slate-400">
@@ -43,9 +43,9 @@ export const DriverGrid: React.FC<DriverGridProps> = ({
               key={driver.code}
               type="button"
               onClick={() => onSelect(driver.code, driver.defaultGrid)}
-              className={`matte-card-interactive card-3d p-3.5 flex flex-col justify-between h-44 relative overflow-hidden text-left cursor-pointer transition-all ${
+              className={`matte-card-interactive card-3d p-3.5 flex flex-col justify-between h-48 relative overflow-hidden text-left cursor-pointer transition-all ${
                 isSelected
-                  ? 'ring-2 ring-[#E10600] border-transparent shadow-lg shadow-red-600/20'
+                  ? 'ring-2 ring-[#E10600] border-transparent shadow-lg shadow-red-600/25'
                   : ''
               }`}
             >
@@ -57,7 +57,7 @@ export const DriverGrid: React.FC<DriverGridProps> = ({
 
               {/* Face Illumination Ambient Glow */}
               <div
-                className="absolute top-3 left-1/2 -translate-x-1/2 w-24 h-24 rounded-full blur-xl opacity-20 pointer-events-none transition-opacity"
+                className="absolute top-2 left-1/2 -translate-x-1/2 w-28 h-28 rounded-full blur-xl opacity-20 pointer-events-none transition-opacity"
                 style={{
                   backgroundColor: driver.color,
                   opacity: isSelected ? 0.45 : 0.2,
@@ -84,14 +84,19 @@ export const DriverGrid: React.FC<DriverGridProps> = ({
                 )}
               </div>
 
-              {/* Driver Face Photo (Illuminated & Properly Scaled) */}
-              <div className="relative h-20 w-full flex items-center justify-center my-1 z-10 overflow-hidden">
+              {/* Driver Face Photo (Illuminated & Centered) */}
+              <div className="relative h-24 w-full flex items-center justify-center my-1 z-10 overflow-hidden">
                 <img
                   src={driver.photo || `/f1/drivers/${driver.code}.png`}
                   alt={`${driver.firstName} ${driver.lastName}`}
-                  className="h-full w-auto object-contain transition-transform duration-300 group-hover:scale-105 drop-shadow-sm"
+                  className="h-full w-auto object-contain transition-transform duration-300 group-hover:scale-105 drop-shadow-md"
                   onError={(e) => {
                     const target = e.currentTarget;
+                    const cdn = F1_CDN_FALLBACK[driver.code];
+                    if (cdn && target.src !== cdn) {
+                      target.src = cdn;
+                      return;
+                    }
                     target.style.display = 'none';
                     if (target.nextElementSibling) {
                       (target.nextElementSibling as HTMLElement).style.display = 'flex';
@@ -100,7 +105,7 @@ export const DriverGrid: React.FC<DriverGridProps> = ({
                 />
                 <div
                   style={{ display: 'none' }}
-                  className="w-12 h-12 rounded-full bg-slate-200 dark:bg-slate-800 items-center justify-center font-bold text-sm text-slate-700 dark:text-white"
+                  className="w-14 h-14 rounded-full bg-slate-200 dark:bg-slate-800 items-center justify-center font-bold text-sm text-slate-700 dark:text-white"
                 >
                   {driver.code}
                 </div>
