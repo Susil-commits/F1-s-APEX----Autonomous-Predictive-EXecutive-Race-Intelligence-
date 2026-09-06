@@ -9,7 +9,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
-from prometheus_client import CONTENT_TYPE_LATEST, generate_latest
+from core.api.metrics import CONTENT_TYPE_LATEST, generate_latest
+
 
 RateLimitExceeded: Any = None
 _rate_limit_exceeded_handler: Any = None

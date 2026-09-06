@@ -2,7 +2,42 @@
 from __future__ import annotations
 
 import time
-from prometheus_client import Counter, Histogram, Gauge
+from typing import Any
+
+try:
+    from prometheus_client import CONTENT_TYPE_LATEST, Counter, Gauge, Histogram, generate_latest
+    PROMETHEUS_AVAILABLE = True
+except ImportError:
+    PROMETHEUS_AVAILABLE = False
+
+    class _DummyMetric:
+        """No-op metric fallback when prometheus_client is not installed."""
+        def __init__(self, *args: Any, **kwargs: Any) -> None:
+            pass
+
+        def labels(self, *args: Any, **kwargs: Any) -> "_DummyMetric":
+            return self
+
+        def inc(self, amount: float = 1) -> None:
+            pass
+
+        def dec(self, amount: float = 1) -> None:
+            pass
+
+        def set(self, value: float) -> None:
+            pass
+
+        def observe(self, amount: float) -> None:
+            pass
+
+    Counter = _DummyMetric  # type: ignore[assignment,misc]
+    Histogram = _DummyMetric  # type: ignore[assignment,misc]
+    Gauge = _DummyMetric  # type: ignore[assignment,misc]
+    CONTENT_TYPE_LATEST = "text/plain; version=0.0.4; charset=utf-8"
+
+    def generate_latest() -> bytes:  # type: ignore[misc]
+        return b"# prometheus_client library not installed\n"
+
 
 # Counter tracking predictions by driver abbreviation and outcome status
 PREDICTION_REQUESTS_TOTAL = Counter(
