@@ -15,6 +15,7 @@ from typing import Any, Dict, List, Optional
 import joblib
 import numpy as np
 from fastapi import APIRouter, HTTPException, Request
+from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field, field_validator
 
 from core.api.limiter import limiter
@@ -215,8 +216,8 @@ async def predict_finish(request: Request, req: PredictRequest):
         except Exception:
             pass
 
-    # Predict continuous finish position
-    raw_pred = float(model.predict(feat_vec.reshape(1, -1))[0])
+    # Predict continuous finish position via threadpool offload to avoid blocking the event loop
+    raw_pred = float((await run_in_threadpool(model.predict, feat_vec.reshape(1, -1)))[0])
     pred_pos = int(np.clip(np.round(raw_pred), 1, 20))
 
     # Split Conformal 90% confidence interval
@@ -228,9 +229,9 @@ async def predict_finish(request: Request, req: PredictRequest):
     quantile_p50: Optional[int] = None
     if quantile_models and isinstance(quantile_models, dict):
         try:
-            q10_raw = float(quantile_models["q10"].predict(feat_vec.reshape(1, -1))[0])
-            q50_raw = float(quantile_models["q50"].predict(feat_vec.reshape(1, -1))[0])
-            q90_raw = float(quantile_models["q90"].predict(feat_vec.reshape(1, -1))[0])
+            q10_raw = float((await run_in_threadpool(quantile_models["q10"].predict, feat_vec.reshape(1, -1)))[0])
+            q50_raw = float((await run_in_threadpool(quantile_models["q50"].predict, feat_vec.reshape(1, -1)))[0])
+            q90_raw = float((await run_in_threadpool(quantile_models["q90"].predict, feat_vec.reshape(1, -1)))[0])
             p10 = int(np.clip(np.round(q10_raw), 1, 20))
             p50 = int(np.clip(np.round(q50_raw), 1, 20))
             p90 = int(np.clip(np.round(q90_raw), 1, 20))
