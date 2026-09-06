@@ -27,6 +27,7 @@ except ImportError:
 
 from core.api.limiter import limiter
 from core.api.predict import router as predict_router
+from core.api.narration import router as narration_router
 from core.monitoring.drift import WeekendDriftMonitor
 
 _drift_monitor = WeekendDriftMonitor()
@@ -54,6 +55,7 @@ app.add_middleware(
 )
 
 app.include_router(predict_router)
+app.include_router(narration_router)
 
 
 @app.get("/")
@@ -63,6 +65,7 @@ async def root():
         "status": "ready",
         "docs_url": "/docs",
         "predict_endpoint": "/api/core/predict",
+        "narrate_endpoint": "/api/core/predict/narrate",
         "metrics_endpoint": "/metrics",
     }
 
