@@ -95,11 +95,11 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
                 </div>
                 <div>
                   <div className="text-2xl font-black text-slate-900 dark:text-white font-['Outfit']">24</div>
-                  <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">Drivers Calibrated</div>
+                  <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">Drivers on Grid</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-black text-cyan-600 dark:text-cyan-400 font-['Outfit']">&lt; 100ms</div>
-                  <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">Real-Time Simulation</div>
+                  <div className="text-2xl font-black text-cyan-600 dark:text-cyan-400 font-['Outfit']">P1 — P24</div>
+                  <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">Grid Position Pacing</div>
                 </div>
               </div>
             </div>
@@ -109,10 +109,10 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
               <div className="flex items-center justify-between px-2">
                 <span className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-[#E10600]" />
-                  <span>Interactive 3D Wind Tunnel</span>
+                  <span>Aerodynamic Wind Tunnel</span>
                 </span>
                 <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
-                  Live 60fps WebGL
+                  Airflow Streamline Dynamics
                 </span>
               </div>
 
@@ -121,7 +121,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
                 <div className="w-full h-full relative rounded-xl overflow-hidden bg-slate-950/40">
                   <F1Aerodynamics3D theme={theme} accentColor="#E10600" />
                   <div className="absolute bottom-3 left-3 text-[10px] font-mono text-slate-300 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded border border-white/10">
-                    Interactive 3D · Drag to rotate streamlines
+                    Airflow Vortices · Drag to rotate chassis
                   </div>
                 </div>
               </div>
@@ -136,7 +136,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         {/* Full-bleed Interactive 3D Hologram Circuit Background */}
         <Parallax3DBackground
           src="/f1/circuit_hologram_3d.jpg"
-          alt="3D Hologram Circuit Telemetry Background"
+          alt="Formula 1 Circuit Track Background"
           intensity={0.95}
           gradientPlacement="circuit"
           spotlightColor="rgba(0, 240, 255, 0.22)"
@@ -145,12 +145,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            {/* Hologram Card with Telemetry Beacons & 3D Photo Switcher */}
+            {/* Hologram Card with Telemetry Beacons & Photo Switcher */}
             <div className="lg:col-span-7 matte-panel overflow-hidden p-3 group backdrop-blur-xl border border-slate-300/60 dark:border-white/15 card-3d">
               <div className="relative rounded-xl overflow-hidden aspect-video bg-black/80">
                 <img
                   src={showcasePhoto === 'hologram' ? '/f1/circuit_hologram_3d.jpg' : '/f1/hero_car_3d.jpg'}
-                  alt={showcasePhoto === 'hologram' ? '3D Holographic Circuit Telemetry' : '3D Formula 1 Aerodynamic Render'}
+                  alt={showcasePhoto === 'hologram' ? 'Formula 1 Circuit Elevation Map' : '2026 Formula 1 Aerodynamic Chassis'}
                   className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105"
                 />
                 <div className="absolute inset-0 bg-gradient-to-tr from-black/80 via-transparent to-black/30 pointer-events-none" />
@@ -158,41 +158,41 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
                 {/* Header Overlay with Photo Switcher */}
                 <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
                   <span className="px-2.5 py-1 rounded-md bg-red-600/90 text-white font-black text-[10px] tracking-widest uppercase font-mono shadow-md">
-                    {showcasePhoto === 'hologram' ? 'MISSION CONTROL · 3D HOLOGRAPHIC TELEMETRY' : 'STUDIO RENDER · 3D AERODYNAMIC CHASSIS'}
+                    {showcasePhoto === 'hologram' ? 'CIRCUIT TELEMETRY · TRACK PROFILE' : 'AERODYNAMICS · 2026 CHAMPIONSHIP CHASSIS'}
                   </span>
                   
                   <div className="flex items-center gap-1 bg-black/70 backdrop-blur-md p-1 rounded-lg border border-white/20">
                     <button
                       type="button"
                       onClick={() => setShowcasePhoto('hologram')}
-                      className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-all ${
+                      className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
                         showcasePhoto === 'hologram'
                           ? 'bg-[#E10600] text-white shadow'
                           : 'text-slate-300 hover:text-white'
                       }`}
                     >
-                      3D Track
+                      Track Map
                     </button>
                     <button
                       type="button"
                       onClick={() => setShowcasePhoto('car')}
-                      className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-all ${
+                      className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-all cursor-pointer ${
                         showcasePhoto === 'car'
                           ? 'bg-[#E10600] text-white shadow'
                           : 'text-slate-300 hover:text-white'
                       }`}
                     >
-                      3D Car
+                      Car Chassis
                     </button>
                   </div>
                 </div>
 
                 <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-xs text-white">
                   <div className="font-mono text-[11px] text-slate-300">
-                    {showcasePhoto === 'hologram' ? 'Circuit Elevation & Downforce Modeling' : 'Ground Effect Venturi & Rear Wing Aero'}
+                    {showcasePhoto === 'hologram' ? 'Circuit Elevation & Downforce Profile' : 'Ground Effect Venturi & Rear Wing Aero'}
                   </div>
                   <span className="px-2.5 py-1 rounded bg-black/60 backdrop-blur-md border border-white/20 text-[10px] font-mono text-cyan-400">
-                    Interactive 3D Asset
+                    Grand Prix Map
                   </span>
                 </div>
               </div>
@@ -202,13 +202,13 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
             <div className="lg:col-span-5 flex flex-col gap-5">
               <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-[#E10600]">
                 <Layers className="w-4 h-4" />
-                <span>Track Profiling Engine</span>
+                <span>Track Aerodynamics & Dynamics</span>
               </div>
               <h2 className="text-3xl sm:text-4xl font-extrabold uppercase tracking-tight text-slate-900 dark:text-white font-['Outfit']">
-                CIRCUIT DYNAMICS & AERODYNAMIC DEMAND
+                CIRCUIT DYNAMICS & DOWNFORCE DEMAND
               </h2>
               <p className="text-sm sm:text-base text-slate-700 dark:text-slate-300 leading-relaxed">
-                Every circuit on the calendar tests different performance dimensions. From Monza&apos;s low-drag high-speed straights to Monaco&apos;s maximum downforce street chicanes, APEX models each track&apos;s unique overtaking delta and tire degradation profile.
+                Every circuit on the calendar tests different performance dimensions. From Monza&apos;s low-drag high-speed straights to Monaco&apos;s maximum downforce street chicanes, APEX analyzes each track&apos;s unique overtaking delta and tire degradation profile.
               </p>
 
               <div className="space-y-3 pt-2">
@@ -218,7 +218,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
                   </div>
                   <div>
                     <h4 className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-wider">Aero Downforce Tiers</h4>
-                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Low, Medium, High, and Maximum downforce configurations modeled per track.</p>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400">Low, Medium, High, and Maximum downforce configurations configured per track.</p>
                   </div>
                 </div>
 
@@ -245,7 +245,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
             2026 DRIVER LINEUP
           </h2>
           <p className="text-sm text-slate-500 dark:text-slate-400">
-            Official high-fidelity driver profiles with verified rolling form and constructor pacing.
+            Official driver lineup with current form ratings and constructor race pace.
           </p>
         </div>
 
@@ -339,7 +339,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
               HOW APEX CALCULATES PREDICTIONS
             </h2>
             <p className="text-sm text-slate-500 dark:text-slate-400">
-              A 4-stage racing simulation modeled strictly on verifiable pre-race telemetry and conditions.
+              A 4-stage race day projection based strictly on real-world track conditions and driver pacing.
             </p>
           </div>
 
@@ -466,7 +466,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
           </div>
 
           <div className="text-xs text-slate-500 dark:text-slate-500 text-center pt-4 border-t border-slate-200 dark:border-white/10 w-full max-w-2xl">
-            © 2003–2026 Formula One World Championship Limited. APEX Predictive Intelligence Engine. All racing marks belong to their respective copyright holders.
+            © 2003–2026 Formula One World Championship Limited. APEX Formula 1 Race Intelligence. All racing marks belong to their respective copyright holders.
           </div>
         </div>
       </footer>

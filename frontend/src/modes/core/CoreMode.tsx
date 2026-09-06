@@ -84,7 +84,7 @@ export const CoreMode: React.FC = () => {
       setPrediction(data);
       setError(null);
     } catch {
-      setError('Prediction service currently unavailable. Please verify API connection.');
+      setError('Race strategy service temporarily unavailable. Please try again shortly.');
       setPrediction(null);
     } finally {
       setIsAnalyzing(false);

@@ -152,7 +152,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ data }) => {
               </span>
             </div>
             <span className="text-[11px] font-mono text-slate-400">
-              Snapshot: {new Date(data.data_snapshot_utc).toLocaleTimeString()} UTC
+              Session Timing: {new Date(data.data_snapshot_utc).toLocaleTimeString()} UTC
             </span>
           </div>
         </div>
@@ -231,14 +231,20 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ data }) => {
               </div>
             </div>
             <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-2">
-              Simulated across race lap deltas
+              Calculated across Grand Prix distance
             </span>
           </div>
         </div>
 
         {/* Strategic Briefing Narrative */}
         <div className="p-4 rounded-xl bg-slate-50 dark:bg-white/[0.02] border-l-4 border-[#E10600] text-xs text-slate-700 dark:text-slate-300 leading-relaxed font-medium">
-          <p>{data.summary_explanation}</p>
+          <p>
+            {data.summary_explanation
+              ?.replace(/\s*\([^)]*(?:CatBoost|GBR|XGBoost|RandomForest|Model)[^)]*\)/gi, '')
+              .replace(/90%\s*split-conformal\s*window/gi, 'projected race window')
+              .replace(/split-conformal/gi, 'projected')
+              .replace(/CatBoost|XGBoost|LightGBM/gi, 'APEX Strategy')}
+          </p>
         </div>
 
         {/* Strategic Performance Drivers Accordion */}
@@ -280,7 +286,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ data }) => {
                 </div>
                 <div className="p-3 rounded-lg bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 flex items-center justify-between text-xs">
                   <span className="text-slate-600 dark:text-slate-400">Driver Form Trajectory</span>
-                  <span className="font-bold text-emerald-600 dark:text-emerald-400">Calibrated</span>
+                  <span className="font-bold text-emerald-600 dark:text-emerald-400">Peak Form</span>
                 </div>
               </div>
             </div>
@@ -293,7 +299,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ data }) => {
             <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500" />
             <span>2026 World Championship Pre-Race Simulation</span>
           </div>
-          <span>Engine Status: Active</span>
+          <span>Telemetry Feed: Live</span>
         </div>
       </div>
     </div>

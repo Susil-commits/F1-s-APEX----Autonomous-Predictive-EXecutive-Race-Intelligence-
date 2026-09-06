@@ -24,7 +24,7 @@ export const GlobalPartners: React.FC<GlobalPartnersProps> = ({ sponsors }) => {
       </div>
 
       <p className="text-[11px] text-slate-400 dark:text-slate-500 text-center mt-2 font-mono">
-        © 2003–2026 Formula One World Championship Limited. APEX Autonomous Predictive Intelligence.
+        © 2003–2026 Formula One World Championship Limited. APEX Formula 1 Race Intelligence.
       </p>
     </div>
   );

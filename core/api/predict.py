@@ -249,9 +249,9 @@ async def predict_finish(request: Request, req: PredictRequest):
     contributions.sort(key=lambda c: c.importance_pct, reverse=True)
 
     summary = (
-        f"{profile['name']} qualifies P{grid} for the {circuit_id.title()} GP. "
-        f"Based on {profile['team']}'s points share and recent rolling form, "
-        f"APEX ({winning_family}) projects a P{pred_pos} finish with a 90% split-conformal window between P{lower} and P{upper}."
+        f"{profile['name']} starts P{grid} for the {circuit_id.title()} Grand Prix. "
+        f"Accounting for {profile['team']}'s car pace and current driver form, "
+        f"APEX projects a P{pred_pos} finish with a strategic finishing window between P{lower} and P{upper}."
     )
 
     return PredictResponse(
