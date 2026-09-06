@@ -90,7 +90,7 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ data }) => {
                 style={{ backgroundColor: meta.color }}
               />
               <img
-                src={`/f1/drivers/${data.driver_id}.png`}
+                src={`/f1/drivers/${data.driver_id}.webp`}
                 alt={data.driver_name}
                 className="w-full h-full object-contain drop-shadow-md z-10 hover:scale-105 transition-transform duration-300"
                 onError={(e) => {

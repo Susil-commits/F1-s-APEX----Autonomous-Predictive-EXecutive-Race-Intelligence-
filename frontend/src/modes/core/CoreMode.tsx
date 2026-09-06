@@ -44,7 +44,7 @@ export const CoreMode: React.FC = () => {
                 color: d.color || '#E10600',
                 country: d.country || '🏁',
                 defaultGrid: d.default_grid ?? 10,
-                photo: `/f1/drivers/${d.code}.png`,
+                photo: `/f1/drivers/${d.code}.webp`,
               }))
             );
           }

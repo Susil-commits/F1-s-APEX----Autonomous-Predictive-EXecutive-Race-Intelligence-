@@ -87,7 +87,7 @@ export const DriverGrid: React.FC<DriverGridProps> = ({
               {/* Driver Face Photo (Illuminated & Centered) */}
               <div className="relative h-24 w-full flex items-center justify-center my-1 z-10 overflow-hidden">
                 <img
-                  src={driver.photo || `/f1/drivers/${driver.code}.png`}
+                  src={driver.photo || `/f1/drivers/${driver.code}.webp`}
                   alt={`${driver.firstName} ${driver.lastName}`}
                   className="h-full w-auto object-contain transition-transform duration-300 group-hover:scale-105 drop-shadow-md"
                   onError={(e) => {
