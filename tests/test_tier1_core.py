@@ -443,3 +443,120 @@ async def test_drift_rest_api_endpoints():
         assert data_check["status"] == "HEALTHY"
 
 
+def test_feature_builder_dict_to_vector():
+    """Verifies that PreRaceFeatureBuilder.dict_to_vector preserves PRE_RACE_FEATURE_NAMES alignment."""
+    from core.features.feature_builder import PRE_RACE_FEATURE_NAMES, PreRaceFeatureBuilder
+
+    sample_dict = {name: float(idx + 1) for idx, name in enumerate(PRE_RACE_FEATURE_NAMES)}
+    vec = PreRaceFeatureBuilder.dict_to_vector(sample_dict)
+    assert vec.shape == (len(PRE_RACE_FEATURE_NAMES),)
+    for idx, name in enumerate(PRE_RACE_FEATURE_NAMES):
+        assert vec[idx] == float(idx + 1)
+
+
+@pytest.mark.asyncio
+async def test_compute_sensitivity_batched_inference():
+    """Verifies that compute_sensitivity returns top levers sorted by positions_gained."""
+    import numpy as np
+    from core.api.predict import compute_sensitivity
+    from core.features.feature_builder import PreRaceFeatureBuilder
+
+    class DummyModel:
+        def predict(self, X):
+            # Simulated model where improving sector/quali times lowers finishing position
+            return np.sum(X, axis=1) * 5.0
+
+    dummy_model = DummyModel()
+    base_dict = {
+        "sector_1_delta_norm": 0.5,
+        "sector_2_delta_norm": 0.5,
+        "sector_3_delta_norm": 0.5,
+        "quali_delta_to_pole_s": 0.4,
+    }
+
+    sensitivity = await compute_sensitivity(dummy_model, base_dict, PreRaceFeatureBuilder, current_pred=8.0)
+    assert isinstance(sensitivity, list)
+    assert len(sensitivity) <= 3
+    if sensitivity:
+        for rec in sensitivity:
+            assert "lever" in rec
+            assert "change" in rec
+            assert "positions_gained" in rec
+            assert rec["positions_gained"] > 0.1
+        # Check sorted descending
+        gains = [r["positions_gained"] for r in sensitivity]
+        assert gains == sorted(gains, reverse=True)
+
+
+def test_rank_opportunities():
+    """Verifies that rank_opportunities correctly identifies the highest impact opportunity."""
+    from core.api.predict import FeatureContribution, rank_opportunities
+
+    contributions = [
+        FeatureContribution(
+            feature="sector_1_delta_norm",
+            label="Sector 1 Cornering/Pace",
+            value=0.8,
+            importance_pct=35.0,
+            direction="hurts_finish",
+        ),
+        FeatureContribution(
+            feature="constructor_pts_share",
+            label="Car Championship Pace",
+            value=0.25,
+            importance_pct=25.0,
+            direction="improves_finish",
+        ),
+        FeatureContribution(
+            feature="quali_delta_to_pole_s",
+            label="Qualifying Pace Delta",
+            value=0.4,
+            importance_pct=15.0,
+            direction="hurts_finish",
+        ),
+    ]
+
+    feat_dict = {
+        "sector_1_delta_norm": 0.8,
+        "constructor_pts_share": 0.25,
+        "quali_delta_to_pole_s": 0.4,
+    }
+
+    opps = rank_opportunities(contributions, feat_dict)
+    assert isinstance(opps, list)
+    assert len(opps) == 1
+    assert opps[0]["feature"] == "sector_1_delta_norm"
+    assert opps[0]["opportunity_score"] > 0
+
+
+@pytest.mark.asyncio
+async def test_predict_endpoint_returns_strategy_recommendations_and_opportunity():
+    """Verifies that /api/core/predict includes strategy_recommendations and biggest_opportunity."""
+    transport = ASGITransport(app=core_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        res = await client.post(
+            "/api/core/predict",
+            json={
+                "race_id": "silverstone",
+                "driver_id": "SAI",
+                "grid_position": 8,
+                "sector_1_delta_s": 0.35,
+                "sector_2_delta_s": 0.45,
+                "sector_3_delta_s": 0.25,
+            },
+        )
+        assert res.status_code == 200
+        data = res.json()
+        assert "strategy_recommendations" in data
+        assert isinstance(data["strategy_recommendations"], list)
+        if data["strategy_recommendations"]:
+            rec = data["strategy_recommendations"][0]
+            assert "lever" in rec
+            assert "change" in rec
+            assert "positions_gained" in rec
+        if data.get("biggest_opportunity"):
+            opp = data["biggest_opportunity"]
+            assert "feature" in opp
+            assert "opportunity_score" in opp
+
+

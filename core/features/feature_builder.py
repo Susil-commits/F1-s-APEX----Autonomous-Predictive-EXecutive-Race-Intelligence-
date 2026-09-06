@@ -161,3 +161,8 @@ class PreRaceFeatureBuilder:
         }
 
         return vec, feat_dict
+
+    @staticmethod
+    def dict_to_vector(feat_dict: Dict[str, float]) -> np.ndarray:
+        """Converts a feature dictionary into a 13-dimensional numpy vector aligned with PRE_RACE_FEATURE_NAMES."""
+        return np.array([float(feat_dict.get(name, 0.0)) for name in PRE_RACE_FEATURE_NAMES], dtype=np.float32)

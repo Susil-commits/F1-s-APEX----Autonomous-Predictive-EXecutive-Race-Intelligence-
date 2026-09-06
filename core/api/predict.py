@@ -118,6 +118,23 @@ class FeatureContribution(BaseModel):
     direction: str  # "improves_finish" or "hurts_finish"
 
 
+class StrategyLever(BaseModel):
+    lever: str
+    change: float
+    predicted_position_before: float
+    predicted_position_after: float
+    positions_gained: float
+
+
+class OpportunityRanking(BaseModel):
+    feature: str
+    label: str
+    value: float
+    importance_pct: float
+    direction: str
+    opportunity_score: float
+
+
 class PredictResponse(BaseModel):
     race_id: str
     driver_id: str
@@ -136,7 +153,111 @@ class PredictResponse(BaseModel):
     calibration_samples: Optional[int] = None
     data_snapshot_utc: str
     feature_contributions: List[FeatureContribution]
+    strategy_recommendations: List[StrategyLever] = Field(default_factory=list)
+    biggest_opportunity: Optional[OpportunityRanking] = None
     summary_explanation: str
+
+
+async def compute_sensitivity(
+    model: Any,
+    base_feat_dict: dict,
+    feature_builder: Any,
+    current_pred: float,
+) -> list:
+    """
+    Vary each adjustable feature (sector deltas, qualifying gap)
+    by realistic increments and measure predicted position sensitivity.
+    Executes all candidate perturbations in a single batched threadpool invocation to eliminate dispatch latency.
+    """
+    adjustable_features = {
+        "sector_1_delta_s": ([-0.3, -0.2, -0.1], "sector_1_delta_norm", 2.0),
+        "sector_2_delta_s": ([-0.3, -0.2, -0.1], "sector_2_delta_norm", 2.0),
+        "sector_3_delta_s": ([-0.3, -0.2, -0.1], "sector_3_delta_norm", 2.0),
+        "quali_delta_to_pole_s": ([-0.5, -0.3, -0.15], "quali_delta_to_pole_s", 5.0),
+    }
+
+    candidates = []
+    vectors = []
+    for feature_name, (deltas, dict_key, scale) in adjustable_features.items():
+        base_val = float(base_feat_dict.get(dict_key, base_feat_dict.get(feature_name, 0.0)))
+        for delta in deltas:
+            norm_delta = delta / scale
+            test_val = max(0.0, base_val + norm_delta)
+            if base_val <= 0.0 and delta < 0:
+                continue
+            test_dict = dict(base_feat_dict)
+            test_dict[dict_key] = test_val
+            if feature_name in test_dict:
+                test_dict[feature_name] = max(0.0, float(base_feat_dict.get(feature_name, 0.0)) + delta)
+
+            feat_vec = feature_builder.dict_to_vector(test_dict)
+            vectors.append(feat_vec)
+            candidates.append({
+                "lever": feature_name,
+                "change": delta,
+            })
+
+    if not vectors:
+        return []
+
+    # Single batched vector inference offloaded to threadpool
+    feat_matrix = np.vstack(vectors)
+    test_preds = await run_in_threadpool(model.predict, feat_matrix)
+
+    results = []
+    for cand, pred in zip(candidates, test_preds):
+        test_pred = float(pred)
+        improvement = current_pred - test_pred  # positive = better (lower position number)
+
+        if improvement > 0.1:  # only report meaningful improvements
+            results.append({
+                "lever": cand["lever"],
+                "change": cand["change"],
+                "predicted_position_before": round(current_pred, 1),
+                "predicted_position_after": round(test_pred, 1),
+                "positions_gained": round(improvement, 1),
+            })
+
+    # Sort by biggest improvement first
+    results.sort(key=lambda x: x["positions_gained"], reverse=True)
+    return results[:3]  # top 3 levers
+
+
+def rank_opportunities(contributions: list, feat_dict: dict) -> list:
+    """
+    Rank features by (importance × distance from optimal) to surface
+    the single biggest opportunity without re-running the model.
+    """
+    opportunities = []
+    for c in contributions:
+        if isinstance(c, dict):
+            direction = c.get("direction")
+            feat_name = c.get("feature", c.get("name", ""))
+            imp = c.get("importance_pct", c.get("importance", 0.0))
+            label = c.get("label", feat_name)
+            val = c.get("value", feat_dict.get(feat_name, 0.0))
+        else:
+            direction = getattr(c, "direction", None)
+            feat_name = getattr(c, "feature", getattr(c, "name", ""))
+            imp = getattr(c, "importance_pct", getattr(c, "importance", 0.0))
+            label = getattr(c, "label", feat_name)
+            val = getattr(c, "value", feat_dict.get(feat_name, 0.0))
+
+        if direction == "hurts_finish":
+            # Distance from an assumed "good" value of 0.2 (tune per feature)
+            distance_from_optimal = abs(float(feat_dict.get(feat_name, 0.5)) - 0.2)
+            opportunity_score = float(imp) * distance_from_optimal
+            opportunities.append({
+                "feature": feat_name,
+                "label": label,
+                "value": round(float(val), 2),
+                "importance_pct": round(float(imp), 1),
+                "direction": direction,
+                "opportunity_score": round(float(opportunity_score), 2),
+            })
+
+    opportunities.sort(key=lambda x: x["opportunity_score"], reverse=True)
+    return opportunities[:1]  # single biggest opportunity
 
 
 @router.post("/predict", response_model=PredictResponse)
@@ -220,6 +341,9 @@ async def predict_finish(request: Request, req: PredictRequest):
     raw_pred = float((await run_in_threadpool(model.predict, feat_vec.reshape(1, -1)))[0])
     pred_pos = int(np.clip(np.round(raw_pred), 1, 20))
 
+    # Compute What-If Sensitivity Levers (Plan 3)
+    sensitivity = await compute_sensitivity(model, feat_dict, PreRaceFeatureBuilder, raw_pred)
+
     # Split Conformal 90% confidence interval
     lower = int(np.clip(np.floor(raw_pred - q_hat), 1, 20))
     upper = int(np.clip(np.ceil(raw_pred + q_hat), 1, 20))
@@ -297,6 +421,10 @@ async def predict_finish(request: Request, req: PredictRequest):
         )
     contributions.sort(key=lambda c: c.importance_pct, reverse=True)
 
+    # Opportunity Ranking (Plan 4)
+    opps = rank_opportunities(contributions, feat_dict)
+    biggest_opportunity = opps[0] if opps else None
+
     summary = (
         f"{profile['name']} starts P{grid} for the {circuit_id.title()} Grand Prix. "
         f"Accounting for {profile['team']}'s car pace and current driver form, "
@@ -326,6 +454,8 @@ async def predict_finish(request: Request, req: PredictRequest):
         calibration_samples=cal_n,
         data_snapshot_utc=datetime.now(timezone.utc).isoformat(),
         feature_contributions=contributions[:5],
+        strategy_recommendations=sensitivity,
+        biggest_opportunity=biggest_opportunity,
         summary_explanation=summary,
     )
 

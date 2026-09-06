@@ -1,7 +1,24 @@
 import React, { useState } from 'react';
-import { Trophy, ChevronDown, ChevronUp, Activity, Gauge, Flag, Zap, Compass, CheckCircle2 } from 'lucide-react';
+import { Trophy, ChevronDown, ChevronUp, Activity, Gauge, Flag, Zap, Compass, CheckCircle2, ArrowRight } from 'lucide-react';
 import { FeatureContributionItem } from './FeatureImportanceBar';
 import { F1_CDN_FALLBACK } from './data/constants';
+
+export interface StrategyLeverItem {
+  lever: string;
+  change: number;
+  predicted_position_before: number;
+  predicted_position_after: number;
+  positions_gained: number;
+}
+
+export interface OpportunityItem {
+  feature: string;
+  label: string;
+  value: number;
+  importance_pct: number;
+  direction: string;
+  opportunity_score: number;
+}
 
 export interface PredictionData {
   race_id: string;
@@ -16,6 +33,8 @@ export interface PredictionData {
   model_version: string;
   data_snapshot_utc: string;
   feature_contributions?: FeatureContributionItem[];
+  strategy_recommendations?: StrategyLeverItem[];
+  biggest_opportunity?: OpportunityItem;
   summary_explanation: string;
 }
 
@@ -246,6 +265,104 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ data }) => {
               .replace(/CatBoost|XGBoost|LightGBM/gi, 'APEX Strategy')}
           </p>
         </div>
+
+        {/* WHAT-IF SENSITIVITY: Path to a Better Result (Plan 3 & Plan 4) */}
+        {((data.strategy_recommendations && data.strategy_recommendations.length > 0) || data.biggest_opportunity) && (
+          <div className="matte-panel p-5 sm:p-6 flex flex-col gap-4 border border-cyan-500/20 bg-gradient-to-br from-cyan-950/10 via-slate-900/30 to-slate-900/60 relative overflow-hidden">
+            {/* Background telemetry subtle glow */}
+            <div className="absolute top-0 right-0 w-64 h-32 bg-cyan-500/5 blur-3xl pointer-events-none rounded-full" />
+
+            <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200 dark:border-white/10 pb-3">
+              <div className="flex items-center gap-2.5">
+                <div className="p-1.5 rounded-lg bg-cyan-500/10 border border-cyan-500/20 text-cyan-500">
+                  <Zap className="w-4 h-4" />
+                </div>
+                <div>
+                  <h4 className="text-sm font-bold uppercase tracking-wider text-slate-900 dark:text-white font-['Outfit']">
+                    Path to a Better Result
+                  </h4>
+                  <p className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                    What-if sensitivity analysis across lap sectors &amp; qualifying pacing
+                  </p>
+                </div>
+              </div>
+              <span className="text-[10px] font-mono font-bold px-2.5 py-1 rounded-md bg-cyan-500/10 text-cyan-600 dark:text-cyan-400 border border-cyan-500/20 uppercase tracking-widest">
+                What-If Sensitivity
+              </span>
+            </div>
+
+            {/* Levers List */}
+            {data.strategy_recommendations && data.strategy_recommendations.length > 0 && (
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                {data.strategy_recommendations.map((rec, i) => {
+                  const formattedLever = rec.lever
+                    .replace(/_s$/, '')
+                    .replace(/_/g, ' ')
+                    .replace(/\b\w/g, (c) => c.toUpperCase());
+                  const absChange = Math.abs(rec.change).toFixed(2);
+                  const beforePos = Math.round(rec.predicted_position_before);
+                  const afterPos = Math.round(rec.predicted_position_after);
+
+                  return (
+                    <div
+                      key={i}
+                      className="p-4 rounded-xl bg-slate-50 dark:bg-white/[0.03] hover:bg-slate-100 dark:hover:bg-white/[0.06] border border-slate-200 dark:border-white/10 transition-all duration-200 flex flex-col justify-between gap-3 group"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="flex flex-col">
+                          <span className="text-xs font-bold text-slate-800 dark:text-slate-200 group-hover:text-cyan-600 dark:group-hover:text-cyan-400 transition-colors">
+                            {formattedLever}
+                          </span>
+                          <span className="text-[11px] font-mono text-cyan-600 dark:text-cyan-400 font-semibold mt-0.5">
+                            Improving by {absChange}s
+                          </span>
+                        </div>
+                        <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 border border-emerald-500/20 whitespace-nowrap">
+                          +{rec.positions_gained.toFixed(1)} P
+                        </span>
+                      </div>
+
+                      {/* Visual Position Shift: Before -> After */}
+                      <div className="pt-2 border-t border-slate-200/60 dark:border-white/5 flex items-center justify-between text-xs">
+                        <div className="flex items-center gap-2">
+                          <span className="font-mono text-slate-500 dark:text-slate-400 line-through">
+                            P{beforePos}
+                          </span>
+                          <ArrowRight className="w-3.5 h-3.5 text-cyan-500" />
+                          <span className="font-mono font-black text-emerald-600 dark:text-emerald-400 text-sm">
+                            P{afterPos}
+                          </span>
+                        </div>
+                        <span className="text-[11px] text-slate-500 dark:text-slate-400 font-medium">
+                          {rec.positions_gained.toFixed(1)} positions gained
+                        </span>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
+            {/* Quick-Win Single Biggest Opportunity (Plan 4) */}
+            {data.biggest_opportunity && (
+              <div className="p-3 rounded-lg bg-amber-500/5 dark:bg-amber-500/10 border border-amber-500/20 flex items-center justify-between text-xs">
+                <div className="flex items-center gap-2.5">
+                  <span className="w-2 h-2 rounded-full bg-amber-500 animate-pulse" />
+                  <span className="text-slate-700 dark:text-slate-300">
+                    <strong>Primary Optimization Target:</strong> Focus setup on{' '}
+                    <span className="text-amber-600 dark:text-amber-400 font-semibold">
+                      {data.biggest_opportunity.label}
+                    </span>{' '}
+                    (Score: {data.biggest_opportunity.opportunity_score.toFixed(1)})
+                  </span>
+                </div>
+                <span className="hidden sm:inline text-[10px] font-mono uppercase font-bold text-amber-600 dark:text-amber-400">
+                  Setup Priority
+                </span>
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Strategic Performance Drivers Accordion */}
         <div className="matte-panel overflow-hidden">
