@@ -8,6 +8,7 @@ from __future__ import annotations
 import logging
 import os
 import threading
+import time
 from datetime import datetime, timezone
 from typing import Any, Dict, List, Optional
 
@@ -17,6 +18,7 @@ from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator
 
 from core.api.limiter import limiter
+from core.api.metrics import PREDICTION_LATENCY_SECONDS, PREDICTION_REQUESTS_TOTAL
 from core.features.feature_builder import (
     PRE_RACE_FEATURE_NAMES,
     PreRaceFeatureBuilder,
@@ -90,6 +92,10 @@ class PredictRequest(BaseModel):
     driver_id: str = Field(..., description="Driver 3-letter abbreviation (e.g. 'VER', 'HAM', 'NOR')")
     grid_position: Optional[int] = Field(None, ge=1, le=20, description="Override grid position")
     rain_probability: Optional[float] = Field(None, description="Override rain forecast (clamped to [0.0, 1.0])")
+    sector_1_delta_s: Optional[float] = Field(None, ge=0.0, le=10.0, description="Sector 1 delta to pole in seconds")
+    sector_2_delta_s: Optional[float] = Field(None, ge=0.0, le=10.0, description="Sector 2 delta to pole in seconds")
+    sector_3_delta_s: Optional[float] = Field(None, ge=0.0, le=10.0, description="Sector 3 delta to pole in seconds")
+    weather_transition: Optional[bool] = Field(False, description="Forecasted mid-race dry-to-wet or wet-to-dry weather transition")
 
     @field_validator("rain_probability", mode="before")
     @classmethod
@@ -119,6 +125,8 @@ class PredictResponse(BaseModel):
     grid_position: int
     predicted_position: int
     confidence_interval: List[int]
+    quantile_interval: Optional[List[int]] = None
+    quantile_p50: Optional[int] = None
     win_probability_pct: float
     podium_probability_pct: float
     model_version: str
@@ -155,18 +163,34 @@ async def predict_finish(request: Request, req: PredictRequest):
     else:
         profile = DRIVER_ROSTER[driver_key]
 
+    start_time = time.perf_counter()
     circuit_id = req.race_id.lower().replace("_2024", "").replace("_2025", "")
-    grid = req.grid_position if req.grid_position is not None else profile["default_grid"]
-    rain = req.rain_probability if req.rain_probability is not None else 0.10
+    grid: int = req.grid_position if req.grid_position is not None else int(profile.get("default_grid", 10))
+    rain: float = req.rain_probability if req.rain_probability is not None else 0.10
+
+    s1: float = req.sector_1_delta_s if req.sector_1_delta_s is not None else 0.0
+    s2: float = req.sector_2_delta_s if req.sector_2_delta_s is not None else 0.0
+    s3: float = req.sector_3_delta_s if req.sector_3_delta_s is not None else 0.0
+    weather_trans: bool = req.weather_transition if req.weather_transition is not None else False
+
+    rolling_avg: float = float(profile.get("rolling_avg", 10.0))
+    starts: int = int(profile.get("starts", 5))
+    pts_share: float = float(profile.get("pts_share", 0.05))
+    driver_name: str = str(profile.get("name", f"Driver {driver_key}"))
+    team_name: str = str(profile.get("team", "F1 Competitor"))
 
     feat_vec, feat_dict = PreRaceFeatureBuilder.extract_features(
         grid_position=grid,
-        quali_delta_s=float(max(0.0, (grid - 1) * 0.12)),
-        rolling_avg_finish=profile["rolling_avg"],
-        circuit_starts=profile["starts"],
-        constructor_pts_share=profile["pts_share"],
+        quali_delta_s=max(0.0, (grid - 1) * 0.12),
+        rolling_avg_finish=rolling_avg,
+        circuit_starts=starts,
+        constructor_pts_share=pts_share,
         circuit_id=circuit_id,
         rain_prob=rain,
+        sector_1_delta_s=s1,
+        sector_2_delta_s=s2,
+        sector_3_delta_s=s3,
+        weather_transition=weather_trans,
     )
 
     artifact = get_core_model()
@@ -174,6 +198,7 @@ async def predict_finish(request: Request, req: PredictRequest):
     q_hat = artifact.get("q_hat_margin", 2.0)
     winning_family = artifact.get("winning_model_family", "catboost")
     conformal_meta = artifact.get("conformal", {})
+    quantile_models = artifact.get("quantile_models")
     trained_through = artifact.get("model_trained_through_race_id", "season_2023_finale")
     cal_n = conformal_meta.get("calibration_samples", artifact.get("metrics", {}).get("n_cal_samples", 200))
 
@@ -198,6 +223,25 @@ async def predict_finish(request: Request, req: PredictRequest):
     lower = int(np.clip(np.floor(raw_pred - q_hat), 1, 20))
     upper = int(np.clip(np.ceil(raw_pred + q_hat), 1, 20))
 
+    # Quantile Regression Asymmetric Interval (P10 - P90)
+    quantile_interval: Optional[List[int]] = None
+    quantile_p50: Optional[int] = None
+    if quantile_models and isinstance(quantile_models, dict):
+        try:
+            q10_raw = float(quantile_models["q10"].predict(feat_vec.reshape(1, -1))[0])
+            q50_raw = float(quantile_models["q50"].predict(feat_vec.reshape(1, -1))[0])
+            q90_raw = float(quantile_models["q90"].predict(feat_vec.reshape(1, -1))[0])
+            p10 = int(np.clip(np.round(q10_raw), 1, 20))
+            p50 = int(np.clip(np.round(q50_raw), 1, 20))
+            p90 = int(np.clip(np.round(q90_raw), 1, 20))
+            # Monotonicity guarantee
+            p10 = min(p10, p50)
+            p90 = max(p90, p50)
+            quantile_interval = [p10, p90]
+            quantile_p50 = p50
+        except Exception as q_exc:
+            logger.warning(f"[APEX Quantile Inference Error] {q_exc}")
+
     # Win & podium probability heuristics calibrated from continuous score
     win_prob = float(np.clip(np.exp(-0.9 * max(0, raw_pred - 1.0)) * 100.0, 0.5, 95.0))
     podium_prob = float(np.clip(np.exp(-0.45 * max(0, raw_pred - 3.0)) * 100.0, 1.0, 99.0))
@@ -215,6 +259,10 @@ async def predict_finish(request: Request, req: PredictRequest):
         "race_rain_prob": "Precipitation Forecast",
         "quali_delta_to_pole_s": "Qualifying Pace Delta",
         "circuit_is_street_track": "Street Track Volatility",
+        "sector_1_delta_norm": "Sector 1 Cornering/Pace",
+        "sector_2_delta_norm": "Sector 2 Technical/Pace",
+        "sector_3_delta_norm": "Sector 3 Straight/Pace",
+        "weather_transition_flag": "Mid-Race Weather Transition Risk",
     }
 
     # Extract tree feature importances uniformly across GBR, XGBoost, CatBoost
@@ -232,7 +280,7 @@ async def predict_finish(request: Request, req: PredictRequest):
         imp = float(norm_importances[idx])
         val = feat_dict.get(name, 0.0)
         # Direction
-        if name in ["grid_position_norm", "quali_delta_to_pole_s", "driver_rolling_finish_norm"]:
+        if name in ["grid_position_norm", "quali_delta_to_pole_s", "driver_rolling_finish_norm", "sector_1_delta_norm", "sector_2_delta_norm", "sector_3_delta_norm"]:
             direction = "improves_finish" if val < 0.4 else "hurts_finish"
         else:
             direction = "improves_finish" if val > 0.5 else "neutral"
@@ -254,14 +302,21 @@ async def predict_finish(request: Request, req: PredictRequest):
         f"APEX projects a P{pred_pos} finish with a strategic finishing window between P{lower} and P{upper}."
     )
 
+    # Record Prometheus Observability Metrics
+    duration_s = time.perf_counter() - start_time
+    PREDICTION_LATENCY_SECONDS.labels(circuit=circuit_id).observe(duration_s)
+    PREDICTION_REQUESTS_TOTAL.labels(driver_id=driver_key, status="success").inc()
+
     return PredictResponse(
         race_id=req.race_id,
         driver_id=driver_key,
-        driver_name=profile["name"],
-        team_name=profile["team"],
+        driver_name=driver_name,
+        team_name=team_name,
         grid_position=grid,
         predicted_position=pred_pos,
         confidence_interval=[lower, upper],
+        quantile_interval=quantile_interval,
+        quantile_p50=quantile_p50,
         win_probability_pct=round(win_prob, 1),
         podium_probability_pct=round(podium_prob, 1),
         model_version=artifact.get("version", "core-v1.0.0"),

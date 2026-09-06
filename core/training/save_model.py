@@ -31,6 +31,8 @@ def build_and_save_core_baseline(output_dir: str = DEFAULT_MODEL_DIR) -> str:
         "feature_names": artifact["feature_names"],
         "q_hat_margin": artifact["q_hat_margin"],
         "metrics": eval_report["metrics"],
+        "segmented_metrics": eval_report.get("segmented_metrics", {}),
+        "quantile_metrics": eval_report.get("quantile_metrics", {}),
         "status": eval_report["status"],
     }
     with open(meta_path, "w", encoding="utf-8") as f:
@@ -41,5 +43,6 @@ def build_and_save_core_baseline(output_dir: str = DEFAULT_MODEL_DIR) -> str:
 
 
 if __name__ == "__main__":
+    logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(name)s: %(message)s")
     saved = build_and_save_core_baseline()
-    print(f"Model saved successfully to: {saved}")
+    logger.info(f"Model saved successfully to: {saved}")

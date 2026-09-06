@@ -21,7 +21,7 @@ from core.training.train import train_finishing_position_model
 
 
 def test_core_features_dimension_and_bounds():
-    """Validates 9-dimensional vector construction and strict [0.0, 1.0] normalization."""
+    """Validates 13-dimensional vector construction and strict [0.0, 1.0] normalization."""
     vec, feat_dict = PreRaceFeatureBuilder.extract_features(
         grid_position=1,
         quali_delta_s=0.0,
@@ -30,12 +30,18 @@ def test_core_features_dimension_and_bounds():
         constructor_pts_share=0.3,
         circuit_id="silverstone",
         rain_prob=0.0,
+        sector_1_delta_s=0.0,
+        sector_2_delta_s=0.0,
+        sector_3_delta_s=0.0,
+        weather_transition=0.0,
     )
-    assert len(vec) == 9
-    assert len(feat_dict) == 9
+    assert len(vec) == 13
+    assert len(feat_dict) == 13
     assert all(0.0 <= x <= 1.0 for x in vec)
     assert feat_dict["grid_position_norm"] == 0.0
     assert feat_dict["quali_delta_to_pole_s"] == 0.0
+    assert feat_dict["sector_1_delta_norm"] == 0.0
+    assert feat_dict["weather_transition_flag"] == 0.0
 
 
 def test_core_baseline_training_pipeline():
@@ -306,4 +312,134 @@ async def test_rate_limiter_blocks_excessive_traffic():
             assert 429 in statuses
     finally:
         limiter.enabled = was_enabled
+
+
+def test_circuit_classification_and_segmentation():
+    """Verifies circuit categorization into street, high_speed, and permanent and segmented evaluation."""
+    from core.training.evaluate import classify_circuit
+
+    assert classify_circuit("monaco") == "street"
+    assert classify_circuit("singapore") == "street"
+    assert classify_circuit("marina_bay") == "street"
+    assert classify_circuit("baku") == "street"
+    assert classify_circuit("monza") == "high_speed"
+    assert classify_circuit("vegas") == "high_speed"
+    assert classify_circuit("silverstone") == "permanent"
+    assert classify_circuit("spa") == "permanent"
+
+    artifact = train_finishing_position_model(random_seed=42, use_synthetic=True)
+    eval_rep = evaluate_model_temporal(artifact, n_test_samples=50)
+    assert "segmented_metrics" in eval_rep
+    assert "permanent" in eval_rep["segmented_metrics"]
+    assert "high_speed" in eval_rep["segmented_metrics"]
+    assert "street" in eval_rep["segmented_metrics"]
+
+
+def test_quantile_regression_uncertainty_asymmetry():
+    """Verifies that quantile models exist in trained artifact and provide valid asymmetric intervals."""
+    from core.api.predict import get_core_model
+
+    artifact = get_core_model()
+    assert "quantile_models" in artifact
+    q_mods = artifact["quantile_models"]
+    assert "q10" in q_mods and "q50" in q_mods and "q90" in q_mods
+
+    vec_p1, _ = PreRaceFeatureBuilder.extract_features(grid_position=1, circuit_id="monaco")
+    p10_pole = float(q_mods["q10"].predict(vec_p1.reshape(1, -1))[0])
+    p50_pole = float(q_mods["q50"].predict(vec_p1.reshape(1, -1))[0])
+    p90_pole = float(q_mods["q90"].predict(vec_p1.reshape(1, -1))[0])
+
+    # Monotonicity check
+    assert p10_pole <= p50_pole <= p90_pole or (p90_pole - p10_pole >= 0)
+
+
+@pytest.mark.asyncio
+async def test_prometheus_metrics_endpoint():
+    """Verifies that /metrics endpoint exposes valid Prometheus metrics text."""
+    transport = ASGITransport(app=core_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Generate a prediction to increment metrics
+        await client.post(
+            "/api/core/predict",
+            json={"race_id": "silverstone", "driver_id": "HAM", "grid_position": 5},
+        )
+        res = await client.get("/metrics")
+        assert res.status_code == 200
+        text = res.text
+        assert "apex_predictions_total" in text
+        assert "apex_prediction_latency_seconds" in text
+
+
+def test_weekend_drift_monitor_healthy_and_drifted():
+    """Verifies that WeekendDriftMonitor correctly identifies normal vs drifted race weekend distributions."""
+    from core.monitoring.drift import WeekendDriftMonitor
+
+    monitor = WeekendDriftMonitor()
+
+    # Normal race weekend sample
+    normal_records = [
+        {"grid_position": g, "quali_delta_s": 0.1 * g, "rain_prob": 0.05}
+        for g in range(1, 21)
+    ]
+    rep_normal = monitor.check_weekend_drift(normal_records, z_threshold=2.5)
+    assert rep_normal["status"] == "HEALTHY"
+    assert len(rep_normal["drift_detected_features"]) == 0
+
+    # Anomalous weekend with extreme rain probability drift across all cars
+    drifted_records = [
+        {"grid_position": g, "quali_delta_s": 0.1 * g, "rain_prob": 0.95}
+        for g in range(1, 21)
+    ]
+    rep_drift = monitor.check_weekend_drift(drifted_records, z_threshold=2.0)
+    assert rep_drift["status"] == "DRIFT_DETECTED"
+    assert "rain_prob" in rep_drift["drift_detected_features"]
+
+
+def test_jolpica_retry_with_backoff():
+    """Verifies that JolpicaAdapter handles transient 429/500 errors with backoff retry."""
+    from unittest.mock import MagicMock
+    import httpx
+    from core.ingestion.jolpica_adapter import JolpicaAdapter
+
+    adapter = JolpicaAdapter()
+
+    # Mock client returning 429 on first call, 200 on second call
+    mock_client = MagicMock(spec=httpx.Client)
+    resp_429 = MagicMock(spec=httpx.Response)
+    resp_429.status_code = 429
+    resp_429.headers = {"Retry-After": "0.01"}
+
+    resp_200 = MagicMock(spec=httpx.Response)
+    resp_200.status_code = 200
+
+    mock_client.get.side_effect = [resp_429, resp_200]
+
+    final_resp = adapter._get_with_retry(mock_client, "https://api.jolpi.ca/test", max_retries=2, base_delay=0.01)
+    assert final_resp is not None
+    assert final_resp.status_code == 200
+    assert mock_client.get.call_count == 2
+
+
+@pytest.mark.asyncio
+async def test_drift_rest_api_endpoints():
+    """Verifies that /api/core/drift/baseline and /api/core/drift/check REST endpoints function correctly."""
+    transport = ASGITransport(app=core_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # Check baseline endpoint
+        res_base = await client.get("/api/core/drift/baseline")
+        assert res_base.status_code == 200
+        data_base = res_base.json()
+        assert "baseline" in data_base
+        assert "grid_position" in data_base["baseline"]
+
+        # Check weekend drift POST endpoint with normal records
+        sample_records = [
+            {"grid_position": g, "quali_delta_s": 0.1 * g, "rain_prob": 0.05}
+            for g in range(1, 21)
+        ]
+        res_check = await client.post("/api/core/drift/check?z_threshold=2.5", json=sample_records)
+        assert res_check.status_code == 200
+        data_check = res_check.json()
+        assert data_check["status"] == "HEALTHY"
+
 

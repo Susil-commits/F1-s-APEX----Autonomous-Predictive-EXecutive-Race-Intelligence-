@@ -3,11 +3,11 @@
   "venv": ".venv",
   "extraPaths": [
     ".",
-    "backend"
+    "core"
   ],
   "include": [
-    "backend",
-    "benchmarks"
+    "core",
+    "tests"
   ],
   "exclude": [
     "**/node_modules",

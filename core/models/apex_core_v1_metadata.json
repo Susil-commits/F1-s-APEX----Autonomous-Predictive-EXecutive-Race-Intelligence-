@@ -1,0 +1,64 @@
+{
+  "model_version": "core-v1.0.0",
+  "created_at_utc": "2026-09-06T08:50:15.453723+00:00",
+  "feature_names": [
+    "grid_position_norm",
+    "quali_delta_to_pole_s",
+    "sector_1_delta_norm",
+    "sector_2_delta_norm",
+    "sector_3_delta_norm",
+    "driver_rolling_finish_norm",
+    "driver_circuit_experience",
+    "constructor_pts_share",
+    "circuit_downforce_index",
+    "circuit_power_sensitivity",
+    "circuit_is_street_track",
+    "race_rain_prob",
+    "weather_transition_flag"
+  ],
+  "q_hat_margin": 6.793303240139911,
+  "metrics": {
+    "mae": 2.383,
+    "rmse": 3.227,
+    "r2": 0.686,
+    "pearson_r": 0.83,
+    "spearman_rho": 0.818,
+    "conformal_target_coverage": 0.9,
+    "empirical_coverage": 0.96,
+    "mean_interval_width": 13.59
+  },
+  "segmented_metrics": {
+    "permanent": {
+      "n_samples": 300,
+      "mae": 2.421,
+      "rmse": 3.259,
+      "r2": 0.681,
+      "pearson_r": 0.826,
+      "conformal_coverage": 0.96
+    },
+    "high_speed": {
+      "n_samples": 60,
+      "mae": 2.133,
+      "rmse": 2.947,
+      "r2": 0.739,
+      "pearson_r": 0.863,
+      "conformal_coverage": 0.983
+    },
+    "street": {
+      "n_samples": 119,
+      "mae": 2.415,
+      "rmse": 3.281,
+      "r2": 0.671,
+      "pearson_r": 0.821,
+      "conformal_coverage": 0.95
+    }
+  },
+  "quantile_metrics": {
+    "target_coverage": 0.8,
+    "empirical_coverage": 0.697,
+    "mean_interval_width": 7.58,
+    "pole_sitter_mean_width": 5.76,
+    "midfield_mean_width": 8.29
+  },
+  "status": "PASS"
+}

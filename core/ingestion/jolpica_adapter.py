@@ -6,6 +6,8 @@ via the open Jolpica F1 REST API or local cache snapshot.
 from __future__ import annotations
 
 import logging
+import random
+import time
 from typing import Any, Dict, List, Optional
 
 import httpx
@@ -22,13 +24,65 @@ class JolpicaAdapter:
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout_seconds
 
+    def _get_with_retry(
+        self,
+        client: httpx.Client,
+        url: str,
+        max_retries: int = 3,
+        base_delay: float = 0.5,
+        backoff_factor: float = 2.0,
+    ) -> Optional[httpx.Response]:
+        """Performs HTTP GET with exponential backoff and jitter for transient failures and 429 rate limits."""
+        for attempt in range(max_retries + 1):
+            try:
+                resp = client.get(url)
+                if resp.status_code == 200:
+                    return resp
+
+                if resp.status_code in (429, 500, 502, 503, 504):
+                    if attempt == max_retries:
+                        logger.warning(
+                            f"[JolpicaAdapter] HTTP {resp.status_code} for {url} after {max_retries} retries."
+                        )
+                        return resp
+
+                    retry_after = resp.headers.get("Retry-After")
+                    if retry_after:
+                        try:
+                            delay = float(retry_after)
+                        except ValueError:
+                            delay = base_delay * (backoff_factor ** attempt)
+                    else:
+                        delay = base_delay * (backoff_factor ** attempt) + random.uniform(0.05, 0.25)
+
+                    logger.info(
+                        f"[JolpicaAdapter] HTTP {resp.status_code} on {url}. Retrying in {delay:.2f}s "
+                        f"(attempt {attempt + 1}/{max_retries})..."
+                    )
+                    time.sleep(delay)
+                    continue
+                else:
+                    logger.warning(f"[JolpicaAdapter] Non-retryable HTTP {resp.status_code} for {url}")
+                    return resp
+            except (httpx.RequestError, httpx.TimeoutException) as exc:
+                if attempt == max_retries:
+                    logger.warning(f"[JolpicaAdapter] Request error for {url} after {max_retries} retries: {exc}")
+                    return None
+                delay = base_delay * (backoff_factor ** attempt) + random.uniform(0.05, 0.25)
+                logger.info(
+                    f"[JolpicaAdapter] Network error ({exc}) on {url}. Retrying in {delay:.2f}s "
+                    f"(attempt {attempt + 1}/{max_retries})..."
+                )
+                time.sleep(delay)
+        return None
+
     def get_season_races(self, year: int) -> List[Dict[str, Any]]:
         """Fetches calendar rounds for a given season."""
         url = f"{self.base_url}/{year}.json"
         try:
             with httpx.Client(timeout=self.timeout) as client:
-                resp = client.get(url)
-                if resp.status_code == 200:
+                resp = self._get_with_retry(client, url)
+                if resp and resp.status_code == 200:
                     data = resp.json()
                     races = data.get("MRData", {}).get("RaceTable", {}).get("Races", [])
                     return [
@@ -77,8 +131,8 @@ class JolpicaAdapter:
         url = f"{self.base_url}/{year}/{round_num}/results.json"
         try:
             with httpx.Client(timeout=self.timeout) as client:
-                resp = client.get(url)
-                if resp.status_code == 200:
+                resp = self._get_with_retry(client, url)
+                if resp and resp.status_code == 200:
                     races = resp.json().get("MRData", {}).get("RaceTable", {}).get("Races", [])
                     if races:
                         return races[0].get("Results", [])
@@ -91,8 +145,8 @@ class JolpicaAdapter:
         url = f"{self.base_url}/{year}/{round_num}/qualifying.json"
         try:
             with httpx.Client(timeout=self.timeout) as client:
-                resp = client.get(url)
-                if resp.status_code == 200:
+                resp = self._get_with_retry(client, url)
+                if resp and resp.status_code == 200:
                     races = resp.json().get("MRData", {}).get("RaceTable", {}).get("Races", [])
                     if races:
                         return races[0].get("QualifyingResults", [])
@@ -106,7 +160,7 @@ class JolpicaAdapter:
         if not time_str or time_str in ("None", "nan", ""):
             return 0.0
         try:
-            parts = str(time_str).strip().split(":")
+            parts = time_str.strip().split(":")
             if len(parts) == 2:
                 return float(parts[0]) * 60.0 + float(parts[1])
             return float(parts[0])
@@ -114,15 +168,15 @@ class JolpicaAdapter:
             return 0.0
 
     def fetch_season_results_all(self, client: httpx.Client, year: int) -> List[Dict[str, Any]]:
-        """Fetches all race results for a season in paginated batches of 100."""
+        """Fetches all race results for a season in paginated batches of 100 with retry backoff."""
         races_by_round: Dict[int, Dict[str, Any]] = {}
         offset = 0
         limit = 100
         while True:
             url = f"{self.base_url}/{year}/results.json?limit={limit}&offset={offset}"
             try:
-                resp = client.get(url)
-                if resp.status_code != 200:
+                resp = self._get_with_retry(client, url)
+                if not resp or resp.status_code != 200:
                     break
                 data = resp.json().get("MRData", {})
                 total = int(data.get("total", 0))
@@ -142,15 +196,15 @@ class JolpicaAdapter:
         return [races_by_round[k] for k in sorted(races_by_round.keys())]
 
     def fetch_season_qualifying_all(self, client: httpx.Client, year: int) -> Dict[int, List[Dict[str, Any]]]:
-        """Fetches all qualifying results for a season in paginated batches of 100."""
+        """Fetches all qualifying results for a season in paginated batches of 100 with retry backoff."""
         quali_by_round: Dict[int, List[Dict[str, Any]]] = {}
         offset = 0
         limit = 100
         while True:
             url = f"{self.base_url}/{year}/qualifying.json?limit={limit}&offset={offset}"
             try:
-                resp = client.get(url)
-                if resp.status_code != 200:
+                resp = self._get_with_retry(client, url)
+                if not resp or resp.status_code != 200:
                     break
                 data = resp.json().get("MRData", {})
                 total = int(data.get("total", 0))
@@ -225,7 +279,7 @@ class JolpicaAdapter:
 
                         # Causal rolling average finish (past 5 races only)
                         past_finishes = driver_recent_finishes.get(d_id, [])
-                        rolling_finish = float(sum(past_finishes[-5:]) / len(past_finishes[-5:])) if past_finishes else float(grid_pos)
+                        rolling_finish = (sum(past_finishes[-5:]) / len(past_finishes[-5:])) if past_finishes else float(grid_pos)
 
                         # Circuit starts experience
                         starts_map = driver_circuit_starts.setdefault(d_id, {})
