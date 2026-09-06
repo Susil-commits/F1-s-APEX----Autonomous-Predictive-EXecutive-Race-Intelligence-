@@ -8,12 +8,14 @@ from __future__ import annotations
 
 import json
 import logging
+import warnings
 from typing import Any, Dict, List
 
 import numpy as np
 import pandas as pd
-from scipy.stats import pearsonr, spearmanr
+from scipy.stats import ConstantInputWarning, pearsonr, spearmanr
 from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+
 
 from core.training.train import generate_synthetic_training_data
 
@@ -77,16 +79,26 @@ def evaluate_model_temporal(model_artifact: Dict[str, Any], n_test_samples: int 
     mae = mean_absolute_error(y_test, preds)
     rmse = float(np.sqrt(mean_squared_error(y_test, preds)))
     r2 = r2_score(y_test, preds) if len(np.unique(y_test)) > 1 else 0.0
-    try:
-        pr = pearsonr(y_test, preds)
-        pr_val: Any = getattr(pr, "statistic", pr[0])
-        pearson_corr = float(pr_val) if len(np.unique(y_test)) > 1 and len(np.unique(preds)) > 1 else 0.0
-        sr = spearmanr(y_test, preds)
-        sr_val: Any = getattr(sr, "statistic", sr[0])
-        spearman_corr = float(sr_val) if len(np.unique(y_test)) > 1 and len(np.unique(preds)) > 1 else 0.0
-    except Exception:
-        pearson_corr = 0.0
-        spearman_corr = 0.0
+    pearson_corr = 0.0
+    spearman_corr = 0.0
+    if (
+        len(np.unique(y_test)) > 1
+        and len(np.unique(preds)) > 1
+        and float(np.std(y_test)) > 1e-9
+        and float(np.std(preds)) > 1e-9
+    ):
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", category=ConstantInputWarning)
+            try:
+                pr = pearsonr(y_test, preds)
+                pr_val: Any = getattr(pr, "statistic", pr[0])
+                pearson_corr = float(pr_val)
+                sr = spearmanr(y_test, preds)
+                sr_val: Any = getattr(sr, "statistic", sr[0])
+                spearman_corr = float(sr_val)
+            except Exception:
+                pearson_corr = 0.0
+                spearman_corr = 0.0
 
     # Conformal empirical coverage
     lower = preds - q_hat
@@ -110,12 +122,21 @@ def evaluate_model_temporal(model_artifact: Dict[str, Any], n_test_samples: int 
             seg_mae = mean_absolute_error(seg_y, seg_p)
             seg_rmse = float(np.sqrt(mean_squared_error(seg_y, seg_p)))
             seg_r2 = r2_score(seg_y, seg_p) if len(np.unique(seg_y)) > 1 else 0.0
-            try:
-                pr_seg = pearsonr(seg_y, seg_p)
-                pr_seg_val: Any = getattr(pr_seg, "statistic", pr_seg[0])
-                seg_r = float(pr_seg_val) if len(np.unique(seg_y)) > 1 and len(np.unique(seg_p)) > 1 else 0.0
-            except Exception:
-                seg_r = 0.0
+            seg_r = 0.0
+            if (
+                len(np.unique(seg_y)) > 1
+                and len(np.unique(seg_p)) > 1
+                and float(np.std(seg_y)) > 1e-9
+                and float(np.std(seg_p)) > 1e-9
+            ):
+                with warnings.catch_warnings():
+                    warnings.filterwarnings("ignore", category=ConstantInputWarning)
+                    try:
+                        pr_seg = pearsonr(seg_y, seg_p)
+                        pr_seg_val: Any = getattr(pr_seg, "statistic", pr_seg[0])
+                        seg_r = float(pr_seg_val)
+                    except Exception:
+                        seg_r = 0.0
             seg_covered = float(np.mean((seg_y >= (seg_p - q_hat)) & (seg_y <= (seg_p + q_hat))))
             segmented_metrics[c_type] = {
                 "n_samples": n_seg,
