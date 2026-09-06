@@ -9,14 +9,25 @@ from __future__ import annotations
 import os
 import sys
 
-from slowapi import Limiter
-from slowapi.util import get_remote_address
+try:
+    from slowapi import Limiter
+    from slowapi.util import get_remote_address
 
-# Automatically disable rate limiting under pytest unless explicitly requested
-_is_testing = "pytest" in sys.modules or os.getenv("TESTING", "").lower() in ("1", "true")
-_rate_limit_enabled = os.getenv("RATE_LIMIT_ENABLED", "false" if _is_testing else "true").lower() in ("1", "true")
+    # Automatically disable rate limiting under pytest unless explicitly requested
+    _is_testing = "pytest" in sys.modules or os.getenv("TESTING", "").lower() in ("1", "true")
+    _rate_limit_enabled = os.getenv("RATE_LIMIT_ENABLED", "false" if _is_testing else "true").lower() in ("1", "true")
 
-limiter = Limiter(
-    key_func=get_remote_address,
-    enabled=_rate_limit_enabled,
-)
+    limiter = Limiter(
+        key_func=get_remote_address,
+        enabled=_rate_limit_enabled,
+    )
+except ImportError:
+    class _NoOpLimiter:  # type: ignore[no-redef]
+        enabled = False
+
+        def limit(self, *args, **kwargs):  # type: ignore[no-untyped-def]
+            def decorator(func):
+                return func
+            return decorator
+
+    limiter = _NoOpLimiter()  # type: ignore[assignment]

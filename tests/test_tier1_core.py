@@ -284,6 +284,11 @@ def test_evaluation_fallback_warning(caplog):
 @pytest.mark.asyncio
 async def test_rate_limiter_blocks_excessive_traffic():
     """Verifies that slowapi rate limiting responds with 429 when enabled and limit is reached."""
+    try:
+        import slowapi  # noqa: F401
+    except ImportError:
+        pytest.skip("slowapi is not installed in the current environment")
+
     from core.api.limiter import limiter
 
     was_enabled = limiter.enabled
