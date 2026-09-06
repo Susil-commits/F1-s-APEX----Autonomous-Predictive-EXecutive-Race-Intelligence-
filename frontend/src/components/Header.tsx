@@ -1,8 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { Clock, ShieldCheck, Activity, ChevronRight } from 'lucide-react';
+import { Clock, Sun, Moon, Radio, ChevronRight, LayoutDashboard, Compass } from 'lucide-react';
+import { useTheme } from '../context/ThemeContext';
 
-export const Header: React.FC = () => {
+interface HeaderProps {
+  currentView?: 'landing' | 'predictor';
+  onNavigate?: (view: 'landing' | 'predictor') => void;
+}
+
+export const Header: React.FC<HeaderProps> = ({ currentView = 'predictor', onNavigate }) => {
   const [currentTimeUTC, setCurrentTimeUTC] = useState<string>('');
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const updateTime = () => {
@@ -20,63 +27,100 @@ export const Header: React.FC = () => {
   }, []);
 
   return (
-    <header className="w-full bg-[#0D0F16]/95 backdrop-blur-2xl border-b border-[#242633] px-4 lg:px-10 py-3 flex flex-wrap items-center justify-between sticky top-0 z-50 shadow-2xl shadow-black/90 relative">
-      {/* Official F1 Red Racing Stripe Accent Bottom */}
-      <div className="absolute bottom-0 left-0 right-0 h-[3px] bg-gradient-to-r from-[#E10600] via-[#FF1801] to-[#990000]" />
+    <header className="w-full matte-glass sticky top-0 z-50 transition-colors duration-300">
+      {/* Precision Red Accent Line */}
+      <div className="racing-accent-bar w-full" />
 
-      {/* LEFT: Official Formula 1 Brand & APEX Identifier */}
-      <div className="flex items-center gap-5">
-        <a href="/" className="flex items-center gap-4 group cursor-pointer">
-          {/* Official F1 SVG Logo */}
-          <div className="h-8 flex items-center">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+        {/* LEFT: Branding */}
+        <div className="flex items-center gap-4 sm:gap-6">
+          <button
+            onClick={() => onNavigate?.('landing')}
+            className="flex items-center gap-3 group text-left cursor-pointer focus:outline-none"
+          >
             <img
               src="/f1/f1-logo.svg"
               alt="Formula 1"
-              className="h-7 w-auto object-contain transition-transform group-hover:scale-105"
+              className="h-6 sm:h-7 w-auto object-contain transition-transform group-hover:scale-105"
             />
-          </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm sm:text-base font-extrabold tracking-wider uppercase text-slate-900 dark:text-white font-['Outfit']">
+                APEX
+              </span>
+              <span className="text-[11px] font-bold px-2 py-0.5 rounded-md bg-red-500/10 text-[#E10600] border border-red-500/20 uppercase tracking-widest">
+                2026
+              </span>
+            </div>
+          </button>
 
-          {/* Slanted APEX Red Badge */}
-          <div className="h-7 px-3 rounded bg-gradient-to-r from-[#E10600] to-[#B30000] flex items-center justify-center shadow-lg shadow-red-600/30 f1-angle">
-            <span className="font-black text-xs tracking-wider text-white uppercase f1-angle-reverse font-f1">
-              APEX PREDICTOR
+          {/* Navigation Links */}
+          <nav className="hidden md:flex items-center gap-1 pl-4 border-l border-slate-200 dark:border-white/10">
+            <button
+              onClick={() => onNavigate?.('landing')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${
+                currentView === 'landing'
+                  ? 'bg-slate-200/70 dark:bg-white/10 text-slate-900 dark:text-white'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Overview
+            </button>
+            <button
+              onClick={() => onNavigate?.('predictor')}
+              className={`px-3 py-1.5 rounded-lg text-xs font-semibold tracking-wide transition-all ${
+                currentView === 'predictor'
+                  ? 'bg-slate-200/70 dark:bg-white/10 text-slate-900 dark:text-white'
+                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Race Predictor
+            </button>
+          </nav>
+        </div>
+
+        {/* RIGHT: Status, UTC Clock, Theme Toggle */}
+        <div className="flex items-center gap-3 sm:gap-4">
+          {/* Live Telemetry Beacon */}
+          <div className="hidden sm:flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] text-xs">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500" />
+            </span>
+            <span className="font-semibold text-slate-700 dark:text-slate-300 text-[11px] tracking-wide uppercase">
+              Live Telemetry
             </span>
           </div>
-        </a>
 
-        <div className="h-6 w-px bg-[#242633] hidden md:block" />
-
-        {/* F1 Quick Metadata Badges */}
-        <div className="hidden lg:flex items-center gap-3 text-xs font-f1 font-semibold text-slate-300">
-          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#161822] border border-[#2B2E3D]">
-            <span className="w-2 h-2 rounded-full bg-[#E10600] animate-pulse" />
-            <span className="text-white">FIA Verified Data</span>
-            <span className="text-slate-400 text-[10px]">· Jolpica / FastF1</span>
-          </span>
-
-          <span className="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#161822] border border-[#2B2E3D]">
-            <ShieldCheck className="w-3.5 h-3.5 text-[#00F0FF]" />
-            <span className="text-white">Split-Conformal</span>
-            <span className="text-[#00F0FF] font-mono text-[10px]">90% Coverage</span>
-          </span>
-        </div>
-      </div>
-
-      {/* RIGHT: Live Broadcast Session Clock & Status Indicator */}
-      <div className="flex items-center gap-3">
-        {/* Broadcast Live Session Clock */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#151722] border border-[#262A3B] text-xs font-mono text-slate-200 shadow-inner">
-          <Clock className="w-3.5 h-3.5 text-[#E10600]" />
-          <span className="font-bold text-white tracking-widest">{currentTimeUTC}</span>
-        </div>
-
-        {/* Active Telemetry Beacon */}
-        <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[#151722] border border-[#262A3B] text-xs font-f1">
-          <div className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500" />
+          {/* Broadcast Clock */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-slate-100 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.08] text-xs font-mono text-slate-700 dark:text-slate-300">
+            <Clock className="w-3.5 h-3.5 text-[#E10600]" />
+            <span className="font-bold tracking-wider">{currentTimeUTC || '00:00:00 UTC'}</span>
           </div>
-          <span className="text-slate-200 font-bold text-xs uppercase tracking-wider">LIVE 2026 ENGINE</span>
+
+          {/* Light / Dark Mode Toggle */}
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label="Toggle theme"
+            className="w-9 h-9 rounded-xl flex items-center justify-center bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.06] dark:hover:bg-white/[0.12] border border-slate-200 dark:border-white/[0.08] text-slate-700 dark:text-slate-200 transition-all cursor-pointer"
+          >
+            {theme === 'dark' ? (
+              <Sun className="w-4 h-4 text-amber-400 transition-transform duration-300 rotate-0 hover:rotate-45" />
+            ) : (
+              <Moon className="w-4 h-4 text-indigo-600 transition-transform duration-300 -rotate-12 hover:rotate-0" />
+            )}
+          </button>
+
+          {/* Action CTA if on landing */}
+          {currentView === 'landing' && onNavigate && (
+            <button
+              onClick={() => onNavigate('predictor')}
+              className="btn-f1-primary px-4 py-1.5 text-xs font-bold tracking-wider flex items-center gap-1.5 shadow-sm"
+            >
+              <span>Predictor</span>
+              <ChevronRight className="w-3.5 h-3.5" />
+            </button>
+          )}
         </div>
       </div>
     </header>

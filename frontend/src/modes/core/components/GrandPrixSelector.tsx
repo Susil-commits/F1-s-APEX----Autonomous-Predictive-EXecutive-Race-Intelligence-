@@ -1,5 +1,5 @@
 import React from 'react';
-import { Flag } from 'lucide-react';
+import { Flag, Compass } from 'lucide-react';
 import { GrandPrix } from '../data/constants';
 
 export interface GrandPrixSelectorProps {
@@ -17,41 +17,56 @@ export const GrandPrixSelector: React.FC<GrandPrixSelectorProps> = ({
 
   return (
     <div className="w-full flex flex-col gap-3">
+      {/* Section Header */}
       <div className="flex items-center justify-between">
-        <span className="text-xs font-f1 uppercase tracking-widest text-slate-300 font-bold flex items-center gap-2">
-          <Flag className="w-4 h-4 text-[#E10600]" />
-          <span>Select 2026 Grand Prix Venue</span>
+        <span className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 font-bold flex items-center gap-2">
+          <Flag className="w-3.5 h-3.5 text-[#E10600]" />
+          <span>Select Grand Prix Circuit</span>
         </span>
         {activeGP && (
-          <span className="text-[11px] font-mono text-[#00F0FF] uppercase">
-            {activeGP.circuit} ({activeGP.distanceKm} km · {activeGP.downforce} DF)
+          <span className="text-xs font-mono text-slate-600 dark:text-slate-400">
+            Venue:{' '}
+            <strong className="text-slate-900 dark:text-white font-bold">
+              {activeGP.circuit}
+            </strong>{' '}
+            ({activeGP.distanceKm} km · {activeGP.laps} Laps · {activeGP.downforce} Downforce)
           </span>
         )}
       </div>
 
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-2.5">
+      {/* Grid of Grand Prix Cards */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
         {races.map((gp) => {
           const isSelected = selectedRace === gp.id;
+
           return (
             <button
               key={gp.id}
               type="button"
               onClick={() => onSelect(gp.id)}
-              className={`p-3 rounded-xl border text-left transition-all cursor-pointer flex flex-col justify-between ${
+              className={`matte-card-interactive p-3.5 flex flex-col justify-between h-28 text-left cursor-pointer transition-all ${
                 isSelected
-                  ? 'bg-[#22181C] border-[#E10600] shadow-lg shadow-red-950/40 ring-1 ring-[#E10600]'
-                  : 'bg-[#12141D] border-[#222533] hover:border-slate-600 hover:bg-[#181B26]'
+                  ? 'ring-2 ring-[#E10600] border-transparent shadow-lg shadow-red-600/20 bg-red-500/[0.04]'
+                  : ''
               }`}
             >
-              <div className="flex items-center justify-between text-xs mb-1.5">
-                <span className="font-mono text-[10px] text-slate-400 font-bold uppercase">
+              <div className="flex items-center justify-between text-xs">
+                <span className="font-mono font-bold text-[10px] text-slate-500 dark:text-slate-400 uppercase">
                   RD {gp.round}
                 </span>
-                <span className="text-base">{gp.flag}</span>
+                <span className="text-lg">{gp.flag}</span>
               </div>
+
               <div>
-                <h3 className="font-black text-xs font-f1 uppercase text-white truncate">{gp.name}</h3>
-                <span className="text-[10px] font-mono text-slate-400 block truncate">{gp.downforce} DF</span>
+                <h3 className="font-bold text-xs uppercase text-slate-900 dark:text-white truncate font-['Outfit']">
+                  {gp.name}
+                </h3>
+                <div className="flex items-center justify-between mt-1 text-[10px] font-mono text-slate-500 dark:text-slate-400">
+                  <span className="truncate">{gp.city}</span>
+                  <span className="font-bold px-1.5 py-0.2 rounded bg-slate-200/60 dark:bg-white/10 text-[9px]">
+                    {gp.downforce}
+                  </span>
+                </div>
               </div>
             </button>
           );
@@ -60,3 +75,5 @@ export const GrandPrixSelector: React.FC<GrandPrixSelectorProps> = ({
     </div>
   );
 };
+
+export default GrandPrixSelector;

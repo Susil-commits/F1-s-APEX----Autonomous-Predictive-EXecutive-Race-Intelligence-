@@ -1,18 +1,49 @@
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Outfit:wght@300;400;500;600;700;800;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
 :root {
+  --bg-primary: #F8F9FD;
+  --bg-secondary: #FFFFFF;
+  --bg-tertiary: #F1F3F9;
+  --bg-matte-card: #FFFFFF;
+  --bg-matte-card-hover: #F8FAFC;
+  --border-subtle: rgba(15, 23, 42, 0.08);
+  --border-hover: rgba(225, 6, 0, 0.4);
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
   --f1-red: #E10600;
   --f1-red-dark: #B30000;
-  --f1-carbon: #15151E;
-  --f1-carbon-dark: #0B0D12;
-  --f1-card: #1E1E28;
-  --f1-card-hover: #262634;
-  --f1-border: #383844;
+  --f1-accent: #E10600;
+  --f1-cyan: #0284C7;
+  --f1-gold: #D97706;
+  --f1-green: #16A34A;
+  --matte-shadow: 0 10px 30px -5px rgba(0, 0, 0, 0.05), 0 4px 12px -2px rgba(0, 0, 0, 0.03);
+  --matte-shadow-elevated: 0 20px 40px -10px rgba(0, 0, 0, 0.08), 0 8px 16px -4px rgba(0, 0, 0, 0.04);
+}
+
+html.dark {
+  --bg-primary: #08090E;
+  --bg-secondary: #0E1118;
+  --bg-tertiary: #141722;
+  --bg-matte-card: #11141C;
+  --bg-matte-card-hover: #171B26;
+  --border-subtle: rgba(255, 255, 255, 0.08);
+  --border-hover: rgba(225, 6, 0, 0.5);
+  --text-primary: #F8FAFC;
+  --text-secondary: #94A3B8;
+  --text-muted: #64748B;
+  --f1-red: #E10600;
+  --f1-red-dark: #990000;
+  --f1-accent: #FF1801;
   --f1-cyan: #00F0FF;
-  --f1-gold: #FFB800;
-  --f1-green: #177B2B;
+  --f1-gold: #FBBF24;
+  --f1-green: #10B981;
+  --matte-shadow: 0 12px 36px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --matte-shadow-elevated: 0 24px 48px rgba(0, 0, 0, 0.8), inset 0 1px 0 rgba(255, 255, 255, 0.08);
 }
 
 @layer base {
@@ -20,251 +51,208 @@
     scroll-behavior: smooth;
   }
   body {
-    background-color: #060709;
-    color: #FFFFFF;
-    font-family: 'Titillium Web', 'Inter', system-ui, -apple-system, sans-serif;
+    background-color: var(--bg-primary);
+    color: var(--text-primary);
+    font-family: 'Outfit', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
     overflow-x: hidden;
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 }
 
-/* Formula 1 Precision Scrollbar */
+/* Custom Scrollbar */
 ::-webkit-scrollbar {
-  width: 5px;
-  height: 5px;
+  width: 6px;
+  height: 6px;
 }
 ::-webkit-scrollbar-track {
-  background: #0B0D12;
+  background: var(--bg-primary);
 }
 ::-webkit-scrollbar-thumb {
-  background: #2E1515;
-  border: 1px solid #E10600;
-  border-radius: 3px;
+  background: var(--border-subtle);
+  border-radius: 9999px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #E10600;
-  box-shadow: 0 0 10px #E10600;
+  background: var(--f1-red);
 }
 
-/* === F1 CARDS === */
-.f1-card {
-  background: linear-gradient(160deg, #1A1A24 0%, #12121A 100%);
-  border: 1px solid #2B2B38;
-  border-radius: 12px;
-  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.08);
-  position: relative;
-  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.f1-card:hover {
-  border-color: rgba(225, 6, 0, 0.5);
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8), 0 0 24px rgba(225, 6, 0, 0.15);
-}
-.f1-card-active {
-  background: linear-gradient(160deg, #221A20 0%, #151118 100%);
-  border-color: #E10600 !important;
-  box-shadow: 0 0 28px rgba(225, 6, 0, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.2);
-}
+/* ==========================================================================
+   MATTE FINISH COMPONENT UTILITIES
+   ========================================================================== */
 
-/* === GLASS PANEL === */
-.glass-panel {
-  background: rgba(10, 11, 18, 0.75);
-  backdrop-filter: blur(24px) saturate(1.4);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
-  border: 1px solid rgba(255, 255, 255, 0.07);
-}
-.glass-panel-red {
-  background: rgba(20, 5, 5, 0.80);
-  backdrop-filter: blur(24px) saturate(1.4);
-  -webkit-backdrop-filter: blur(24px) saturate(1.4);
-  border: 1px solid rgba(225, 6, 0, 0.18);
-}
-
-/* === LANDING HERO BACKGROUND === */
-.hero-bg {
-  background:
-    radial-gradient(ellipse 100% 60% at 50% -5%, rgba(225, 6, 0, 0.35) 0%, transparent 65%),
-    radial-gradient(ellipse 50% 50% at 0% 80%, rgba(225, 6, 0, 0.10) 0%, transparent 55%),
-    radial-gradient(ellipse 50% 50% at 100% 20%, rgba(0, 240, 255, 0.06) 0%, transparent 50%),
-    linear-gradient(180deg, #060709 0%, #08090F 100%);
-}
-.grid-bg {
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.025) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.025) 1px, transparent 1px);
-  background-size: 40px 40px;
-}
-
-/* === RACING STRIPE & BARS === */
-.f1-racing-bar {
-  background: linear-gradient(90deg, #E10600 0%, #FF1801 50%, #B30000 100%);
-}
-.f1-racing-bar-diagonal {
-  background: repeating-linear-gradient(
-    -45deg,
-    #E10600,
-    #E10600 4px,
-    #B30000 4px,
-    #B30000 8px
-  );
-}
-
-/* === SKEW / ANGLE ELEMENTS === */
-.f1-angle    { transform: skewX(-12deg); }
-.f1-angle-reverse { transform: skewX(12deg); }
-
-/* === GLOW EFFECTS === */
-.glow-f1-red {
-  text-shadow: 0 0 12px rgba(225, 6, 0, 0.85), 0 0 24px rgba(225, 6, 0, 0.45);
-}
-.glow-cyan {
-  text-shadow: 0 0 10px rgba(0, 240, 255, 0.8), 0 0 20px rgba(0, 240, 255, 0.4);
-}
-.box-glow-red {
-  box-shadow: 0 0 24px rgba(225, 6, 0, 0.45), 0 0 48px rgba(225, 6, 0, 0.20);
-}
-.box-glow-cyan {
-  box-shadow: 0 0 16px rgba(0, 240, 255, 0.35), 0 0 32px rgba(0, 240, 255, 0.15);
-}
-
-/* === CARBON FIBER === */
-.bg-carbon {
-  background-color: #0E1017;
-  background-image:
-    linear-gradient(45deg, #090B10 25%, transparent 25%),
-    linear-gradient(-45deg, #090B10 25%, transparent 25%),
-    linear-gradient(45deg, transparent 75%, #090B10 75%),
-    linear-gradient(-45deg, transparent 75%, #090B10 75%);
-  background-size: 8px 8px;
-  background-position: 0 0, 0 4px, 4px -4px, -4px 0px;
-}
-
-/* === STAT TICKER BAR === */
-.ticker-bar {
-  background: linear-gradient(90deg, #0E1017 0%, #161A24 50%, #0E1017 100%);
-  border-top: 1px solid rgba(225, 6, 0, 0.3);
-  border-bottom: 1px solid rgba(225, 6, 0, 0.3);
-}
-
-/* === ANIMATIONS === */
-@keyframes f1-slide-up {
-  from { opacity: 0; transform: translateY(30px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-@keyframes f1-fade-in {
-  from { opacity: 0; }
-  to   { opacity: 1; }
-}
-@keyframes f1-slide-right {
-  from { opacity: 0; transform: translateX(-30px); }
-  to   { opacity: 1; transform: translateX(0); }
-}
-@keyframes ticker-scroll {
-  from { transform: translateX(0); }
-  to   { transform: translateX(-50%); }
-}
-@keyframes speed-line {
-  0%   { transform: scaleX(0) translateX(0); opacity: 0.8; }
-  100% { transform: scaleX(1) translateX(100vw); opacity: 0; }
-}
-@keyframes border-pulse {
-  0%, 100% { border-color: rgba(225, 6, 0, 0.3); }
-  50%       { border-color: rgba(225, 6, 0, 0.8); }
-}
-@keyframes scanline {
-  0%   { transform: translateY(-100%); }
-  100% { transform: translateY(1000%); }
-}
-@keyframes glowPulse {
-  0%   { opacity: 0.6; filter: drop-shadow(0 0 4px rgba(225, 6, 0, 0.4)); }
-  100% { opacity: 1;   filter: drop-shadow(0 0 14px rgba(225, 6, 0, 0.95)); }
-}
-@keyframes f1Pulse {
-  0%, 100% { opacity: 1; transform: scale(1); }
-  50%       { opacity: 0.85; transform: scale(1.02); }
-}
-
-.animate-f1-slide-up   { animation: f1-slide-up 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.animate-f1-fade-in    { animation: f1-fade-in 0.5s ease both; }
-.animate-f1-slide-right { animation: f1-slide-right 0.6s cubic-bezier(0.16, 1, 0.3, 1) both; }
-.animate-ticker        { animation: ticker-scroll 28s linear infinite; }
-.animate-border-pulse  { animation: border-pulse 2.5s ease-in-out infinite; }
-
-.delay-100 { animation-delay: 0.1s; }
-.delay-200 { animation-delay: 0.2s; }
-.delay-300 { animation-delay: 0.3s; }
-.delay-400 { animation-delay: 0.4s; }
-.delay-500 { animation-delay: 0.5s; }
-.delay-600 { animation-delay: 0.6s; }
-
-/* === STAT CARDS === */
-.stat-card {
-  background: linear-gradient(135deg, rgba(20, 21, 32, 0.9) 0%, rgba(12, 13, 20, 0.9) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.06);
+.matte-panel {
+  background-color: var(--bg-matte-card);
+  border: 1px solid var(--border-subtle);
   border-radius: 16px;
-  padding: 24px;
-  position: relative;
-  overflow: hidden;
+  box-shadow: var(--matte-shadow);
   transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.stat-card::before {
-  content: '';
-  position: absolute;
-  top: 0; left: 0; right: 0;
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #E10600, transparent);
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-.stat-card:hover::before { opacity: 1; }
-.stat-card:hover {
-  border-color: rgba(225, 6, 0, 0.25);
-  transform: translateY(-3px);
-  box-shadow: 0 20px 48px rgba(0, 0, 0, 0.7), 0 0 24px rgba(225, 6, 0, 0.08);
+  position: relative;
 }
 
-/* === FEATURE GRID CARD === */
-.feature-card {
-  background: linear-gradient(135deg, rgba(15, 16, 24, 0.95) 0%, rgba(10, 11, 17, 0.95) 100%);
-  border: 1px solid rgba(255, 255, 255, 0.055);
+.matte-panel-elevated {
+  background-color: var(--bg-secondary);
+  border: 1px solid var(--border-subtle);
   border-radius: 20px;
-  padding: 28px;
+  box-shadow: var(--matte-shadow-elevated);
+  transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+}
+
+.matte-glass {
+  background: rgba(14, 17, 24, 0.85);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid var(--border-subtle);
+}
+
+html:not(.dark) .matte-glass {
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(0, 0, 0, 0.08);
+}
+
+.matte-card-interactive {
+  background-color: var(--bg-matte-card);
+  border: 1px solid var(--border-subtle);
+  border-radius: 16px;
+  box-shadow: var(--matte-shadow);
+  transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              box-shadow 0.25s cubic-bezier(0.16, 1, 0.3, 1),
+              border-color 0.25s ease,
+              background-color 0.25s ease;
+  will-change: transform;
+}
+
+.matte-card-interactive:hover {
+  transform: translateY(-4px);
+  border-color: var(--border-hover);
+  background-color: var(--bg-matte-card-hover);
+  box-shadow: 0 16px 32px rgba(225, 6, 0, 0.12), var(--matte-shadow);
+}
+
+/* ==========================================================================
+   3D TRANSFORMS & PERSPECTIVE
+   ========================================================================== */
+
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.card-3d {
+  transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+  transform-style: preserve-3d;
+}
+
+.card-3d:hover {
+  transform: translateY(-6px) rotateX(3deg) rotateY(-2deg);
+}
+
+/* ==========================================================================
+   RACING ACCENTS & BUTTONS
+   ========================================================================== */
+
+.btn-f1-primary {
+  background: linear-gradient(135deg, #E10600 0%, #C40500 100%);
+  color: #FFFFFF;
+  font-family: 'Outfit', sans-serif;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 8px 24px rgba(225, 6, 0, 0.35);
+  transition: all 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   position: relative;
   overflow: hidden;
-  transition: all 0.35s cubic-bezier(0.16, 1, 0.3, 1);
-}
-.feature-card:hover {
-  border-color: rgba(225, 6, 0, 0.3);
-  transform: translateY(-4px);
-  box-shadow: 0 24px 64px rgba(0, 0, 0, 0.75), 0 0 32px rgba(225, 6, 0, 0.1);
 }
 
-/* === RED DIVIDER LINE === */
-.red-line {
-  height: 2px;
-  background: linear-gradient(90deg, transparent, #E10600 30%, #FF1801 50%, #E10600 70%, transparent);
+.btn-f1-primary:hover {
+  background: linear-gradient(135deg, #FF1801 0%, #D90500 100%);
+  box-shadow: 0 12px 32px rgba(225, 6, 0, 0.5);
+  transform: translateY(-2px);
 }
 
-/* === BADGE === */
-.apex-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 4px 12px;
-  border-radius: 999px;
-  font-size: 10px;
-  font-weight: 700;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-  border: 1px solid rgba(225, 6, 0, 0.35);
-  background: rgba(225, 6, 0, 0.10);
-  color: #FF4040;
+.btn-f1-primary:active {
+  transform: translateY(0);
 }
-.apex-badge-cyan {
-  border-color: rgba(0, 240, 255, 0.3);
-  background: rgba(0, 240, 255, 0.08);
-  color: #00F0FF;
+
+.btn-f1-secondary {
+  background-color: var(--bg-matte-card);
+  color: var(--text-primary);
+  font-family: 'Outfit', sans-serif;
+  font-weight: 600;
+  border-radius: 12px;
+  border: 1px solid var(--border-subtle);
+  transition: all 0.2s ease;
 }
-.apex-badge-gold {
-  border-color: rgba(255, 184, 0, 0.3);
-  background: rgba(255, 184, 0, 0.08);
-  color: #FFB800;
+
+.btn-f1-secondary:hover {
+  border-color: var(--f1-red);
+  background-color: var(--bg-matte-card-hover);
+  transform: translateY(-1px);
+}
+
+/* Racing Line Indicator */
+.racing-accent-bar {
+  height: 3px;
+  background: linear-gradient(90deg, #E10600 0%, #FF2A14 50%, #B30000 100%);
+}
+
+/* ==========================================================================
+   SUBTLE MATTE BACKGROUND PATTERNS
+   ========================================================================== */
+
+.hero-ambient-dark {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(225, 6, 0, 0.18) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 90% 20%, rgba(0, 240, 255, 0.05) 0%, transparent 50%),
+    linear-gradient(180deg, #08090E 0%, #0D1017 100%);
+}
+
+.hero-ambient-light {
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(225, 6, 0, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 40% 40% at 90% 20%, rgba(2, 132, 199, 0.04) 0%, transparent 50%),
+    linear-gradient(180deg, #F8F9FD 0%, #EFF2F9 100%);
+}
+
+/* ==========================================================================
+   ANIMATIONS & KEYFRAMES
+   ========================================================================== */
+
+@keyframes float-subtle {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+.animate-float {
+  animation: float-subtle 6s ease-in-out infinite;
+}
+
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.8; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 3s ease-in-out infinite;
+}
+
+@keyframes marquee {
+  0% { transform: translateX(0%); }
+  100% { transform: translateX(-50%); }
+}
+
+.animate-marquee {
+  display: flex;
+  width: max-content;
+  animation: marquee 30s linear infinite;
+}
+
+.animate-marquee:hover {
+  animation-play-state: paused;
 }

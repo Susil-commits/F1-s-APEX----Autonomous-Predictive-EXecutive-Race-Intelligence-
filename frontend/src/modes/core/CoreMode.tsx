@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { AlertTriangle, RotateCcw } from 'lucide-react';
+import { AlertCircle, RotateCcw, Compass, Flag, Sparkles } from 'lucide-react';
 import { PredictionCard, PredictionData } from './PredictionCard';
 import {
   GRAND_PRIX_LIST,
@@ -26,7 +26,7 @@ export const CoreMode: React.FC = () => {
   const [prediction, setPrediction] = useState<PredictionData | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  // Fetch driver roster from backend as single source of truth
+  // Fetch driver roster from backend if available, merging with high-res local photos
   useEffect(() => {
     const fetchDrivers = async () => {
       try {
@@ -44,7 +44,7 @@ export const CoreMode: React.FC = () => {
                 color: d.color || '#E10600',
                 country: d.country || '🏁',
                 defaultGrid: d.default_grid ?? 10,
-                photo: d.photo,
+                photo: `/f1/drivers/${d.code}.png`,
               }))
             );
           }
@@ -84,8 +84,7 @@ export const CoreMode: React.FC = () => {
       setPrediction(data);
       setError(null);
     } catch {
-      // Strictly surface error — no fabricated or synthetic data is ever rendered
-      setError('Prediction service unavailable');
+      setError('Prediction service currently unavailable. Please verify API connection.');
       setPrediction(null);
     } finally {
       setIsAnalyzing(false);
@@ -97,24 +96,25 @@ export const CoreMode: React.FC = () => {
     handleAnalyze();
   }, [handleAnalyze]);
 
+  const activeGP = GRAND_PRIX_LIST.find((g) => g.id === selectedRace) || GRAND_PRIX_LIST[0];
   const activeDriver = drivers.find((d) => d.code === selectedDriver) || drivers[0];
 
   return (
-    <div className="flex flex-col items-center justify-center w-full max-w-6xl mx-auto py-6 px-4 gap-8">
-      {/* 1. OFFICIAL F1 HEADER & BANNER */}
+    <div className="flex flex-col items-center justify-center w-full max-w-6xl mx-auto py-4 px-2 sm:px-4 gap-8">
+      {/* 1. OFFICIAL RACE HEADER BANNER */}
       <div className="text-center max-w-3xl flex flex-col items-center gap-3">
-        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded bg-[#181A25] border border-[#2B2E40] text-xs font-f1 font-bold uppercase tracking-wider">
+        <div className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-red-600/10 border border-red-600/20 text-xs font-bold text-[#E10600] uppercase tracking-wider">
           <span className="w-2 h-2 rounded-full bg-[#E10600] animate-pulse" />
-          <span className="text-white">Point-in-Time Predictive Intelligence</span>
-          <span className="text-[#00F0FF]">· Temporal Holdout R² = 0.688</span>
+          <span>Live Pre-Race Simulation</span>
+          <span className="text-slate-400 dark:text-slate-500">· 2026 Regulations</span>
         </div>
 
-        <h1 className="text-3xl sm:text-5xl font-black text-white uppercase tracking-tight font-f1">
-          F1 PRE-RACE <span className="text-[#E10600]">FINISH PREDICTOR</span>
+        <h1 className="text-3xl sm:text-5xl font-extrabold uppercase tracking-tight text-slate-900 dark:text-white font-['Outfit']">
+          GRAND PRIX <span className="text-[#E10600]">FINISH PREDICTOR</span>
         </h1>
 
-        <p className="text-sm sm:text-base text-slate-300 font-f1 max-w-2xl leading-relaxed">
-          Select a Grand Prix and driver. The model evaluates verified facts known strictly before lights out to project finishing positions and mathematically guaranteed 90% split-conformal confidence bands.
+        <p className="text-sm sm:text-base text-slate-600 dark:text-slate-400 font-normal max-w-2xl leading-relaxed">
+          Select a Grand Prix venue and driver to simulate race day outcomes. APEX evaluates circuit aerodynamics, starting grid delta, and weather probability to project finishing windows.
         </p>
       </div>
 
@@ -139,43 +139,28 @@ export const CoreMode: React.FC = () => {
       <RaceConditionsPanel
         gridPosition={customGrid}
         rainForecast={rainForecast}
-        activeDriverDefaultGrid={activeDriver?.defaultGrid ?? 10}
+        activeDriverDefaultGrid={activeDriver.defaultGrid}
         isAnalyzing={isAnalyzing}
         onGridChange={setCustomGrid}
         onRainChange={setRainForecast}
         onAnalyze={handleAnalyze}
       />
 
-      {/* ERROR STATE: RETRY BANNER (No synthetic predictions ever rendered) */}
+      {/* 5. PREDICTION RESULT STAGE */}
       {error && (
-        <div className="w-full max-w-2xl bg-[#1C1317] border border-red-800/80 rounded-2xl p-6 text-center flex flex-col items-center gap-4 shadow-xl shadow-red-950/40 animate-fade-in">
-          <div className="w-12 h-12 rounded-full bg-red-950/80 border border-red-700/60 flex items-center justify-center text-[#E10600]">
-            <AlertTriangle className="w-6 h-6" />
-          </div>
-          <div className="flex flex-col gap-1">
-            <h3 className="font-f1 font-black text-lg text-white uppercase tracking-wide">
-              {error}
-            </h3>
-            <p className="text-xs text-slate-400 max-w-md">
-              Unable to reach the APEX CatBoost model endpoint. Please ensure the backend prediction service is running.
-            </p>
-          </div>
-          <button
-            type="button"
-            onClick={handleAnalyze}
-            disabled={isAnalyzing}
-            className="px-6 py-2.5 rounded-xl bg-[#E10600] hover:bg-red-600 active:scale-95 text-white font-f1 font-bold text-xs uppercase tracking-wider flex items-center gap-2 transition-all cursor-pointer shadow-lg shadow-red-900/30"
-          >
-            <RotateCcw className={`w-3.5 h-3.5 ${isAnalyzing ? 'animate-spin' : ''}`} />
-            <span>Retry Prediction</span>
-          </button>
+        <div className="w-full p-4 rounded-xl bg-amber-500/10 border border-amber-500/20 text-amber-700 dark:text-amber-400 flex items-center gap-3 text-xs">
+          <AlertCircle className="w-4 h-4 flex-shrink-0" />
+          <span>{error}</span>
         </div>
       )}
 
-      {/* 5. PREDICTION RESULTS CARD */}
-      {!error && prediction && <PredictionCard data={prediction} />}
+      {prediction && !error && (
+        <div className="w-full">
+          <PredictionCard data={prediction} />
+        </div>
+      )}
 
-      {/* 6. OFFICIAL F1 GLOBAL PARTNER LOGO STRIP */}
+      {/* 6. GLOBAL PARTNERS */}
       <GlobalPartners sponsors={OFFICIAL_SPONSORS} />
     </div>
   );

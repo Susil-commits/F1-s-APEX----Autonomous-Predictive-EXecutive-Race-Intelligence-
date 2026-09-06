@@ -1,5 +1,5 @@
 import React from 'react';
-import { CloudRain, Sun, Play } from 'lucide-react';
+import { CloudRain, Sun, Play, Sliders, Shield } from 'lucide-react';
 
 export interface RaceConditionsPanelProps {
   gridPosition: number | '';
@@ -20,31 +20,44 @@ export const RaceConditionsPanel: React.FC<RaceConditionsPanelProps> = ({
   onRainChange,
   onAnalyze,
 }) => {
+  const currentGrid = gridPosition === '' ? activeDriverDefaultGrid : gridPosition;
+
   return (
-    <div className="w-full f1-card p-6 flex flex-col gap-6">
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+    <div className="w-full matte-panel p-6 flex flex-col gap-6">
+      {/* Top Header */}
+      <div className="flex items-center justify-between pb-2 border-b border-slate-200 dark:border-white/10">
+        <span className="text-xs uppercase tracking-widest text-slate-500 dark:text-slate-400 font-bold flex items-center gap-2">
+          <Sliders className="w-3.5 h-3.5 text-[#E10600]" />
+          <span>Pre-Race Strategy Overrides</span>
+        </span>
+        <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+          Tune starting grid & track meteorological conditions
+        </span>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Starting Grid Position Selector */}
-        <div className="flex flex-col gap-2.5">
-          <div className="flex items-center justify-between text-xs font-f1 font-bold uppercase">
-            <span className="text-slate-300">Starting Grid Slot</span>
-            <span className="text-[#00F0FF] font-mono text-sm">
-              {gridPosition !== '' ? `P${gridPosition}` : `P${activeDriverDefaultGrid} (Qualifying Slot)`}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between text-xs font-bold uppercase">
+            <span className="text-slate-700 dark:text-slate-300">Starting Grid Slot</span>
+            <span className="text-red-600 dark:text-red-400 font-mono text-sm font-black">
+              P{currentGrid} {gridPosition === '' && '(Qualifying)'}
             </span>
           </div>
 
           {/* Visual start-grid slot buttons P1 to P20 */}
           <div className="grid grid-cols-10 gap-1.5">
             {Array.from({ length: 20 }, (_, i) => i + 1).map((pos) => {
-              const isCurrent = (gridPosition === '' ? activeDriverDefaultGrid : gridPosition) === pos;
+              const isCurrent = currentGrid === pos;
               return (
                 <button
                   key={pos}
                   type="button"
                   onClick={() => onGridChange(pos)}
-                  className={`py-2 rounded font-mono text-xs font-black transition-all cursor-pointer ${
+                  className={`py-2 rounded-lg font-mono text-xs font-bold transition-all cursor-pointer ${
                     isCurrent
-                      ? 'bg-[#E10600] text-white shadow-md shadow-red-600/40 scale-105'
-                      : 'bg-[#151722] text-slate-300 hover:bg-[#1E2232] border border-[#262A3B]'
+                      ? 'bg-[#E10600] text-white shadow-md shadow-red-600/30 scale-105'
+                      : 'bg-slate-100 hover:bg-slate-200 dark:bg-white/[0.04] dark:hover:bg-white/[0.08] text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-white/[0.08]'
                   }`}
                 >
                   P{pos}
@@ -52,60 +65,74 @@ export const RaceConditionsPanel: React.FC<RaceConditionsPanelProps> = ({
               );
             })}
           </div>
-          <p className="text-[11px] font-f1 text-slate-400">
-            Qualifying grid position accounts for 22.4% of total finish variance on historical holdout data.
+          <p className="text-[11px] text-slate-500 dark:text-slate-400">
+            Starting position on the grid strongly dictates initial race track position and clean air advantage.
           </p>
         </div>
 
         {/* Track Weather & Rain Probability */}
-        <div className="flex flex-col gap-2.5">
-          <div className="flex items-center justify-between text-xs font-f1 font-bold uppercase">
-            <span className="text-slate-300 flex items-center gap-1.5">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center justify-between text-xs font-bold uppercase">
+            <span className="text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
               {rainForecast > 30 ? (
-                <CloudRain className="w-4 h-4 text-cyan-400" />
+                <CloudRain className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
               ) : (
-                <Sun className="w-4 h-4 text-amber-400" />
+                <Sun className="w-4 h-4 text-amber-500 dark:text-amber-400" />
               )}
-              <span>Forecast Rain Probability</span>
+              <span>Forecast Track Weather</span>
             </span>
-            <span className="text-[#00F0FF] font-mono text-sm">{rainForecast}% Rain</span>
+            <span className="text-cyan-600 dark:text-cyan-400 font-mono text-sm font-black">
+              {rainForecast}% Rain Probability
+            </span>
           </div>
 
-          <input
-            type="range"
-            min="0"
-            max="100"
-            step="5"
-            value={rainForecast}
-            onChange={(e) => onRainChange(Number(e.target.value))}
-            className="w-full accent-[#E10600] cursor-pointer h-2 bg-[#171926] rounded-lg"
-          />
+          <div className="py-2">
+            <input
+              type="range"
+              min="0"
+              max="100"
+              step="5"
+              value={rainForecast}
+              onChange={(e) => onRainChange(Number(e.target.value))}
+              className="w-full accent-[#E10600] cursor-pointer h-2 bg-slate-200 dark:bg-slate-800 rounded-lg"
+            />
+          </div>
 
-          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 pt-1">
-            <span className={rainForecast < 25 ? 'text-emerald-400 font-bold' : ''}>DRY (0-20%)</span>
-            <span className={rainForecast >= 25 && rainForecast < 60 ? 'text-amber-400 font-bold' : ''}>
-              MIXED (25-50%)
+          <div className="flex items-center justify-between text-[11px] font-mono text-slate-500 dark:text-slate-400">
+            <span className={rainForecast < 25 ? 'text-emerald-600 dark:text-emerald-400 font-bold' : ''}>
+              DRY (0-20%)
             </span>
-            <span className={rainForecast >= 60 ? 'text-cyan-400 font-bold' : ''}>WET / RAIN (&gt;55%)</span>
+            <span
+              className={
+                rainForecast >= 25 && rainForecast < 60
+                  ? 'text-amber-600 dark:text-amber-400 font-bold'
+                  : ''
+              }
+            >
+              MIXED CONDITIONS (25-55%)
+            </span>
+            <span className={rainForecast >= 60 ? 'text-cyan-600 dark:text-cyan-400 font-bold' : ''}>
+              WET / INTERMEDIATES (&gt;55%)
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Big Official F1 Release Button */}
+      {/* Calculate Prediction Button */}
       <button
         type="button"
         onClick={onAnalyze}
         disabled={isAnalyzing}
-        className="w-full py-4 rounded-xl f1-racing-bar hover:brightness-110 active:scale-[0.99] text-white font-black uppercase tracking-widest text-base shadow-xl shadow-red-950/70 border border-red-400/40 flex items-center justify-center gap-3 transition-all cursor-pointer font-f1"
+        className="w-full py-4 rounded-xl btn-f1-primary flex items-center justify-center gap-3 cursor-pointer text-sm font-bold tracking-widest uppercase transition-all"
       >
         {isAnalyzing ? (
           <div className="flex items-center gap-2">
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-            <span>EVALUATING CATBOOST PREDICTION MATRIX...</span>
+            <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+            <span>SIMULATING RACE TELEMETRY & STRATEGY...</span>
           </div>
         ) : (
-          <div className="flex items-center gap-2.5">
-            <Play className="w-5 h-5 fill-current" />
+          <div className="flex items-center gap-2">
+            <Play className="w-4 h-4 fill-current" />
             <span>CALCULATE RACE FINISH PREDICTION</span>
           </div>
         )}
@@ -113,3 +140,5 @@ export const RaceConditionsPanel: React.FC<RaceConditionsPanelProps> = ({
     </div>
   );
 };
+
+export default RaceConditionsPanel;
