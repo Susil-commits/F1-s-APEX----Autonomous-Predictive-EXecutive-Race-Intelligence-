@@ -13,7 +13,7 @@ import pandas as pd
 
 logger = logging.getLogger(__name__)
 
-CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "backend", "data", "fastf1_cache")
+CACHE_DIR = os.path.join(os.path.dirname(__file__), "..", "data", "fastf1_cache")
 
 
 class FastF1Adapter:

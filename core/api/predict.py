@@ -13,9 +13,10 @@ from typing import Any, Dict, List, Optional
 
 import joblib
 import numpy as np
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel, Field, field_validator
 
+from core.api.limiter import limiter
 from core.features.feature_builder import (
     PRE_RACE_FEATURE_NAMES,
     PreRaceFeatureBuilder,
@@ -127,7 +128,9 @@ class PredictResponse(BaseModel):
 
 
 @router.post("/predict", response_model=PredictResponse)
-async def predict_finish(req: PredictRequest):
+@limiter.limit("30/minute")
+async def predict_finish(request: Request, req: PredictRequest):
+    # slowapi reads `request` automatically for rate-key extraction; body schema unchanged
     """Tier 1 Provably-Correct Pre-Race Finish Predictor."""
     raw_driver = req.driver_id.strip() if req.driver_id else ""
     if not raw_driver or not raw_driver.isalpha() or len(raw_driver) != 3:

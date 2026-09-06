@@ -38,8 +38,9 @@ Thumbs.db
 *.sqlite
 *.sqlite3
 evaluations.npz
-backend/data/fastf1_cache/
+core/data/fastf1_cache/
 catboost_info/
 saveweb2zip-com-www-formula1-com/
+*.mp4
 
 

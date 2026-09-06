@@ -280,3 +280,25 @@ def test_evaluation_fallback_warning(caplog):
             assert rep is not None
             assert any("APEX EVALUATION WARNING" in record.message for record in caplog.records)
 
+
+@pytest.mark.asyncio
+async def test_rate_limiter_blocks_excessive_traffic():
+    """Verifies that slowapi rate limiting responds with 429 when enabled and limit is reached."""
+    from core.api.limiter import limiter
+
+    was_enabled = limiter.enabled
+    try:
+        limiter.enabled = True
+        transport = ASGITransport(app=core_app)
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            statuses = []
+            for _ in range(35):
+                res = await client.post(
+                    "/api/core/predict",
+                    json={"race_id": "monza", "driver_id": "VER", "grid_position": 1},
+                )
+                statuses.append(res.status_code)
+            assert 429 in statuses
+    finally:
+        limiter.enabled = was_enabled
+

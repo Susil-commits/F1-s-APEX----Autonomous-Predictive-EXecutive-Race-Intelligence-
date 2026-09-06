@@ -6,7 +6,10 @@ Run with:
 """
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
+from core.api.limiter import limiter
 from core.api.predict import router as predict_router
 
 app = FastAPI(
@@ -14,6 +17,9 @@ app = FastAPI(
     description="Tier 1 provably-correct baseline service. Predicts driver finishing position from pre-race priors.",
     version="1.0.0",
 )
+
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)
 
 app.add_middleware(
     CORSMiddleware,

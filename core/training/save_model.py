@@ -12,7 +12,7 @@ from core.training.evaluate import evaluate_model_temporal
 
 logger = logging.getLogger(__name__)
 
-DEFAULT_MODEL_DIR = os.path.join(os.path.dirname(__file__), "..", "..", "backend", "models")
+DEFAULT_MODEL_DIR = os.path.join(os.path.dirname(__file__), "..", "models")
 
 
 def build_and_save_core_baseline(output_dir: str = DEFAULT_MODEL_DIR) -> str:
