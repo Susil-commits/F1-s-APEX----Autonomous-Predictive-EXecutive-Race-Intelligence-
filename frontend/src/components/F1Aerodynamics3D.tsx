@@ -153,11 +153,12 @@ export const F1Aerodynamics3D: React.FC<F1Aerodynamics3DProps> = ({
 
     // Animation Loop
     let animationId: number;
-    let clock = new THREE.Clock();
+    const timer = new THREE.Timer();
 
-    const animate = () => {
+    const animate = (timestamp?: number) => {
       animationId = requestAnimationFrame(animate);
-      const delta = clock.getDelta();
+      timer.update(timestamp);
+      const delta = timer.getDelta();
 
       // Smooth camera / group rotation tracking
       rootGroup.rotation.y += (targetRotY - rootGroup.rotation.y) * 0.05;
@@ -196,6 +197,7 @@ export const F1Aerodynamics3D: React.FC<F1Aerodynamics3DProps> = ({
       cancelAnimationFrame(animationId);
       window.removeEventListener('mousemove', handleMouseMove);
       window.removeEventListener('resize', handleResize);
+      timer.dispose();
       renderer.dispose();
       particleGeometry.dispose();
       particleMat.dispose();
