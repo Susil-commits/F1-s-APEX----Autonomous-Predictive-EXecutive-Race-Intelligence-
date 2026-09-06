@@ -15,6 +15,7 @@ import {
 } from 'lucide-react';
 import { GRAND_PRIX_LIST, DRIVERS_LIST, OFFICIAL_SPONSORS, F1_CDN_FALLBACK } from '../modes/core/data/constants';
 import { F1Aerodynamics3D } from './F1Aerodynamics3D';
+import { Parallax3DBackground } from './Parallax3DBackground';
 import { useTheme } from '../context/ThemeContext';
 import { Header } from './Header';
 
@@ -24,7 +25,7 @@ interface LandingPageProps {
 
 export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
   const { theme } = useTheme();
-  const [activeTab, setActiveTab] = useState<'3d_car' | '3d_windtunnel'>('3d_car');
+  const [showcasePhoto, setShowcasePhoto] = useState<'hologram' | 'car'>('hologram');
   const [selectedCircuit, setSelectedCircuit] = useState(GRAND_PRIX_LIST[0]);
 
   return (
@@ -32,10 +33,17 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
       {/* Top Header */}
       <Header currentView="landing" onNavigate={(v) => v === 'predictor' && onEnterApp()} />
 
-      {/* ─── HERO SECTION ─── */}
-      <section className="relative overflow-hidden pt-8 pb-16 lg:pt-16 lg:pb-24">
-        {/* Subtle ambient light gradient */}
-        <div className={`absolute inset-0 pointer-events-none ${theme === 'dark' ? 'hero-ambient-dark' : 'hero-ambient-light'}`} />
+      {/* ─── HERO SECTION (3D CAR BACKGROUND) ─── */}
+      <section className="relative overflow-hidden pt-12 pb-20 lg:pt-20 lg:pb-28">
+        {/* Full-bleed Interactive 3D Car Background */}
+        <Parallax3DBackground
+          src="/f1/hero_car_3d.jpg"
+          alt="3D Formula 1 Race Car Background"
+          intensity={1.15}
+          gradientPlacement="hero"
+          spotlightColor="rgba(225, 6, 0, 0.25)"
+          showDepthGrid={true}
+        />
 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-center">
@@ -43,18 +51,18 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
             {/* Left Column: Typography & Call to Action */}
             <div className="lg:col-span-7 flex flex-col gap-6 text-left">
               {/* Badge */}
-              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-red-600/10 border border-red-600/20 text-[#E10600] text-xs font-bold tracking-wider uppercase w-fit">
+              <div className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-red-600/10 border border-red-600/20 text-[#E10600] text-xs font-bold tracking-wider uppercase w-fit backdrop-blur-sm">
                 <span className="w-2 h-2 rounded-full bg-[#E10600] animate-pulse" />
                 <span>2026 World Championship Intelligence</span>
               </div>
 
               {/* Main Headline */}
-              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.05] uppercase font-['Outfit'] text-slate-900 dark:text-white">
+              <h1 className="text-4xl sm:text-6xl lg:text-7xl font-extrabold tracking-tight leading-[1.05] uppercase font-['Outfit'] text-slate-900 dark:text-white drop-shadow-sm">
                 PRECISION <span className="text-[#E10600]">RACE FINISH</span> INTELLIGENCE
               </h1>
 
               {/* Subtitle */}
-              <p className="text-lg sm:text-xl text-slate-600 dark:text-slate-300 max-w-2xl font-normal leading-relaxed">
+              <p className="text-lg sm:text-xl text-slate-700 dark:text-slate-300 max-w-2xl font-normal leading-relaxed">
                 Experience broadcast-level Grand Prix strategy forecasting. Simulate qualifying grid positions, circuit downforce demands, and race-day weather to project finishing windows and podium probabilities.
               </p>
 
@@ -63,7 +71,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
                 <button
                   type="button"
                   onClick={onEnterApp}
-                  className="btn-f1-primary px-8 py-4 text-sm font-bold flex items-center gap-3 cursor-pointer group"
+                  className="btn-f1-primary px-8 py-4 text-sm font-bold flex items-center gap-3 cursor-pointer group shadow-xl"
                 >
                   <Play className="w-4 h-4 fill-current" />
                   <span>Launch Predictor Console</span>
@@ -72,7 +80,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
 
                 <a
                   href="#calendar"
-                  className="btn-f1-secondary px-6 py-4 text-sm font-semibold flex items-center gap-2"
+                  className="btn-f1-secondary px-6 py-4 text-sm font-semibold flex items-center gap-2 backdrop-blur-md"
                 >
                   <span>Grand Prix Calendar</span>
                   <ArrowRight className="w-4 h-4" />
@@ -80,82 +88,42 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
               </div>
 
               {/* Key Racing Indicators */}
-              <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-200 dark:border-white/10 max-w-lg">
+              <div className="grid grid-cols-3 gap-4 pt-4 border-t border-slate-300/40 dark:border-white/10 max-w-lg">
                 <div>
                   <div className="text-2xl font-black text-[#E10600] font-['Outfit']">24</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Championship Rounds</div>
+                  <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">Championship Rounds</div>
                 </div>
                 <div>
-                  <div className="text-2xl font-black text-slate-900 dark:text-white font-['Outfit']">12+</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Drivers Calibrated</div>
+                  <div className="text-2xl font-black text-slate-900 dark:text-white font-['Outfit']">24</div>
+                  <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">Drivers Calibrated</div>
                 </div>
                 <div>
                   <div className="text-2xl font-black text-cyan-600 dark:text-cyan-400 font-['Outfit']">&lt; 100ms</div>
-                  <div className="text-xs text-slate-500 dark:text-slate-400 font-medium">Real-Time Simulation</div>
+                  <div className="text-xs text-slate-600 dark:text-slate-400 font-medium">Real-Time Simulation</div>
                 </div>
               </div>
             </div>
 
-            {/* Right Column: 3D Visual Stage with Interactive Switcher */}
+            {/* Right Column: 3D Aerodynamics Simulation Panel */}
             <div className="lg:col-span-5 flex flex-col gap-3">
-              {/* Mode Toggle */}
               <div className="flex items-center justify-between px-2">
-                <span className="text-xs font-semibold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+                <span className="text-xs font-semibold uppercase tracking-wider text-slate-600 dark:text-slate-400 flex items-center gap-1.5">
                   <Sparkles className="w-3.5 h-3.5 text-[#E10600]" />
-                  <span>3D Telemetry Visualization</span>
+                  <span>Interactive 3D Wind Tunnel</span>
                 </span>
-                <div className="inline-flex p-1 rounded-xl bg-slate-200/80 dark:bg-white/10 border border-slate-300/60 dark:border-white/10 text-xs">
-                  <button
-                    onClick={() => setActiveTab('3d_car')}
-                    className={`px-3 py-1 rounded-lg font-semibold transition-all ${
-                      activeTab === '3d_car'
-                        ? 'bg-white dark:bg-[#11141C] text-slate-900 dark:text-white shadow-sm'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    3D Studio Car
-                  </button>
-                  <button
-                    onClick={() => setActiveTab('3d_windtunnel')}
-                    className={`px-3 py-1 rounded-lg font-semibold transition-all ${
-                      activeTab === '3d_windtunnel'
-                        ? 'bg-white dark:bg-[#11141C] text-slate-900 dark:text-white shadow-sm'
-                        : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-                    }`}
-                  >
-                    3D Aerodynamics
-                  </button>
-                </div>
+                <span className="text-[11px] font-mono text-slate-500 dark:text-slate-400">
+                  Live 60fps WebGL
+                </span>
               </div>
 
-              {/* 3D Canvas / Render Container */}
-              <div className="matte-panel-elevated overflow-hidden p-2 group relative h-[380px] sm:h-[420px] flex items-center justify-center">
-                {activeTab === '3d_car' ? (
-                  <div className="relative w-full h-full rounded-xl overflow-hidden bg-black/40">
-                    <img
-                      src="/f1/hero_car_3d.jpg"
-                      alt="2026 Formula 1 3D Car Render"
-                      className="w-full h-full object-cover object-center transition-transform duration-700 group-hover:scale-105"
-                    />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent pointer-events-none" />
-                    <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-white text-xs">
-                      <div>
-                        <div className="font-bold uppercase tracking-wider text-[11px] text-slate-300">2026 Aerodynamic Model</div>
-                        <div className="font-mono text-[10px] text-red-400">Ground Effect & DRS Simulation Active</div>
-                      </div>
-                      <span className="px-2 py-1 rounded bg-white/20 backdrop-blur-md font-mono text-[10px]">
-                        HD Studio
-                      </span>
-                    </div>
+              {/* 3D Wind Tunnel Interactive Canvas */}
+              <div className="matte-panel-elevated overflow-hidden p-2 group relative h-[380px] sm:h-[420px] flex items-center justify-center backdrop-blur-xl border border-slate-300/60 dark:border-white/15">
+                <div className="w-full h-full relative rounded-xl overflow-hidden bg-slate-950/40">
+                  <F1Aerodynamics3D theme={theme} accentColor="#E10600" />
+                  <div className="absolute bottom-3 left-3 text-[10px] font-mono text-slate-300 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded border border-white/10">
+                    Interactive 3D · Drag to rotate streamlines
                   </div>
-                ) : (
-                  <div className="w-full h-full relative rounded-xl overflow-hidden bg-slate-900/40">
-                    <F1Aerodynamics3D theme={theme} accentColor="#E10600" />
-                    <div className="absolute bottom-3 left-3 text-[10px] font-mono text-slate-400 bg-black/50 backdrop-blur-md px-2.5 py-1 rounded">
-                      Drag to orbit wind tunnel streamlines
-                    </div>
-                  </div>
-                )}
+                </div>
               </div>
             </div>
 
@@ -163,22 +131,68 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
         </div>
       </section>
 
-      {/* ─── 3D CIRCUIT HOLOGRAPHIC SHOWCASE ─── */}
-      <section className="py-16 border-y border-slate-200 dark:border-white/10 bg-slate-50/50 dark:bg-[#0A0C13]">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      {/* ─── 3D CIRCUIT HOLOGRAPHIC SHOWCASE (3D CIRCUIT BACKGROUND) ─── */}
+      <section className="py-24 border-y border-slate-200 dark:border-white/10 relative overflow-hidden">
+        {/* Full-bleed Interactive 3D Hologram Circuit Background */}
+        <Parallax3DBackground
+          src="/f1/circuit_hologram_3d.jpg"
+          alt="3D Hologram Circuit Telemetry Background"
+          intensity={0.95}
+          gradientPlacement="circuit"
+          spotlightColor="rgba(0, 240, 255, 0.22)"
+          showDepthGrid={true}
+        />
+
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
           <div className="grid grid-cols-1 lg:grid-cols-12 gap-10 items-center">
-            {/* Hologram Image */}
-            <div className="lg:col-span-7 matte-panel overflow-hidden p-3 group">
-              <div className="relative rounded-xl overflow-hidden aspect-video bg-black">
+            {/* Hologram Card with Telemetry Beacons & 3D Photo Switcher */}
+            <div className="lg:col-span-7 matte-panel overflow-hidden p-3 group backdrop-blur-xl border border-slate-300/60 dark:border-white/15 card-3d">
+              <div className="relative rounded-xl overflow-hidden aspect-video bg-black/80">
                 <img
-                  src="/f1/circuit_hologram_3d.jpg"
-                  alt="3D Holographic Circuit Telemetry"
-                  className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                  src={showcasePhoto === 'hologram' ? '/f1/circuit_hologram_3d.jpg' : '/f1/hero_car_3d.jpg'}
+                  alt={showcasePhoto === 'hologram' ? '3D Holographic Circuit Telemetry' : '3D Formula 1 Aerodynamic Render'}
+                  className="w-full h-full object-cover transition-all duration-700 group-hover:scale-105"
                 />
-                <div className="absolute inset-0 bg-gradient-to-tr from-black/70 via-transparent to-black/30 pointer-events-none" />
-                <div className="absolute top-4 left-4 flex items-center gap-2">
-                  <span className="px-2.5 py-1 rounded-md bg-red-600/90 text-white font-black text-[10px] tracking-widest uppercase font-mono">
-                    HOLOGRAPHIC SECTOR TELEMETRY
+                <div className="absolute inset-0 bg-gradient-to-tr from-black/80 via-transparent to-black/30 pointer-events-none" />
+                
+                {/* Header Overlay with Photo Switcher */}
+                <div className="absolute top-4 left-4 right-4 flex items-center justify-between">
+                  <span className="px-2.5 py-1 rounded-md bg-red-600/90 text-white font-black text-[10px] tracking-widest uppercase font-mono shadow-md">
+                    {showcasePhoto === 'hologram' ? 'MISSION CONTROL · 3D HOLOGRAPHIC TELEMETRY' : 'STUDIO RENDER · 3D AERODYNAMIC CHASSIS'}
+                  </span>
+                  
+                  <div className="flex items-center gap-1 bg-black/70 backdrop-blur-md p-1 rounded-lg border border-white/20">
+                    <button
+                      type="button"
+                      onClick={() => setShowcasePhoto('hologram')}
+                      className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-all ${
+                        showcasePhoto === 'hologram'
+                          ? 'bg-[#E10600] text-white shadow'
+                          : 'text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      3D Track
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setShowcasePhoto('car')}
+                      className={`px-2.5 py-1 rounded text-[10px] font-mono font-bold transition-all ${
+                        showcasePhoto === 'car'
+                          ? 'bg-[#E10600] text-white shadow'
+                          : 'text-slate-300 hover:text-white'
+                      }`}
+                    >
+                      3D Car
+                    </button>
+                  </div>
+                </div>
+
+                <div className="absolute bottom-4 left-4 right-4 flex items-center justify-between text-xs text-white">
+                  <div className="font-mono text-[11px] text-slate-300">
+                    {showcasePhoto === 'hologram' ? 'Circuit Elevation & Downforce Modeling' : 'Ground Effect Venturi & Rear Wing Aero'}
+                  </div>
+                  <span className="px-2.5 py-1 rounded bg-black/60 backdrop-blur-md border border-white/20 text-[10px] font-mono text-cyan-400">
+                    Interactive 3D Asset
                   </span>
                 </div>
               </div>
@@ -193,12 +207,12 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
               <h2 className="text-3xl sm:text-4xl font-extrabold uppercase tracking-tight text-slate-900 dark:text-white font-['Outfit']">
                 CIRCUIT DYNAMICS & AERODYNAMIC DEMAND
               </h2>
-              <p className="text-sm sm:text-base text-slate-600 dark:text-slate-300 leading-relaxed">
+              <p className="text-sm sm:text-base text-slate-700 dark:text-slate-300 leading-relaxed">
                 Every circuit on the calendar tests different performance dimensions. From Monza&apos;s low-drag high-speed straights to Monaco&apos;s maximum downforce street chicanes, APEX models each track&apos;s unique overtaking delta and tire degradation profile.
               </p>
 
               <div className="space-y-3 pt-2">
-                <div className="p-3.5 rounded-xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.08] flex items-center gap-3">
+                <div className="p-3.5 rounded-xl bg-white/80 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.1] backdrop-blur-md flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-red-500/10 flex items-center justify-center text-[#E10600]">
                     <Gauge className="w-4 h-4" />
                   </div>
@@ -208,7 +222,7 @@ export const LandingPage: React.FC<LandingPageProps> = ({ onEnterApp }) => {
                   </div>
                 </div>
 
-                <div className="p-3.5 rounded-xl bg-white dark:bg-white/[0.03] border border-slate-200 dark:border-white/[0.08] flex items-center gap-3">
+                <div className="p-3.5 rounded-xl bg-white/80 dark:bg-white/[0.04] border border-slate-200 dark:border-white/[0.1] backdrop-blur-md flex items-center gap-3">
                   <div className="w-8 h-8 rounded-lg bg-cyan-500/10 flex items-center justify-center text-cyan-600 dark:text-cyan-400">
                     <CloudRain className="w-4 h-4" />
                   </div>
