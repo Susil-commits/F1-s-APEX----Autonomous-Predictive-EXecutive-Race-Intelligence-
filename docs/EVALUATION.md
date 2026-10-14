@@ -4,24 +4,50 @@ Every metric documented in APEX is reproducible on demand using dedicated evalua
 
 ---
 
-## 1. Executive Metric Summary & Baseline Comparison (2024 Temporal Holdout)
+## 1. Executive Metric Summary & Baseline Comparison
 
-Evaluating complex ML models without baseline context obscures whether performance is genuinely impressive. In Formula 1 finishing position prediction, a model must decisively beat simple heuristics (predicting the population mean or carrying forward last season's finishing position).
+### Training Scheme
+
+| Phase | Seasons | Rows | Purpose |
+|---|---|---|---|
+| Selection training | 2022 | 440 | Fit each candidate architecture |
+| Selection validation | 2023 | 440 | Pick best architecture (no 2024 data touched) |
+| Refit | 2022 + 2023 | 880 | Refit winner with more data |
+| Calibration fold | last 20% of refit set | 176 | Conformal q̂ calibration |
+| **Final holdout** | **2024** | **479 driver entries** | **Single evaluation pass — never used in selection** |
 
 ### Baseline vs. Candidate Benchmark
 
-| Model / Benchmark Strategy | Holdout $R^2$ | Holdout MAE | Pearson $r$ | Spearman $\rho$ | Relative MAE Reduction | Status |
-|---|---|---|---|---|---|---|
-| **Naive Mean Predictor** ($\bar{y} = \text{P}7.2$) | 0.000 | 4.12 pos | 0.000 | 0.000 | Baseline (0.0%) | Heuristic |
-| **Last-Season Finish (Carry-Forward)** | 0.089 | 3.46 pos | 0.298 | 0.284 | 16.0% reduction | Heuristic |
-| **Scikit-Learn Gradient Boosting** (`GBR`) | 0.670 | 2.38 pos | 0.819 | 0.806 | 42.2% reduction | Candidate |
-| **Extreme Gradient Boosting** (`XGBoost`) | 0.670 | 2.36 pos | 0.820 | 0.809 | 42.7% reduction | Candidate |
-| **Categorical Gradient Boosting** (`CatBoost`) | **0.686** | **2.38 pos** | **0.830** | **0.818** | **42.2% reduction** | **WINNER ✓** |
+Selection metrics (2023 validation, model trained on 2022 only):
+
+| Model / Benchmark Strategy | Selection $R^2$ (2023) | Selection MAE | Relative MAE Reduction | Status |
+|---|---|---|---|---|
+| **Naive Mean Predictor** ($\bar{y}$ = P10.5) | — | 4.99 pos | Baseline (0.0%) | Heuristic |
+| **Scikit-Learn Gradient Boosting** (`GBR`) | 0.568 | 2.711 pos | 45.7% | Candidate |
+| **Extreme Gradient Boosting** (`XGBoost`) | 0.579 | 2.708 pos | 45.7% | Candidate |
+| **Categorical Gradient Boosting** (`CatBoost`) | **0.597** | **2.691 pos** | **46.1%** | **WINNER ✓** |
+
+Final evaluation on 2024 holdout (winner refitted on 2022+2023):
+
+| Metric | Value |
+|---|---|
+| Holdout season | 2024 |
+| Holdout N | **479 driver-race entries** |
+| Holdout MAE | **2.399 positions** |
+| Holdout $R^2$ | **0.689** |
+| Pearson $r$ | 0.831 |
+| Spearman $\rho$ | 0.821 |
+| Naive baseline MAE | 4.991 |
+| **MAE reduction vs. naive** | **51.9%** |
+| Conformal q̂ | ±5.673 positions |
+| Conformal coverage (90% target) | **94.4%** |
 
 **Key Takeaways**:
-- CatBoost explains **68.6% of finish position variance** ($R^2 = 0.686$) on real held-out 2024 Grand Prix races ($N = 479$).
-- Cuts mean absolute error from **4.12 positions down to 2.38 positions** (a **42.2% error reduction** over the naive baseline).
-- Employs an expanded 13-feature representation incorporating qualifying sector time splits (S1/S2/S3) and dynamic weather transition flags.
+- CatBoost explains **68.9% of finish position variance** ($R^2 = 0.689$) on real held-out 2024 Grand Prix races ($N = 479$ driver entries).
+- Cuts mean absolute error from **4.99 positions down to 2.40 positions** (a **51.9% error reduction** over the naive baseline).
+- Uses a 10-feature representation: grid position, qualifying delta, driver rolling average, circuit experience, constructor points share, circuit downforce/power/type, rain probability, and weather transition flag.
+
+> **Note on sector features**: Sector-time delta features (S1/S2/S3) are absent from `real_prerace_dataset.csv`. Rather than imputing them from a quali-delta heuristic (which added negligible signal: +0.008 MAE), they were dropped in v1.0.1. The 10-feature model is the shipped baseline.
 
 ### Benchmark Reproduction
 ```bash
@@ -52,19 +78,15 @@ Aggregating metrics across all tracks conceals critical variance in how physics 
 APEX provides dual uncertainty modeling: distribution-free split conformal prediction bands alongside state-dependent asymmetric quantile regression.
 
 ### Asymmetric Uncertainty: Why Quantiles Matter
-A symmetric conformal interval (e.g. $\pm 6.79$ positions, total width 13.58 positions) treats uncertainty symmetrically. However:
+A symmetric conformal interval (e.g. $\pm 5.67$ positions, total width ~11.35 positions) treats uncertainty symmetrically. However:
 - **Pole-Sitters (P1–P3)** have zero upside (cannot finish better than P1) but substantial downside risk (first-corner collisions, mechanical DNF, pit-stop delays).
 - **Midfield Drivers (P8–P12)** face traffic battles, alternate tire strategies, and DRS trains.
 - **Backmarkers (P18–P20)** cannot drop below P20, but have asymmetric upside if multi-car collisions occur ahead.
 
-| Model Strategy | Target Coverage | Empirical Coverage | Mean Interval Width | Pole-Sitter Width | Midfield Width |
-|---|---|---|---|---|---|
-| **Symmetric Split Conformal** | 90.0% | **96.0%** | **13.59 positions** | 13.59 pos (Fixed) | 13.59 pos (Fixed) |
-| **Quantile Regression (P10/P50/P90)** | 80.0% | **69.7%** | **7.58 positions** | **5.76 positions** | **8.29 positions** |
-
-**Key Takeaways**:
-- Quantile regression cuts average interval width by **44.2%** (from 13.59 positions down to 7.58 positions).
-- Pole-sitters receive a tight, realistic expected window (**5.76 positions**), accurately capturing the front-row asymmetric downside.
+| Model Strategy | Target Coverage | Empirical Coverage | Mean Interval Width |
+|---|---|---|---|
+| **Symmetric Split Conformal** | 90.0% | **94.4%** | **11.35 positions** |
+| **Quantile Regression (P10/P50/P90)** | 80.0% | **72.9%** | **8.01 positions** |
 
 ---
 
@@ -74,17 +96,18 @@ A symmetric conformal interval (e.g. $\pm 6.79$ positions, total width 13.58 pos
    `GET /metrics` exposes real-time telemetry including:
    - `apex_predictions_total`: Request volume counter partitioned by `driver_id` and `status`.
    - `apex_prediction_latency_seconds`: Micro-benchmark histogram with sub-second buckets tracking inference latency.
-2. **Pre-Race Weekend Drift Monitoring**:
-   `POST /api/core/drift/check` compares incoming race weekend starting priors against historical training baseline statistics ($\mu \pm \sigma$ for `grid_position`, `quali_delta_s`, and `rain_prob`) to flag anomalous distribution shifts before race start.
+2. **Pre-Race Weekend Drift Monitoring** (two methods):
+   - **`POST /api/core/drift/check`** — baseline-statistics z-score drift: compares incoming race weekend priors against training baseline $\mu \pm \sigma$ for `grid_position`, `quali_delta_s`, and `rain_prob`.
+   - **`PsiDriftMonitor`** — Population Stability Index (PSI) drift: bins training distribution into equal-frequency buckets and measures $\Sigma (P_{actual} - P_{expected}) \cdot \ln(P_{actual}/P_{expected})$. PSI < 0.10 = stable, ≥ 0.20 = major drift.
 3. **Load Testing Throughput**:
-   Benchmarked via Locust at 10, 50, and 100 concurrent users with **0.00% error rate** and peak throughput of **409.6 req/s** (documented in [`LOAD_TEST_RESULTS.md`](file:///c:/Users/nayak/OneDrive/Desktop/Projects/AIML/APEX/docs/LOAD_TEST_RESULTS.md)).
+   Benchmarked via Locust at 10, 50, and 100 concurrent users with **0.00% error rate** and peak aggregated throughput of **~388 req/s** at 100 users (documented in [`LOAD_TEST_RESULTS.md`](LOAD_TEST_RESULTS.md)).
 
 ---
 
 ## 5. Automated Verification
 
-Run all unit tests, API tests, and pipeline invariants:
+Run all unit tests, API tests, PSI drift tests, and pipeline invariants:
 ```bash
 uv run pytest tests/ -v
 ```
-All 21 tests pass with zero external service dependencies.
+**34 tests** collected and passing with zero external service dependencies (`pytest --collect-only`).

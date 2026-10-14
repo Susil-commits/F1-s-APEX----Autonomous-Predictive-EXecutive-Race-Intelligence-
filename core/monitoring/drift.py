@@ -1,7 +1,21 @@
-"""Lightweight Pre-Race Data Drift Monitoring for APEX Core.
+"""Pre-Race Data Drift Monitoring for APEX Core.
 
-Compares incoming race weekend distributions of grid_position, quali_delta_s,
-and rain_prob against the historical training baseline statistics.
+Two complementary monitors are shipped:
+
+1. **WeekendDriftMonitor** (baseline-statistics drift):
+   Compares the mean of incoming race-weekend data against the training-set
+   mean using a z-score (standardised mean difference).  Fast and interpretable;
+   requires only the mean and std stored at training time.
+
+2. **PsiDriftMonitor** (Population Stability Index):
+   Computes PSI = Σ (P_actual − P_expected) · ln(P_actual / P_expected) over
+   equal-frequency bins built from the training distribution.  PSI is the
+   industry-standard scalar for covariate shift.
+
+   Thresholds (common convention):
+     PSI < 0.10  → stable (no significant drift)
+     0.10 ≤ PSI < 0.20 → minor shift (monitor closely)
+     PSI ≥ 0.20  → major drift (consider retraining)
 """
 from __future__ import annotations
 
@@ -159,5 +173,137 @@ class WeekendDriftMonitor:
             logger.warning(f"[DriftMonitor] {report['recommendation']}")
         else:
             logger.info("[DriftMonitor] Weekend distributions verified healthy.")
+
+        return report
+
+
+class PsiDriftMonitor:
+    """Population Stability Index (PSI) drift detector.
+
+    PSI measures how much a new distribution has shifted relative to a reference
+    (training) distribution by binning both into the same equal-frequency buckets
+    and comparing proportions.
+
+    Standard thresholds:
+      PSI < 0.10  → no significant drift
+      0.10 ≤ PSI < 0.20 → minor shift — investigate
+      PSI ≥ 0.20  → major drift — trigger retraining
+
+    Usage::
+        monitor = PsiDriftMonitor()
+        monitor.fit(training_df[["grid_position", "quali_delta_s", "rain_prob"]])
+        result = monitor.compute(incoming_df)
+    """
+
+    PSI_STABLE = 0.10
+    PSI_WARN = 0.20
+    DEFAULT_N_BINS = 10
+
+    def __init__(self, n_bins: int = DEFAULT_N_BINS):
+        self.n_bins = n_bins
+        self._bin_edges: Dict[str, np.ndarray] = {}
+        self._ref_proportions: Dict[str, np.ndarray] = {}
+        self._fitted = False
+
+    def fit(self, reference_df: Any, features: List[str] = TARGET_FEATURES) -> "PsiDriftMonitor":
+        """Compute equal-frequency bin edges and reference proportions from training data."""
+        if isinstance(reference_df, list):
+            reference_df = pd.DataFrame(reference_df)
+
+        for feat in features:
+            if feat not in reference_df.columns:
+                logger.warning(f"[PSI] Feature '{feat}' not found in reference data — skipping.")
+                continue
+            vals = WeekendDriftMonitor._clean_numeric_column(reference_df[feat])
+            if len(vals) < self.n_bins * 2:
+                logger.warning(f"[PSI] Not enough reference samples for '{feat}' — need ≥ {self.n_bins * 2}.")
+                continue
+            # Equal-frequency quantile edges
+            quantiles = np.linspace(0.0, 100.0, self.n_bins + 1)
+            edges = np.unique(np.percentile(vals, quantiles))
+            if len(edges) < 3:
+                # Fall back to equal-width if all values are the same
+                edges = np.linspace(vals.min() - 1e-9, vals.max() + 1e-9, self.n_bins + 1)
+            edges[0] = -np.inf
+            edges[-1] = np.inf
+            counts, _ = np.histogram(vals, bins=edges)
+            proportions = counts / counts.sum()
+            # Replace zeros to avoid division-by-zero in PSI log term
+            proportions = np.where(proportions == 0, 1e-4, proportions)
+            self._bin_edges[feat] = edges
+            self._ref_proportions[feat] = proportions
+
+        self._fitted = True
+        return self
+
+    def compute(
+        self,
+        incoming: Any,
+        features: List[str] = TARGET_FEATURES,
+    ) -> Dict[str, Any]:
+        """Compute PSI for each feature between training reference and incoming data.
+
+        Returns a dict with per-feature PSI values and an overall status.
+        """
+        if not self._fitted:
+            raise RuntimeError("PsiDriftMonitor must be fitted before calling compute().")
+
+        if isinstance(incoming, list):
+            incoming = pd.DataFrame(incoming)
+
+        results: Dict[str, Any] = {}
+        for feat in features:
+            if feat not in self._bin_edges:
+                results[feat] = {"error": "Feature not fitted (missing from reference or insufficient data)"}
+                continue
+            if feat not in incoming.columns:
+                results[feat] = {"error": "Feature missing from incoming data"}
+                continue
+
+            vals = WeekendDriftMonitor._clean_numeric_column(incoming[feat])
+            if len(vals) == 0:
+                results[feat] = {"error": "No valid numeric records in incoming data"}
+                continue
+
+            counts, _ = np.histogram(vals, bins=self._bin_edges[feat])
+            proportions = counts / counts.sum()
+            proportions = np.where(proportions == 0, 1e-4, proportions)
+
+            ref_p = self._ref_proportions[feat]
+            # PSI = Σ (actual - expected) * ln(actual / expected)
+            psi = float(np.sum((proportions - ref_p) * np.log(proportions / ref_p)))
+
+            if psi < self.PSI_STABLE:
+                status = "STABLE"
+            elif psi < self.PSI_WARN:
+                status = "MINOR_SHIFT"
+            else:
+                status = "MAJOR_DRIFT"
+
+            results[feat] = {
+                "psi": round(psi, 4),
+                "status": status,
+                "n_incoming": len(vals),
+                "n_bins": len(ref_p),
+            }
+
+        drifted = [f for f, v in results.items() if isinstance(v, dict) and v.get("status") == "MAJOR_DRIFT"]
+        overall = "MAJOR_DRIFT" if drifted else (
+            "MINOR_SHIFT" if any(
+                isinstance(v, dict) and v.get("status") == "MINOR_SHIFT" for v in results.values()
+            ) else "STABLE"
+        )
+
+        report = {
+            "overall_status": overall,
+            "drifted_features": drifted,
+            "features": results,
+        }
+        if overall == "MAJOR_DRIFT":
+            logger.warning(f"[PSI] Major drift detected in: {drifted}. Retraining recommended.")
+        elif overall == "MINOR_SHIFT":
+            logger.info(f"[PSI] Minor shift detected — monitor closely.")
+        else:
+            logger.info("[PSI] All features stable.")
 
         return report

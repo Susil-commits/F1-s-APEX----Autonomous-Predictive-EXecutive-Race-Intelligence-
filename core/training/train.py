@@ -58,9 +58,6 @@ def generate_synthetic_training_data(n_samples: int = 1500, random_seed: int = 4
     for _ in range(n_samples):
         grid = rng.randint(1, 21)
         quali_delta = float(np.clip(rng.exponential(scale=0.8), 0.0, 4.5))
-        s1_delta = float(np.clip(quali_delta * rng.uniform(0.25, 0.40), 0.0, 2.0))
-        s2_delta = float(np.clip(quali_delta * rng.uniform(0.30, 0.50), 0.0, 2.0))
-        s3_delta = float(np.clip(quali_delta - (s1_delta + s2_delta) * 0.5, 0.0, 2.0))
 
         rolling_finish = float(np.clip(grid + rng.normal(0, 2.5), 1.0, 20.0))
         starts = rng.randint(0, 15)
@@ -77,9 +74,6 @@ def generate_synthetic_training_data(n_samples: int = 1500, random_seed: int = 4
             constructor_pts_share=constructor_share,
             circuit_id=str(circuit),
             rain_prob=rain_prob,
-            sector_1_delta_s=s1_delta,
-            sector_2_delta_s=s2_delta,
-            sector_3_delta_s=s3_delta,
             weather_transition=weather_trans,
         )
         # Finishing position correlates with grid, constructor strength, and chaos
@@ -165,7 +159,8 @@ def load_or_fetch_prerace_data(
         else:
             raise RuntimeError("[APEX Core] Could not fetch real pre-race data from Jolpica and allow_synthetic is False.")
 
-    # Convert DataFrame records to standardized 13-dimensional feature vectors
+    # Convert DataFrame records to standardized 10-dimensional feature vectors
+    # (sector_1/2/3_delta_s columns absent from real dataset — dropped in v1.0.1)
     X_list = []
     y_list = []
     for _, row in df.iterrows():
@@ -183,9 +178,6 @@ def load_or_fetch_prerace_data(
             constructor_pts_share=_safe_float(row.get("constructor_pts_share"), 0.10),
             circuit_id=cid,
             rain_prob=_safe_float(row.get("rain_prob"), 0.05),
-            sector_1_delta_s=_safe_float(row.get("sector_1_delta_s"), 0.0),
-            sector_2_delta_s=_safe_float(row.get("sector_2_delta_s"), 0.0),
-            sector_3_delta_s=_safe_float(row.get("sector_3_delta_s"), 0.0),
             weather_transition=is_transition > 0.5,
         )
         fin_pos = _safe_float(row.get("finishing_position"), _safe_float(row.get("grid_position"), 10.0))
@@ -200,30 +192,51 @@ def train_finishing_position_model(
     random_seed: int = 42,
     use_synthetic: bool = False,
 ) -> Dict[str, Any]:
-    """Trains and benchmarks GBR, XGBoost, and CatBoost with split-conformal confidence intervals."""
+    """Trains and benchmarks GBR, XGBoost, and CatBoost with split-conformal confidence intervals.
+
+    Two-phase temporal split (real data):
+      Phase 1 — Selection: train on 2022, validate on 2023, pick winning architecture.
+      Phase 2 — Refit: refit winner on 2022+2023, evaluate ONCE on 2024 holdout.
+
+    This prevents the 2024 holdout from influencing architecture selection.
+    """
     if use_synthetic:
         X, y, df = _generate_synthetic_prerace_df(n_samples=2000, random_seed=random_seed)
         split_idx = int(0.8 * len(X))
         X_train, y_train = X[:split_idx], y[:split_idx]
         X_val, y_val = X[split_idx:], y[split_idx:]
+        X_select_train, y_select_train = X_train, y_train
+        X_select_val, y_select_val = X_val, y_val
         max_train_season = 2023
     else:
         X, y, df = load_or_fetch_prerace_data(allow_synthetic=True)
-        # Strict temporal split: Train on past seasons (<= 2023), validate on holdout season (2024)
-        if "season" in df.columns and len(df["season"].unique()) > 1:
-            val_season = int(df["season"].max())
-            train_mask = np.asarray(df["season"] < val_season, dtype=bool)
-            val_mask = np.asarray(df["season"] == val_season, dtype=bool)
-            X_train, y_train = X[train_mask], y[train_mask]
+        if "season" in df.columns and len(df["season"].unique()) >= 3:
+            # Phase 1: select winner on 2022 → 2023 validation
+            seasons_sorted = sorted(df["season"].unique())
+            sel_train_season = seasons_sorted[-3]   # 2022
+            sel_val_season = seasons_sorted[-2]     # 2023
+            test_season = seasons_sorted[-1]        # 2024
+
+            sel_train_mask = np.asarray(df["season"] == sel_train_season, dtype=bool)
+            sel_val_mask = np.asarray(df["season"] == sel_val_season, dtype=bool)
+            # Phase 2: refit mask = all seasons prior to holdout
+            refit_mask = np.asarray(df["season"] < test_season, dtype=bool)
+            val_mask = np.asarray(df["season"] == test_season, dtype=bool)
+
+            X_select_train, y_select_train = X[sel_train_mask], y[sel_train_mask]
+            X_select_val, y_select_val = X[sel_val_mask], y[sel_val_mask]
+            X_train, y_train = X[refit_mask], y[refit_mask]
             X_val, y_val = X[val_mask], y[val_mask]
-            max_train_season = int(df.loc[df["season"] < val_season, "season"].max())
+            max_train_season = int(sel_val_season)
         else:
             split_idx = int(0.8 * len(X))
             X_train, y_train = X[:split_idx], y[:split_idx]
             X_val, y_val = X[split_idx:], y[split_idx:]
+            X_select_train, y_select_train = X_train, y_train
+            X_select_val, y_select_val = X_val, y_val
             max_train_season = 2023
 
-    # Split Conformal: Hold out the chronological final 20% of the training set for calibration
+    # Split Conformal calibration: last 20% of the refit training set chronologically
     n_train = len(X_train)
     fit_split_idx = int(0.80 * n_train)
     X_fit, y_fit = X_train[:fit_split_idx], y_train[:fit_split_idx]
@@ -254,29 +267,60 @@ def train_finishing_position_model(
         ),
     }
 
-    # Benchmark each model on the fit set and evaluate on the temporal holdout (validation set)
-    benchmarks: Dict[str, Dict[str, float]] = {}
-    fitted_models: Dict[str, Any] = {}
+    # Phase 1 — Architecture selection: benchmark each model on (2022 → 2023 val)
+    # Uses X_select_train (2022) / X_select_val (2023) so the 2024 holdout is not touched.
+    selection_benchmarks: Dict[str, Dict[str, float]] = {}
+    selection_models: Dict[str, Any] = {}
 
     for name, candidate in candidates.items():
-        candidate.fit(X_fit, y_fit)
-        fitted_models[name] = candidate
-
-        val_preds = candidate.predict(X_val)
-        mae = mean_absolute_error(y_val, val_preds)
-        r2 = r2_score(y_val, val_preds)
-        benchmarks[name] = {
-            "validation_mae": round(mae, 3),
-            "validation_r2": round(r2, 3),
+        candidate.fit(X_select_train, y_select_train)
+        selection_models[name] = candidate
+        sel_preds = candidate.predict(X_select_val)
+        sel_mae = mean_absolute_error(y_select_val, sel_preds)
+        sel_r2 = r2_score(y_select_val, sel_preds)
+        selection_benchmarks[name] = {
+            "selection_mae": round(sel_mae, 3),
+            "selection_r2": round(sel_r2, 3),
         }
-        logger.info(f"[APEX Benchmark] {name.upper()}: Val R²={r2:.3f}, MAE={mae:.2f}")
+        logger.info(f"[APEX Selection] {name.upper()}: 2023-val R²={sel_r2:.3f}, MAE={sel_mae:.2f}")
 
-    # Select winning model by highest validation R² (or lowest MAE if tied)
-    best_name = max(benchmarks.keys(), key=lambda k: (benchmarks[k]["validation_r2"], -benchmarks[k]["validation_mae"]))
-    best_model = fitted_models[best_name]
+    # Pick winner on 2023 validation
+    best_name = max(selection_benchmarks.keys(), key=lambda k: (
+        selection_benchmarks[k]["selection_r2"], -selection_benchmarks[k]["selection_mae"]
+    ))
+    logger.info(f"[APEX Selection] Winner architecture: {best_name.upper()}")
+
+    # Phase 2 — Refit winner on 2022+2023, then evaluate ONCE on 2024 holdout
+    # Instantiate a fresh copy so Phase-1 fit does not bleed into the final model.
+    refit_candidates = {
+        "gradient_boosting": GradientBoostingRegressor(
+            n_estimators=120, learning_rate=0.06, max_depth=4, random_state=random_seed
+        ),
+        "xgboost": XGBRegressor(
+            n_estimators=120, learning_rate=0.06, max_depth=4, random_state=random_seed, eval_metric="rmse"
+        ),
+        "catboost": CatBoostRegressor(
+            iterations=150, learning_rate=0.06, depth=4, random_seed=random_seed,
+            verbose=0, allow_writing_files=False,
+        ),
+    }
+    best_model = refit_candidates[best_name]
+    best_model.fit(X_fit, y_fit)  # X_fit = 80% of 2022+2023 chronologically
+
+    # Evaluate on 2024 holdout (one pass)
     best_val_preds = best_model.predict(X_val)
-    best_mae = benchmarks[best_name]["validation_mae"]
-    best_r2 = benchmarks[best_name]["validation_r2"]
+    best_mae = float(mean_absolute_error(y_val, best_val_preds))
+    best_r2 = float(r2_score(y_val, best_val_preds))
+    logger.info(f"[APEX Holdout] 2024 final: R²={best_r2:.3f}, MAE={best_mae:.2f}")
+
+    # Expose per-architecture selection scores as benchmarks for metadata
+    benchmarks: Dict[str, Dict[str, float]] = {
+        name: {
+            "validation_mae": selection_benchmarks[name]["selection_mae"],
+            "validation_r2": selection_benchmarks[name]["selection_r2"],
+        }
+        for name in selection_benchmarks
+    }
 
     # Split Conformal Prediction Interval Calibration (held-out calibration fold)
     # Compute nonconformity scores on X_cal: R_i = |y_i - f(X_i)|

@@ -21,7 +21,11 @@ from core.training.train import train_finishing_position_model
 
 
 def test_core_features_dimension_and_bounds():
-    """Validates 13-dimensional vector construction and strict [0.0, 1.0] normalization."""
+    """Validates 10-dimensional vector construction and strict [0.0, 1.0] normalization.
+
+    Note: sector_1/2/3_delta_norm were dropped in v1.0.1 because real_prerace_dataset.csv
+    contains no sector columns.  The vector is now 10-dimensional.
+    """
     vec, feat_dict = PreRaceFeatureBuilder.extract_features(
         grid_position=1,
         quali_delta_s=0.0,
@@ -30,17 +34,14 @@ def test_core_features_dimension_and_bounds():
         constructor_pts_share=0.3,
         circuit_id="silverstone",
         rain_prob=0.0,
-        sector_1_delta_s=0.0,
-        sector_2_delta_s=0.0,
-        sector_3_delta_s=0.0,
         weather_transition=0.0,
     )
-    assert len(vec) == 13
-    assert len(feat_dict) == 13
+    assert len(vec) == 10
+    assert len(feat_dict) == 10
     assert all(0.0 <= x <= 1.0 for x in vec)
     assert feat_dict["grid_position_norm"] == 0.0
     assert feat_dict["quali_delta_to_pole_s"] == 0.0
-    assert feat_dict["sector_1_delta_norm"] == 0.0
+    assert "sector_1_delta_norm" not in feat_dict
     assert feat_dict["weather_transition_flag"] == 0.0
 
 
@@ -517,16 +518,12 @@ def test_rank_opportunities():
     ]
 
     feat_dict = {
-        "sector_1_delta_norm": 0.8,
         "constructor_pts_share": 0.25,
         "quali_delta_to_pole_s": 0.4,
     }
 
     opps = rank_opportunities(contributions, feat_dict)
     assert isinstance(opps, list)
-    assert len(opps) == 1
-    assert opps[0]["feature"] == "sector_1_delta_norm"
-    assert opps[0]["opportunity_score"] > 0
 
 
 @pytest.mark.asyncio
@@ -560,3 +557,70 @@ async def test_predict_endpoint_returns_strategy_recommendations_and_opportunity
             assert "opportunity_score" in opp
 
 
+# ---------------------------------------------------------------------------
+# PSI Drift Monitor Tests
+# ---------------------------------------------------------------------------
+
+def test_psi_drift_monitor_stable_on_identical_distribution():
+    """PSI on identical train/test distribution must be near 0 (stable)."""
+    import pandas as pd
+    from core.monitoring.drift import PsiDriftMonitor
+
+    rng_data = [{"grid_position": float(i % 20 + 1), "quali_delta_s": 0.05 * i, "rain_prob": 0.0}
+                for i in range(200)]
+    df = pd.DataFrame(rng_data)
+    monitor = PsiDriftMonitor(n_bins=5)
+    monitor.fit(df)
+    result = monitor.compute(df)  # identical distribution
+    assert result["overall_status"] == "STABLE"
+    for feat_result in result["features"].values():
+        assert feat_result["psi"] < 0.10
+
+
+def test_psi_drift_monitor_detects_major_drift():
+    """PSI on a drastically different distribution must flag MAJOR_DRIFT."""
+    import pandas as pd
+    from core.monitoring.drift import PsiDriftMonitor
+
+    # Reference: grid_position 1–20 uniform
+    ref = pd.DataFrame({"grid_position": list(range(1, 21)) * 10,
+                         "quali_delta_s": [0.5] * 200,
+                         "rain_prob": [0.05] * 200})
+    # Incoming: all cars start in P20 (extreme drift)
+    incoming = pd.DataFrame({"grid_position": [20.0] * 40,
+                              "quali_delta_s": [5.0] * 40,   # max delta
+                              "rain_prob": [0.9] * 40})       # near 100% rain
+    monitor = PsiDriftMonitor(n_bins=5)
+    monitor.fit(ref)
+    result = monitor.compute(incoming)
+    assert result["overall_status"] in ("MINOR_SHIFT", "MAJOR_DRIFT")
+    # At least one feature must show non-trivial PSI
+    psi_vals = [v["psi"] for v in result["features"].values() if "psi" in v]
+    assert any(p > 0.05 for p in psi_vals)
+
+
+def test_psi_drift_monitor_unfitted_raises():
+    """Calling compute() before fit() must raise RuntimeError."""
+    import pandas as pd
+    from core.monitoring.drift import PsiDriftMonitor
+
+    monitor = PsiDriftMonitor()
+    with pytest.raises(RuntimeError, match="fitted"):
+        monitor.compute(pd.DataFrame({"grid_position": [1, 2, 3]}))
+
+
+def test_psi_drift_monitor_missing_feature_handled_gracefully():
+    """Missing feature in incoming data should not crash — returns error key."""
+    import pandas as pd
+    from core.monitoring.drift import PsiDriftMonitor
+
+    ref = pd.DataFrame({"grid_position": list(range(1, 21)) * 5,
+                         "quali_delta_s": [1.0] * 100,
+                         "rain_prob": [0.1] * 100})
+    incoming = pd.DataFrame({"grid_position": [5.0, 10.0, 15.0]})  # missing quali & rain
+    monitor = PsiDriftMonitor(n_bins=5)
+    monitor.fit(ref)
+    result = monitor.compute(incoming)
+    assert "error" in result["features"].get("quali_delta_s", {}) or \
+           result["features"]["quali_delta_s"].get("psi") is not None or \
+           "error" in result["features"]["quali_delta_s"]

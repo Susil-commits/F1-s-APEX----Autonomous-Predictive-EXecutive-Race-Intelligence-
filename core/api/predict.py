@@ -93,9 +93,6 @@ class PredictRequest(BaseModel):
     driver_id: str = Field(..., description="Driver 3-letter abbreviation (e.g. 'VER', 'HAM', 'NOR')")
     grid_position: Optional[int] = Field(None, ge=1, le=20, description="Override grid position")
     rain_probability: Optional[float] = Field(None, description="Override rain forecast (clamped to [0.0, 1.0])")
-    sector_1_delta_s: Optional[float] = Field(None, ge=0.0, le=10.0, description="Sector 1 delta to pole in seconds")
-    sector_2_delta_s: Optional[float] = Field(None, ge=0.0, le=10.0, description="Sector 2 delta to pole in seconds")
-    sector_3_delta_s: Optional[float] = Field(None, ge=0.0, le=10.0, description="Sector 3 delta to pole in seconds")
     weather_transition: Optional[bool] = Field(False, description="Forecasted mid-race dry-to-wet or wet-to-dry weather transition")
 
     @field_validator("rain_probability", mode="before")
@@ -165,14 +162,11 @@ async def compute_sensitivity(
     current_pred: float,
 ) -> list:
     """
-    Vary each adjustable feature (sector deltas, qualifying gap)
+    Vary each adjustable pre-race feature (e.g. qualifying pace delta to pole)
     by realistic increments and measure predicted position sensitivity.
     Executes all candidate perturbations in a single batched threadpool invocation to eliminate dispatch latency.
     """
     adjustable_features = {
-        "sector_1_delta_s": ([-0.3, -0.2, -0.1], "sector_1_delta_norm", 2.0),
-        "sector_2_delta_s": ([-0.3, -0.2, -0.1], "sector_2_delta_norm", 2.0),
-        "sector_3_delta_s": ([-0.3, -0.2, -0.1], "sector_3_delta_norm", 2.0),
         "quali_delta_to_pole_s": ([-0.5, -0.3, -0.15], "quali_delta_to_pole_s", 5.0),
     }
 
@@ -290,9 +284,6 @@ async def predict_finish(request: Request, req: PredictRequest):
     grid: int = req.grid_position if req.grid_position is not None else int(profile.get("default_grid", 10))
     rain: float = req.rain_probability if req.rain_probability is not None else 0.10
 
-    s1: float = req.sector_1_delta_s if req.sector_1_delta_s is not None else 0.0
-    s2: float = req.sector_2_delta_s if req.sector_2_delta_s is not None else 0.0
-    s3: float = req.sector_3_delta_s if req.sector_3_delta_s is not None else 0.0
     weather_trans: bool = req.weather_transition if req.weather_transition is not None else False
 
     rolling_avg: float = float(profile.get("rolling_avg", 10.0))
@@ -309,9 +300,6 @@ async def predict_finish(request: Request, req: PredictRequest):
         constructor_pts_share=pts_share,
         circuit_id=circuit_id,
         rain_prob=rain,
-        sector_1_delta_s=s1,
-        sector_2_delta_s=s2,
-        sector_3_delta_s=s3,
         weather_transition=weather_trans,
     )
 

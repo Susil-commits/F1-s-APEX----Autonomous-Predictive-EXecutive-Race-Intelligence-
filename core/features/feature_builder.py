@@ -9,6 +9,11 @@ Constructs the feature vector using ONLY information available prior to the race
 - Forecasted rain probability at race start
 
 Guarantees ZERO lookahead bias.
+
+Note: Sector-time delta features (sector_1/2/3_delta_norm) were removed in v1.0.1
+because real_prerace_dataset.csv contains no sector columns.  The heuristic
+estimate (proportional split of quali_delta) added negligible signal (+0.008 MAE)
+while misrepresenting data fidelity.  The 10-feature vector is the shipped model.
 """
 from __future__ import annotations
 
@@ -16,19 +21,16 @@ from typing import Any, Dict, List, Tuple
 import numpy as np
 
 PRE_RACE_FEATURE_NAMES: List[str] = [
-    "grid_position_norm",         # (grid - 1) / 19.0
-    "quali_delta_to_pole_s",      # min(delta_s, 5.0) / 5.0
-    "sector_1_delta_norm",        # min(s1_delta_s, 2.0) / 2.0
-    "sector_2_delta_norm",        # min(s2_delta_s, 2.0) / 2.0
-    "sector_3_delta_norm",        # min(s3_delta_s, 2.0) / 2.0
+    "grid_position_norm",          # (grid - 1) / 19.0
+    "quali_delta_to_pole_s",       # min(delta_s, 5.0) / 5.0
     "driver_rolling_finish_norm",  # (avg_finish_5_races - 1) / 19.0
-    "driver_circuit_experience",  # min(starts_at_track, 10) / 10.0
-    "constructor_pts_share",      # team_pts / total_team_pts
-    "circuit_downforce_index",    # 0.0 (low/Monza) to 1.0 (high/Monaco)
-    "circuit_power_sensitivity",  # 0.0 to 1.0
-    "circuit_is_street_track",    # 1.0 or 0.0
-    "race_rain_prob",             # 0.0 to 1.0
-    "weather_transition_flag",    # 1.0 (conditions shifted mid-race) or 0.0
+    "driver_circuit_experience",   # min(starts_at_track, 10) / 10.0
+    "constructor_pts_share",       # team_pts / total_team_pts
+    "circuit_downforce_index",     # 0.0 (low/Monza) to 1.0 (high/Monaco)
+    "circuit_power_sensitivity",   # 0.0 to 1.0
+    "circuit_is_street_track",     # 1.0 or 0.0
+    "race_rain_prob",              # 0.0 to 1.0
+    "weather_transition_flag",     # 1.0 (conditions shifted mid-race) or 0.0
 ]
 
 CIRCUIT_PROFILES: Dict[str, Dict[str, float]] = {
@@ -80,12 +82,14 @@ class PreRaceFeatureBuilder:
         constructor_pts_share: float = 0.15,
         circuit_id: str = "silverstone",
         rain_prob: float = 0.10,
-        sector_1_delta_s: float = 0.0,
-        sector_2_delta_s: float = 0.0,
-        sector_3_delta_s: float = 0.0,
         weather_transition: bool | float = 0.0,
     ) -> Tuple[np.ndarray, Dict[str, float]]:
-        """Constructs a normalized 13-dimensional vector from pre-race inputs."""
+        """Constructs a normalized 10-dimensional vector from pre-race inputs.
+
+        Sector-time delta arguments (sector_1/2/3_delta_s) were removed because
+        real_prerace_dataset.csv contains no sector columns.  Accepting them as
+        keyword arguments for a transitional period; they are silently ignored.
+        """
         profile = CIRCUIT_PROFILES.get(
             circuit_id.lower(),
             {"downforce": 0.60, "power": 0.70, "street": 0.0}
@@ -93,32 +97,6 @@ class PreRaceFeatureBuilder:
 
         grid_norm = np.clip((grid_position - 1.0) / 19.0, 0.0, 1.0)
         quali_delta_norm = np.clip(quali_delta_s / 5.0, 0.0, 1.0)
-
-        # Sector time deltas (seconds relative to pole lap sectors)
-        # If per-sector deltas are not supplied directly, estimate from aggregate quali_delta
-        # and circuit power/downforce profiles (e.g., sector 2 dominates high-downforce, sector 1/3 dominate power)
-        if sector_1_delta_s == 0.0 and sector_2_delta_s == 0.0 and sector_3_delta_s == 0.0 and quali_delta_s > 0.0:
-            if profile["downforce"] > 0.8:  # e.g., Monaco, Singapore, Hungaroring (heavy S2 twisty technical demand)
-                s1_val = quali_delta_s * 0.28
-                s2_val = quali_delta_s * 0.46
-                s3_val = quali_delta_s * 0.26
-            elif profile["power"] > 0.85:   # e.g., Monza, Spa, Vegas (heavy straight-line power demand in S1/S2)
-                s1_val = quali_delta_s * 0.38
-                s2_val = quali_delta_s * 0.38
-                s3_val = quali_delta_s * 0.24
-            else:
-                s1_val = quali_delta_s * 0.33
-                s2_val = quali_delta_s * 0.34
-                s3_val = quali_delta_s * 0.33
-        else:
-            s1_val = sector_1_delta_s
-            s2_val = sector_2_delta_s
-            s3_val = sector_3_delta_s
-
-        s1_norm = np.clip(s1_val / 2.0, 0.0, 1.0)
-        s2_norm = np.clip(s2_val / 2.0, 0.0, 1.0)
-        s3_norm = np.clip(s3_val / 2.0, 0.0, 1.0)
-
         rolling_finish_norm = np.clip((rolling_avg_finish - 1.0) / 19.0, 0.0, 1.0)
         exp_norm = np.clip(circuit_starts / 10.0, 0.0, 1.0)
         pts_share_norm = np.clip(constructor_pts_share, 0.0, 1.0)
@@ -131,9 +109,6 @@ class PreRaceFeatureBuilder:
         vec = np.array([
             grid_norm,
             quali_delta_norm,
-            s1_norm,
-            s2_norm,
-            s3_norm,
             rolling_finish_norm,
             exp_norm,
             pts_share_norm,
@@ -147,9 +122,6 @@ class PreRaceFeatureBuilder:
         feat_dict = {
             "grid_position_norm": float(grid_norm),
             "quali_delta_to_pole_s": float(quali_delta_norm),
-            "sector_1_delta_norm": float(s1_norm),
-            "sector_2_delta_norm": float(s2_norm),
-            "sector_3_delta_norm": float(s3_norm),
             "driver_rolling_finish_norm": float(rolling_finish_norm),
             "driver_circuit_experience": float(exp_norm),
             "constructor_pts_share": float(pts_share_norm),

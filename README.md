@@ -4,7 +4,7 @@
 
 **[Live Demo](https://f1-apex.vercel.app)** · [API Docs](https://f1-s-apex-autonomous-predictive.onrender.com/docs) · [Architecture](docs/ARCHITECTURE.md) · [Evaluation Suite](docs/EVALUATION.md) · [Run Guide](docs/HOW_TO_RUN.md)
 
-> **Point-in-time race prediction** — predicts each driver's finishing position using only facts verifiably known before lights-out: qualifying grid slot, constructor championship pace share, driver rolling average, tyre compound, circuit characteristics, and rain forecast.
+> **Point-in-time race prediction** — predicts each driver's finishing position using only facts verifiably known before lights-out: qualifying grid slot, constructor championship pace share, driver rolling average, circuit characteristics, and rain forecast.
 
 ---
 
@@ -12,24 +12,26 @@
 
 APEX takes pre-race priors and returns:
 - **Predicted finishing position** (P1–P20)
-- **90% split-conformal confidence interval** — mathematically guaranteed coverage, calibrated on N=176 held-out historical races
+- **90% split-conformal confidence interval** — mathematically guaranteed coverage, calibrated on N=176 held-out samples from 2022–2023
 - **Win & podium probability**
 - **Feature attribution breakdown** showing which inputs drove the prediction
 
 ## Model & Benchmark Comparison
 
-| Model / Benchmark Strategy | Holdout R² | Holdout MAE | Error Reduction vs. Baseline | Status |
-|----------------------------|-----------|-------------|------------------------------|--------|
-| Naive Mean Predictor (P7.2) | 0.000 | 4.12 pos | Baseline (0.0%) | Heuristic |
-| Last-Season Carry-Forward | 0.089 | 3.46 pos | 16.0% reduction | Heuristic |
-| GradientBoostingRegressor | 0.669 | 2.36 pos | 42.7% reduction | Candidate |
-| XGBRegressor | 0.687 | 2.31 pos | 43.9% reduction | Candidate |
-| **CatBoostRegressor ✓** | **0.688** | **2.34 pos** | **43.2% reduction** | **WINNER (Selected)** |
+Selection was performed on 2023 validation (trained on 2022 only).  
+The winner was then refitted on 2022+2023 and evaluated **once** on the 2024 holdout.
 
-- **Training data**: Jolpica / FastF1 historical seasons 2020–2023 (N=882 driver-races).  
-- **Holdout**: 2024 season (N=480, strictly held-out chronologically — zero data leakage).  
-- **Conformal coverage on holdout**: **95.6%** (exceeds theoretical 90% target).
-- **Gain vs. Baseline**: CatBoost captures **68.8% of finishing variance** and reduces MAE by **43.2%** vs naive prediction.
+| Model / Benchmark Strategy | Selection R² (2023 val) | Selection MAE | 2024 Holdout R² | 2024 Holdout MAE | Status |
+|----------------------------|------------------------|---------------|-----------------|------------------|--------|
+| Naive Mean Predictor (P10.5) | — | 4.99 pos | — | 4.99 pos | Heuristic |
+| GradientBoostingRegressor | 0.568 | 2.711 | — | — | Candidate |
+| XGBRegressor | 0.579 | 2.708 | — | — | Candidate |
+| **CatBoostRegressor ✓** | **0.597** | **2.691** | **0.689** | **2.399 pos** | **WINNER (Selected)** |
+
+- **Training data**: Jolpica real F1 seasons 2022–2023 (N=880 driver-race entries).
+- **Holdout**: 2024 season (N=479 driver entries — strictly held-out, never used in selection).
+- **Conformal coverage on holdout**: **94.4%** (exceeds 90% target).
+- **Gain vs. Baseline**: CatBoost explains **68.9% of finishing variance** and reduces MAE by **51.9%** vs naive prediction.
 
 ---
 
@@ -101,14 +103,16 @@ Response includes `predicted_position`, `confidence_interval`, `win_probability_
 ```
 core/                  ← the entire service
 ├── api/               ← FastAPI routes (health + predict + drivers + races)
-├── features/          ← zero-leakage 9-dim pre-race feature builder
+├── features/          ← zero-leakage 10-feature pre-race feature builder
 ├── ingestion/         ← Jolpica adapter
 ├── training/          ← CatBoost/XGB/GBR benchmark + conformal calibration
-├── data/              ← real_prerace_dataset.csv (2020–2023)
-├── models/            ← apex_core_v1_model.joblib
+├── data/              ← real_prerace_dataset.csv (2022–2024)
+│   └── regulations/   ← 3 curated regulatory summaries (not FIA documents)
+├── models/            ← apex_core_v1_model.joblib + apex_core_v1_metadata.json
+├── monitoring/        ← z-score + PSI drift monitors
 └── requirements.txt
 frontend/              ← React + Vite + Tailwind UI
-tests/                 ← test_tier1_core.py (12 tests covering edge cases, bounds & concurrency)
+tests/                 ← 34 tests (pytest --collect-only)
 Dockerfile             ← single-stage Python 3.12-slim
 .github/workflows/     ← lean CI (pytest + npm build)
 ```
