@@ -211,6 +211,8 @@ def train_finishing_position_model(
     random.seed(random_seed)
     np.random.seed(random_seed)
 
+    refit_mask: np.ndarray | None = None
+
     if use_synthetic:
         X, y, df = _generate_synthetic_prerace_df(n_samples=2000, random_seed=random_seed)
         split_idx = int(0.8 * len(X))
@@ -429,7 +431,7 @@ def train_finishing_position_model(
 
     # Fit PsiDriftMonitor on the training features prior to holdout
     psi_monitor = PsiDriftMonitor()
-    psi_train_df = df[refit_mask] if (not use_synthetic and "season" in df.columns) else df
+    psi_train_df = df[refit_mask] if (refit_mask is not None) else df
     psi_monitor.fit(psi_train_df, features=TARGET_FEATURES)
     artifact["psi_reference_bins"] = psi_monitor.to_dict()
 
