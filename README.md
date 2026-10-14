@@ -24,14 +24,14 @@ The winner was then refitted on 2022+2023 and evaluated **once** on the 2024 hol
 | Model / Benchmark Strategy | Selection R² (2023 val) | Selection MAE | 2024 Holdout R² | 2024 Holdout MAE | Status |
 |----------------------------|------------------------|---------------|-----------------|------------------|--------|
 | Naive Mean Predictor (P10.5) | — | 4.99 pos | — | 4.99 pos | Heuristic |
-| GradientBoostingRegressor | 0.568 | 2.711 | — | — | Candidate |
+| GradientBoostingRegressor | 0.569 | 2.708 | — | — | Candidate |
 | XGBRegressor | 0.579 | 2.708 | — | — | Candidate |
-| **CatBoostRegressor ✓** | **0.597** | **2.691** | **0.689** | **2.399 pos** | **WINNER (Selected)** |
+| **CatBoostRegressor ✓** | **0.597** | **2.680** | **0.686** | **2.362 pos** | **WINNER (Selected)** |
 
 - **Training data**: Jolpica real F1 seasons 2022–2023 (N=880 driver-race entries).
 - **Holdout**: 2024 season (N=479 driver entries — strictly held-out, never used in selection).
-- **Conformal coverage on holdout**: **94.4%** (exceeds 90% target).
-- **Gain vs. Baseline**: CatBoost explains **68.9% of finishing variance** and reduces MAE by **51.9%** vs naive prediction.
+- **Conformal coverage on holdout**: **95.8%** (exceeds 90% target, q̂ = ±6.47 pos).
+- **Gain vs. Baseline**: CatBoost explains **68.6% of finishing variance** and reduces MAE by **52.7%** vs naive prediction.
 
 ---
 
@@ -108,11 +108,11 @@ core/                  ← the entire service
 ├── training/          ← CatBoost/XGB/GBR benchmark + conformal calibration
 ├── data/              ← real_prerace_dataset.csv (2022–2024)
 │   └── regulations/   ← 3 curated regulatory summaries (not FIA documents)
-├── models/            ← apex_core_v1_model.joblib + apex_core_v1_metadata.json
-├── monitoring/        ← z-score + PSI drift monitors
+├── models/            ← apex_core_v1_model.joblib + apex_core_v1_metadata.json + apex_core_v1_psi_bins.json
+├── monitoring/        ← z-score + PSI drift monitors (POST /api/core/drift/check + Prometheus gauges)
 └── requirements.txt
 frontend/              ← React + Vite + Tailwind UI
-tests/                 ← 34 tests (pytest --collect-only)
+tests/                 ← 37 tests (pytest --collect-only)
 Dockerfile             ← single-stage Python 3.12-slim
 .github/workflows/     ← lean CI (pytest + npm build)
 ```

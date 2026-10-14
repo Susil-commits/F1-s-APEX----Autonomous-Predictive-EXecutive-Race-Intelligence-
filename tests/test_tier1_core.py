@@ -624,3 +624,101 @@ def test_psi_drift_monitor_missing_feature_handled_gracefully():
     assert "error" in result["features"].get("quali_delta_s", {}) or \
            result["features"]["quali_delta_s"].get("psi") is not None or \
            "error" in result["features"]["quali_delta_s"]
+
+
+def test_training_reproducibility():
+    """Verifies that training twice with the same random_seed produces bit-for-bit identical metrics."""
+    from core.training.train import train_finishing_position_model
+
+    run1 = train_finishing_position_model(random_seed=42, use_synthetic=True)
+    run2 = train_finishing_position_model(random_seed=42, use_synthetic=True)
+
+    assert run1["metrics"]["validation_mae"] == run2["metrics"]["validation_mae"]
+    assert run1["metrics"]["validation_r2"] == run2["metrics"]["validation_r2"]
+    assert run1["q_hat_margin"] == run2["q_hat_margin"]
+    assert run1["conformal"]["validation_coverage"] == run2["conformal"]["validation_coverage"]
+    assert run1["winning_model_family"] == run2["winning_model_family"]
+    for k in run1["benchmarks"]:
+        assert run1["benchmarks"][k]["validation_mae"] == run2["benchmarks"][k]["validation_mae"]
+        assert run1["benchmarks"][k]["validation_r2"] == run2["benchmarks"][k]["validation_r2"]
+
+
+@pytest.mark.asyncio
+async def test_drift_check_returns_z_score_and_psi_with_prometheus():
+    """Verifies POST /api/core/drift/check returns both z-score and PSI with 0.1/0.25 thresholds and updates Prometheus gauges."""
+    transport = ASGITransport(app=core_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        # 1. Normal records
+        sample_records = [
+            {"grid_position": g, "quali_delta_s": 0.05 * g, "rain_prob": 0.05}
+            for g in range(1, 21)
+        ]
+        res = await client.post("/api/core/drift/check", json=sample_records)
+        assert res.status_code == 200
+        data = res.json()
+
+        # Check threshold definitions
+        assert "psi_thresholds" in data
+        assert data["psi_thresholds"]["stable"] == 0.10
+        assert data["psi_thresholds"]["major"] == 0.25
+        assert "psi_status" in data
+        assert "psi_drifted_features" in data
+
+        # Check per-feature z-score and PSI reporting
+        for feat in ["grid_position", "quali_delta_s", "rain_prob"]:
+            feat_data = data["features"][feat]
+            assert "drift_score_z" in feat_data
+            assert "drift_detected" in feat_data
+            assert "psi" in feat_data
+            assert "psi_status" in feat_data
+            assert feat_data["psi_status"] in ("STABLE", "MINOR_SHIFT", "MAJOR_DRIFT")
+
+        # 2. Extreme drifted records to test major drift and Prometheus gauge emission
+        drifted_records = [
+            {"grid_position": 20.0, "quali_delta_s": 5.0, "rain_prob": 0.95}
+            for _ in range(25)
+        ]
+        drift_res = await client.post("/api/core/drift/check", json=drifted_records)
+        assert drift_res.status_code == 200
+        drift_data = drift_res.json()
+        assert drift_data["status"] == "DRIFT_DETECTED"
+        assert drift_data["psi_status"] in ("MINOR_SHIFT", "MAJOR_DRIFT")
+
+        # 3. Verify Prometheus metrics exposition contains feature drift gauges
+        metrics_res = await client.get("/metrics")
+        assert metrics_res.status_code == 200
+        metrics_text = metrics_res.text
+        assert "apex_feature_drift_psi" in metrics_text
+        assert "apex_feature_drift_z_score" in metrics_text
+        assert 'apex_feature_drift_psi{feature="grid_position"}' in metrics_text
+        assert 'apex_feature_drift_psi{feature="quali_delta_s"}' in metrics_text
+        assert 'apex_feature_drift_psi{feature="rain_prob"}' in metrics_text
+
+
+def test_psi_drift_monitor_serialization_and_persistence(tmp_path):
+    """Verifies PsiDriftMonitor can serialize to dict, save to JSON, and reload with identical compute results."""
+    import pandas as pd
+    from core.monitoring.drift import PsiDriftMonitor
+
+    ref = pd.DataFrame({
+        "grid_position": list(range(1, 21)) * 5,
+        "quali_delta_s": [0.5 + 0.05 * i for i in range(100)],
+        "rain_prob": [0.05] * 100,
+    })
+    monitor = PsiDriftMonitor(n_bins=5)
+    monitor.fit(ref)
+
+    save_file = str(tmp_path / "psi_bins.json")
+    monitor.save(save_file)
+
+    loaded_monitor = PsiDriftMonitor.load(save_file)
+    assert loaded_monitor._fitted is True
+
+    test_df = pd.DataFrame({
+        "grid_position": [1.0, 5.0, 10.0, 15.0, 20.0],
+        "quali_delta_s": [0.5, 0.8, 1.2, 1.5, 2.0],
+        "rain_prob": [0.05, 0.05, 0.1, 0.1, 0.2],
+    })
+    orig_res = monitor.compute(test_df)
+    loaded_res = loaded_monitor.compute(test_df)
+    assert orig_res == loaded_res

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import logging
 import os
+import random
 from typing import Any, Dict, List, Tuple
 
 import joblib
@@ -20,6 +21,7 @@ from xgboost import XGBRegressor
 
 from core.features.feature_builder import PRE_RACE_FEATURE_NAMES, PreRaceFeatureBuilder
 from core.ingestion.jolpica_adapter import JolpicaAdapter
+from core.monitoring.drift import PsiDriftMonitor, TARGET_FEATURES
 
 logger = logging.getLogger(__name__)
 
@@ -159,6 +161,11 @@ def load_or_fetch_prerace_data(
         else:
             raise RuntimeError("[APEX Core] Could not fetch real pre-race data from Jolpica and allow_synthetic is False.")
 
+    # Strictly sort records chronologically and deterministically by season, round, grid, and driver
+    if "season" in df.columns and "round" in df.columns:
+        sort_cols = [c for c in ["season", "round", "grid_position", "driver_id"] if c in df.columns]
+        df = df.sort_values(by=sort_cols).reset_index(drop=True)
+
     # Convert DataFrame records to standardized 10-dimensional feature vectors
     # (sector_1/2/3_delta_s columns absent from real dataset — dropped in v1.0.1)
     X_list = []
@@ -200,6 +207,10 @@ def train_finishing_position_model(
 
     This prevents the 2024 holdout from influencing architecture selection.
     """
+    os.environ["PYTHONHASHSEED"] = str(random_seed)
+    random.seed(random_seed)
+    np.random.seed(random_seed)
+
     if use_synthetic:
         X, y, df = _generate_synthetic_prerace_df(n_samples=2000, random_seed=random_seed)
         split_idx = int(0.8 * len(X))
@@ -262,6 +273,7 @@ def train_finishing_position_model(
             learning_rate=0.06,
             depth=4,
             random_seed=random_seed,
+            thread_count=1,
             verbose=0,
             allow_writing_files=False,
         ),
@@ -301,7 +313,7 @@ def train_finishing_position_model(
         ),
         "catboost": CatBoostRegressor(
             iterations=150, learning_rate=0.06, depth=4, random_seed=random_seed,
-            verbose=0, allow_writing_files=False,
+            thread_count=1, verbose=0, allow_writing_files=False,
         ),
     }
     best_model = refit_candidates[best_name]
@@ -415,10 +427,18 @@ def train_finishing_position_model(
         "version": "core-v1.0.0",
     }
 
+    # Fit PsiDriftMonitor on the training features prior to holdout
+    psi_monitor = PsiDriftMonitor()
+    psi_train_df = df[refit_mask] if (not use_synthetic and "season" in df.columns) else df
+    psi_monitor.fit(psi_train_df, features=TARGET_FEATURES)
+    artifact["psi_reference_bins"] = psi_monitor.to_dict()
+
     if save_path:
         os.makedirs(os.path.dirname(save_path), exist_ok=True)
         joblib.dump(artifact, save_path)
         logger.info(f"[APEX Core] Best Model ({best_name}) saved to {save_path}")
+        psi_bins_path = os.path.join(os.path.dirname(save_path), "apex_core_v1_psi_bins.json")
+        psi_monitor.save(psi_bins_path)
 
     return artifact
 

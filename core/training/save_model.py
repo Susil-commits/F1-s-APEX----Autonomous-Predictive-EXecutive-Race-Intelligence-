@@ -49,6 +49,11 @@ def build_and_save_core_baseline(output_dir: str = DEFAULT_MODEL_DIR) -> str:
         "q_hat_margin": round(float(artifact["q_hat_margin"]), 3),
         "metrics": metrics_dict,
         "validation_benchmarks": artifact.get("benchmarks", {}),
+        "psi_monitoring": {
+            "reference_bins_file": "apex_core_v1_psi_bins.json",
+            "target_features": ["grid_position", "quali_delta_s", "rain_prob"],
+            "thresholds": {"stable": 0.10, "major": 0.25},
+        },
         "status": eval_report["status"],
     }
     with open(meta_path, "w", encoding="utf-8") as f:

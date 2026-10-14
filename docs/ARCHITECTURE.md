@@ -26,8 +26,8 @@
               ┌─────────────▼──────────────┐
               │  Split-Conformal Calibration│
               │  N=176 calibration samples  │
-              │  q̂ = ±5.67 positions        │
-              │  94.4% empirical coverage   │
+              │  q̂ = ±6.47 positions        │
+              │  95.8% empirical coverage   │
               │  (exceeds 90% target)       │
               └─────────────┬──────────────┘
                             │

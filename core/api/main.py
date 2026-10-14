@@ -9,7 +9,12 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
-from core.api.metrics import CONTENT_TYPE_LATEST, generate_latest
+from core.api.metrics import (
+    CONTENT_TYPE_LATEST,
+    FEATURE_DRIFT_PSI,
+    FEATURE_DRIFT_Z_SCORE,
+    generate_latest,
+)
 
 
 RateLimitExceeded: Any = None
@@ -87,13 +92,25 @@ async def get_drift_baseline():
     return {
         "baseline": _drift_monitor.baseline,
         "target_features": ["grid_position", "quali_delta_s", "rain_prob"],
+        "psi_reference_bins": _drift_monitor.psi_monitor.to_dict() if _drift_monitor.psi_monitor else None,
+        "psi_thresholds": {
+            "stable": 0.10,
+            "major": 0.25,
+        },
     }
 
 
 @app.post("/api/core/drift/check")
 async def check_weekend_drift(records: List[Dict[str, Any]], z_threshold: float = 2.0):
     """Evaluates an incoming race weekend batch for feature distribution drift."""
-    return _drift_monitor.check_weekend_drift(records, z_threshold=z_threshold)
+    report = _drift_monitor.check_weekend_drift(records, z_threshold=z_threshold)
+    for feat, f_data in report.get("features", {}).items():
+        if isinstance(f_data, dict):
+            if "psi" in f_data and f_data["psi"] is not None:
+                FEATURE_DRIFT_PSI.labels(feature=feat).set(float(f_data["psi"]))
+            if "drift_score_z" in f_data and f_data["drift_score_z"] is not None:
+                FEATURE_DRIFT_Z_SCORE.labels(feature=feat).set(float(f_data["drift_score_z"]))
+    return report
 
 
 if __name__ == "__main__":

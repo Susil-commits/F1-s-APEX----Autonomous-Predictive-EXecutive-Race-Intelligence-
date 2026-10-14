@@ -60,3 +60,16 @@ MODEL_LOAD_TIMESTAMP = Gauge(
     "Epoch timestamp when APEX Core model artifact was loaded into memory",
 )
 MODEL_LOAD_TIMESTAMP.set(time.time())
+
+# Gauges tracking pre-race feature drift metrics per feature
+FEATURE_DRIFT_PSI = Gauge(
+    "apex_feature_drift_psi",
+    "Population Stability Index (PSI) drift metric per feature",
+    ["feature"],
+)
+
+FEATURE_DRIFT_Z_SCORE = Gauge(
+    "apex_feature_drift_z_score",
+    "Standardized z-score mean difference drift metric per feature",
+    ["feature"],
+)
