@@ -12,6 +12,7 @@ import {
   DriverGrid,
   RaceConditionsPanel,
   GlobalPartners,
+  PitWallWarRoom,
 } from './components';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
@@ -155,8 +156,14 @@ export const CoreMode: React.FC = () => {
       )}
 
       {prediction && !error && (
-        <div className="w-full">
+        <div className="w-full space-y-6">
           <PredictionCard data={prediction} />
+          <PitWallWarRoom
+            selectedRace={selectedRace}
+            selectedDriver={selectedDriver}
+            rainForecast={rainForecast}
+            apiBase={API_BASE}
+          />
         </div>
       )}
 

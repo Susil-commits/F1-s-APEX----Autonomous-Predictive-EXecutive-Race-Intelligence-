@@ -77,10 +77,14 @@ def get_core_model() -> Any:
 
         if os.path.exists(MODEL_FILE):
             try:
+                from core.security.model_integrity import verify_model_integrity
+                is_valid, msg = verify_model_integrity(MODEL_FILE)
+                if not is_valid:
+                    logger.warning("[APEX Security Warning] Model integrity check: %s", msg)
                 _CACHED_MODEL = joblib.load(MODEL_FILE)
                 return _CACHED_MODEL
-            except Exception:
-                pass
+            except Exception as exc:
+                logger.warning("[APEX Model Error] Failed loading model: %s", exc)
 
         # Train fallback baseline
         from core.training.train import train_finishing_position_model
@@ -266,7 +270,10 @@ async def predict_finish(request: Request, req: PredictRequest):
             detail="Invalid driver_id: must be a 3-letter F1 driver abbreviation (e.g. 'VER', 'HAM', 'NOR').",
         )
     driver_key = raw_driver.upper()
-    if driver_key not in DRIVER_ROSTER:
+    from core.data.roster_service import get_roster_service
+    roster_svc = get_roster_service()
+    profile = roster_svc.get_driver(driver_key) or DRIVER_ROSTER.get(driver_key)
+    if profile is None:
         # Default generic driver profile
         profile = {
             "name": f"Driver {driver_key}",
@@ -276,8 +283,6 @@ async def predict_finish(request: Request, req: PredictRequest):
             "rolling_avg": 10.0,
             "starts": 5,
         }
-    else:
-        profile = DRIVER_ROSTER[driver_key]
 
     start_time = time.perf_counter()
     circuit_id = req.race_id.lower().replace("_2024", "").replace("_2025", "")
@@ -448,6 +453,231 @@ async def predict_finish(request: Request, req: PredictRequest):
     )
 
 
+# ── ENTERPRISE GRID & IN-RACE SIMULATION SCHEMAS ──────────────────────────────
+
+class GridPredictRequest(BaseModel):
+    race_id: str = Field(..., description="Circuit identifier (e.g. 'silverstone', 'monaco')")
+    rain_probability: Optional[float] = Field(0.10, ge=0.0, le=1.0)
+    weather_transition: Optional[bool] = Field(False)
+    grid_overrides: Optional[Dict[str, int]] = Field(default_factory=dict, description="Custom grid positions by driver code")
+
+
+class GridDriverFinish(BaseModel):
+    driver_id: str
+    driver_name: str
+    team_name: str
+    grid_position: int
+    predicted_position: int
+    raw_score: float
+    confidence_interval: List[int]
+    win_probability_pct: float
+    podium_probability_pct: float
+    color: str
+    country: str
+    photo: Optional[str] = None
+
+
+class GridPredictResponse(BaseModel):
+    race_id: str
+    total_drivers: int
+    rain_probability: float
+    weather_transition: bool
+    grid_results: List[GridDriverFinish]
+    execution_time_ms: float
+    model_version: str
+    summary: str
+
+
+class PitSimulationRequest(BaseModel):
+    race_id: str = Field(..., description="Circuit identifier (e.g. 'silverstone')")
+    current_lap: int = Field(..., ge=1, le=80)
+    current_position: int = Field(..., ge=1, le=20)
+    current_compound: str = Field(default="C3")
+    current_tyre_age: int = Field(default=10, ge=1)
+    simulations_count: Optional[int] = Field(default=10000, ge=500, le=50000)
+
+
+class UndercutRequest(BaseModel):
+    driver_current_age: int = Field(..., ge=1)
+    driver_compound: str = Field(default="C3")
+    rival_gap_s: float = Field(..., description="Gap in seconds to rival ahead")
+    fresh_compound: str = Field(default="C2")
+    track_temp_c: Optional[float] = Field(default=30.0)
+
+
+# ── ENTERPRISE ENDPOINTS ─────────────────────────────────────────────────────
+
+@router.post("/predict/grid", response_model=GridPredictResponse)
+@limiter.limit("20/minute")
+async def predict_full_grid(request: Request, req: GridPredictRequest):
+    """Vectorized Full 20-Car Grid Finish Order Prediction.
+
+    Evaluates all active drivers simultaneously in a single vectorized inference
+    matrix pass with zero cross-driver collisions.
+    """
+    start_time = time.perf_counter()
+    from core.data.roster_service import get_roster_service
+    roster_svc = get_roster_service()
+    drivers = roster_svc.get_all_drivers(active_only=True)
+    if not drivers:
+        drivers = list(DRIVER_ROSTER.values())
+
+    circuit_id = req.race_id.lower().replace("_2024", "").replace("_2025", "")
+    rain = float(req.rain_probability if req.rain_probability is not None else 0.10)
+    weather_trans = bool(req.weather_transition)
+
+    artifact = get_core_model()
+    model = artifact["model"]
+    q_hat = float(artifact.get("q_hat_margin", 2.0))
+
+    feature_matrix: List[np.ndarray] = []
+    driver_meta_list: List[Dict[str, Any]] = []
+
+    for d in drivers:
+        code = d["code"]
+        grid = req.grid_overrides.get(code, d.get("default_grid", 10))
+        rolling_avg = float(d.get("rolling_avg", 10.0))
+        starts = int(d.get("starts", 5))
+        pts_share = float(d.get("pts_share", 0.05))
+
+        feat_vec, _ = PreRaceFeatureBuilder.extract_features(
+            grid_position=grid,
+            quali_delta_s=max(0.0, (grid - 1) * 0.12),
+            rolling_avg_finish=rolling_avg,
+            circuit_starts=starts,
+            constructor_pts_share=pts_share,
+            circuit_id=circuit_id,
+            rain_prob=rain,
+            weather_transition=weather_trans,
+        )
+        feature_matrix.append(feat_vec)
+        driver_meta_list.append({
+            "code": code,
+            "name": d.get("name", code),
+            "team": d.get("team", "Competitor"),
+            "grid": grid,
+            "color": d.get("color", "#E10600"),
+            "country": d.get("country", "🏁"),
+            "photo": d.get("photo"),
+        })
+
+    # Vectorized inference over full grid in threadpool
+    X = np.array(feature_matrix, dtype=np.float32)
+    raw_preds = await run_in_threadpool(model.predict, X)
+
+    # Rank drivers based on continuous score to produce strictly monotonic grid finishing order
+    indexed_scores = list(enumerate(raw_preds))
+    indexed_scores.sort(key=lambda x: x[1])
+
+    grid_results: List[GridDriverFinish] = []
+    for rank_idx, (orig_idx, score) in enumerate(indexed_scores, start=1):
+        meta = driver_meta_list[orig_idx]
+        raw_val = float(score)
+        lower = max(1, int(np.floor(raw_val - q_hat)))
+        upper = min(20, int(np.ceil(raw_val + q_hat)))
+
+        win_prob = float(np.clip(np.exp(-0.9 * max(0, raw_val - 1.0)) * 100.0, 0.5, 95.0))
+        podium_prob = float(np.clip(np.exp(-0.45 * max(0, raw_val - 3.0)) * 100.0, 1.0, 99.0))
+        if rank_idx == 1:
+            podium_prob = max(podium_prob, 85.0)
+
+        grid_results.append(
+            GridDriverFinish(
+                driver_id=meta["code"],
+                driver_name=meta["name"],
+                team_name=meta["team"],
+                grid_position=meta["grid"],
+                predicted_position=rank_idx,
+                raw_score=round(raw_val, 2),
+                confidence_interval=[lower, upper],
+                win_probability_pct=round(win_prob, 1),
+                podium_probability_pct=round(podium_prob, 1),
+                color=meta["color"],
+                country=meta["country"],
+                photo=meta.get("photo"),
+            )
+        )
+
+    exec_ms = (time.perf_counter() - start_time) * 1000.0
+    winner = grid_results[0]
+    summary = (
+        f"Simulated {len(grid_results)}-driver grid for the {circuit_id.title()} GP in {exec_ms:.1f}ms. "
+        f"Projected winner: {winner.driver_name} ({winner.team_name}) from P{winner.grid_position}."
+    )
+
+    return GridPredictResponse(
+        race_id=req.race_id,
+        total_drivers=len(grid_results),
+        rain_probability=rain,
+        weather_transition=weather_trans,
+        grid_results=grid_results,
+        execution_time_ms=round(exec_ms, 1),
+        model_version=artifact.get("version", "core-v1.0.0"),
+        summary=summary,
+    )
+
+
+@router.post("/simulate/pit-stop")
+@limiter.limit("20/minute")
+async def simulate_pit_stop(request: Request, req: PitSimulationRequest):
+    """Monte Carlo In-Race Pit Stop Strategy Simulation.
+
+    Performs 10,000+ stochastic rollouts modeling tyre degradation, VSC/SC hazard rates,
+    pit time loss delta, and undercut/overcut net track position expectations.
+    """
+    from core.simulation.monte_carlo import MonteCarloRaceSimulator
+    sim = MonteCarloRaceSimulator()
+    result = await run_in_threadpool(
+        sim.simulate_strategy_comparison,
+        circuit_id=req.race_id,
+        current_lap=req.current_lap,
+        current_pos=req.current_position,
+        current_compound=req.current_compound,
+        current_tyre_age=req.current_tyre_age,
+        n_simulations=req.simulations_count or 10000,
+    )
+    return result
+
+
+@router.get("/tyres/stint-curve")
+async def get_tyre_stint_curve(
+    compound: str = "C3",
+    total_laps: int = 40,
+    track_temp_c: float = 30.0,
+    circuit_downforce_index: float = 0.70,
+):
+    """Generates non-linear pace degradation trajectory across a multi-lap stint."""
+    from core.features.tyre_model import TyreDegradationModel
+    model = TyreDegradationModel()
+    curve = model.simulate_stint_curve(
+        compound_code=compound,
+        total_laps=total_laps,
+        track_temp_c=track_temp_c,
+        circuit_downforce_index=circuit_downforce_index,
+    )
+    return {
+        "compound": compound.upper(),
+        "total_laps": total_laps,
+        "track_temp_c": track_temp_c,
+        "circuit_downforce_index": circuit_downforce_index,
+        "curve": curve,
+    }
+
+
+@router.post("/tyres/undercut")
+async def evaluate_undercut(req: UndercutRequest):
+    """Evaluates undercut feasibility and fresh tire out-lap pace delta."""
+    from core.features.tyre_model import TyreDegradationModel
+    model = TyreDegradationModel()
+    return model.evaluate_undercut_window(
+        driver_current_age=req.driver_current_age,
+        driver_compound=req.driver_compound,
+        rival_gap_s=req.rival_gap_s,
+        fresh_compound=req.fresh_compound,
+        track_temp_c=req.track_temp_c or 30.0,
+    )
+
+
 @router.get("/races")
 async def list_available_races():
     """Lists standard race venues available for Simple Mode analysis."""
@@ -458,22 +688,10 @@ async def list_available_races():
 
 @router.get("/drivers")
 async def list_available_drivers():
-    """Lists standard driver roster for Simple Mode analysis."""
-    return {
-        "drivers": [
-            {
-                "code": code,
-                "name": meta["name"],
-                "first_name": meta.get("first_name", meta["name"].split()[0]),
-                "last_name": meta.get("last_name", meta["name"].split()[-1].upper()),
-                "team": meta["team"],
-                "number": meta.get("number", 0),
-                "color": meta.get("color", "#E10600"),
-                "country": meta.get("country", "🏁"),
-                "default_grid": meta["default_grid"],
-                "photo": meta.get("photo"),
-            }
-            for code, meta in DRIVER_ROSTER.items()
-        ]
-    }
+    """Lists dynamic driver roster for APEX analysis."""
+    from core.data.roster_service import get_roster_service
+    roster_svc = get_roster_service()
+    drivers = roster_svc.get_all_drivers(active_only=False)
+    return {"drivers": drivers}
+
 

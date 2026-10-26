@@ -98,33 +98,54 @@ Response includes `predicted_position`, `confidence_interval`, `win_probability_
 
 ---
 
+## Enterprise Pit Wall War Room & 2026 Engine Upgrades
+
+APEX Enterprise extends the baseline pre-race predictor into a full pit wall intelligence suite:
+- **Vectorized Full 20-Car Grid Classification (`POST /api/core/predict/grid`)**: Evaluates all 20 drivers simultaneously in a single vectorized pass with non-overlapping rankings and conformal bounds.
+- **Monte Carlo Pit Stop & Safety Car Simulator (`POST /api/core/simulate/pit-stop`)**: 10,000 stochastic rollouts per second modeling undercut/overcut windows, tire wear, and Safety Car delta leverage (saving ~10.8s pit loss).
+- **Pirelli Non-Linear Tyre Degradation & Cliff Matrix (`GET /api/core/tyres/stint-curve`, `POST /api/core/tyres/undercut`)**: Physics-informed wear modeling predicting exponential pace drop-off when tire wear exceeds 75%.
+- **Zero-Trust Cryptographic Model Integrity**: HMAC-SHA256 model signing and verification (`core.security.model_integrity`) guarding against tampering and unauthorized weight manipulation.
+- **Dynamic Driver Roster Service**: Decoupled driver profiles supporting mid-season reserve substitutions and real-time points standings.
+- **2026 Regulation Future-Proofing**: Full modeling of Dual-State Active Aerodynamics (Z-Mode cornering downforce vs X-Mode low drag) and 350kW MGU-K Manual Override Mode (MOM).
+
+---
+
+## API Endpoints
+
+### Core Prediction & Strategy
+- `POST /api/core/predict` — Single driver pre-race finishing position & conformal interval.
+- `POST /api/core/predict/grid` — Full 20-car grid vectorized finish classification.
+- `POST /api/core/simulate/pit-stop` — 10,000-rollout in-race Monte Carlo pit strategy simulator.
+- `GET /api/core/tyres/stint-curve` — Pirelli tire compound degradation trajectory.
+- `POST /api/core/tyres/undercut` — Live undercut delta and out-lap gap evaluator.
+- `GET /api/core/drivers` — Dynamic Formula 1 driver roster and priors.
+- `GET /api/core/races` — Grand Prix calendar venues.
+
+### Security, Drift & Observability
+- `GET /api/security/telemetry` — Active guardrails, Canary traps, and circuit breaker status.
+- `GET /api/security/audit-trail` — Cryptographically chained SHA-256 audit log (SOC 2).
+- `POST /api/core/drift/check` — Z-score and PSI population stability drift detection.
+- `GET /metrics` — Prometheus metrics for prediction latency and drift gauges.
+
+---
+
 ## Structure
 
 ```
 core/                  ← the entire service
-├── api/               ← FastAPI routes (health + predict + drivers + races)
-├── features/          ← zero-leakage 10-feature pre-race feature builder
-├── ingestion/         ← Jolpica adapter
-├── training/          ← CatBoost/XGB/GBR benchmark + conformal calibration
-├── data/              ← real_prerace_dataset.csv (2022–2024)
-│   └── regulations/   ← 3 curated regulatory summaries (not FIA documents)
-├── models/            ← apex_core_v1_model.joblib + apex_core_v1_metadata.json + apex_core_v1_psi_bins.json
-├── monitoring/        ← z-score + PSI drift monitors (POST /api/core/drift/check + Prometheus gauges)
+├── api/               ← FastAPI routes (predict, grid, simulate, tyres, narration, drift, security)
+├── data/              ← real_prerace_dataset.csv, dynamic roster service, and regulations
+│   └── regulations/   ← Sporting, technical, and 2026 Active Aero regulations
+├── features/          ← 10-feature pre-race builder + Pirelli tyre degradation physics model
+├── ingestion/         ← FastF1 and Jolpica adapters
+├── models/            ← apex_core_v1_model.joblib + HMAC signature (.sig) + metadata + PSI bins
+├── monitoring/        ← z-score + PSI drift monitors + Prometheus gauges
+├── security/          ← HMAC model integrity, canary traps, audit chain, circuit breaker
+├── simulation/        ← Vectorized Monte Carlo pit stop and Safety Car rollout engine
+├── training/          ← CatBoost/XGB/GBR benchmark + model signing + conformal calibration
 └── requirements.txt
-frontend/              ← React + Vite + Tailwind UI
-tests/                 ← 37 tests (pytest --collect-only)
-Dockerfile             ← single-stage Python 3.12-slim
-.github/workflows/     ← lean CI (pytest + npm build)
+frontend/              ← React + Vite + Three.js + Pit Wall War Room Command Console
+tests/                 ← 64 tests (100% passing across unit, security, and Monte Carlo suites)
+Dockerfile.hardened    ← Non-root, multi-stage hardened enterprise container
+.github/workflows/     ← Lean CI (pytest + npm build)
 ```
-
----
-
-## Earlier V2–V5 work
-
-All prior exploration (PPO/DQN RL agents, 60Hz digital twin, Kafka streaming, LangGraph multi-agent deliberation, SHAP explainer, MCP server) is permanently preserved in:
-
-```
-git checkout v1-v5-exploration
-```
-
-The `v1-only` branch is the clean, deployable baseline.

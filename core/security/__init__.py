@@ -34,6 +34,12 @@ from core.security.gateway import (
     configure_enterprise_cors,
 )
 
+from core.security.model_integrity import (
+    compute_file_sha256,
+    sign_model_file,
+    verify_model_integrity,
+)
+
 __all__ = [
     "InputSanitizer",
     "PromptShield",
@@ -51,4 +57,7 @@ __all__ = [
     "get_circuit_breaker",
     "EnterpriseSecurityHeadersMiddleware",
     "configure_enterprise_cors",
+    "compute_file_sha256",
+    "sign_model_file",
+    "verify_model_integrity",
 ]

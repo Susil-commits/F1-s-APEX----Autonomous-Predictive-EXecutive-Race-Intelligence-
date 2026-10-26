@@ -59,7 +59,11 @@ def build_and_save_core_baseline(output_dir: str = DEFAULT_MODEL_DIR) -> str:
     with open(meta_path, "w", encoding="utf-8") as f:
         json.dump(meta, f, indent=2)
 
-    logger.info(f"[APEX Core] Saved model to {model_path} and metadata to {meta_path}")
+    # Cryptographically sign the model artifact for zero-trust enterprise verification
+    from core.security.model_integrity import sign_model_file
+    sig_manifest = sign_model_file(model_path, metadata={"version": artifact["version"], "status": eval_report["status"]})
+
+    logger.info(f"[APEX Core] Saved model to {model_path}, metadata to {meta_path}, and signature to {model_path}.sig")
     return model_path
 
 
