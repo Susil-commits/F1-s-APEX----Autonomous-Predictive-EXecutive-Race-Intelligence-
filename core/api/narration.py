@@ -15,7 +15,7 @@ import re
 from typing import Any, Dict, List, Optional
 
 import httpx
-from fastapi import APIRouter, Request
+from fastapi import APIRouter, HTTPException, Request, status
 from pydantic import Field
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
@@ -25,6 +25,13 @@ from core.api.predict import (
     PredictRequest,
     PredictResponse,
     predict_finish,
+)
+from core.security import (
+    CanaryTrap,
+    PIISanitizer,
+    PromptShield,
+    get_audit_logger,
+    get_circuit_breaker,
 )
 
 logger = logging.getLogger(__name__)
@@ -248,8 +255,16 @@ async def generate_race_engineer_narrative(
 
     user_prompt = format_race_engineer_prompt(prediction, retrieved_sources)
 
+    # Enterprise AI Security: Redact PII and sensitive tokens before transmission
+    redacted_prompt, pii_mapping = PIISanitizer.redact(user_prompt)
+
+    # Enterprise AI Security: Embed dynamic cryptographic canary honeytoken
+    canary = CanaryTrap.generate_canary()
+    guarded_system_instruction = CanaryTrap.inject_canary_into_system_prompt(system_instruction, canary)
+
     # Determine endpoint, model, and headers
     if groq_key:
+        provider_name = "groq"
         api_url = "https://api.groq.com/openai/v1/chat/completions"
         headers = {"Authorization": f"Bearer {groq_key}", "Content-Type": "application/json"}
         model = os.environ.get("GROQ_MODEL", "llama-3.1-8b-instant")
@@ -257,37 +272,70 @@ async def generate_race_engineer_narrative(
             # Normalize e.g. groq/compound-mini to a valid Groq model
             model = "llama-3.1-8b-instant"
     elif openai_key:
+        provider_name = "openai"
         api_url = "https://api.openai.com/v1/chat/completions"
         headers = {"Authorization": f"Bearer {openai_key}", "Content-Type": "application/json"}
         model = os.environ.get("OPENAI_MODEL", "gpt-4o-mini")
     else:
+        provider_name = "gemini"
         api_url = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
         headers = {"Authorization": f"Bearer {gemini_key}", "Content-Type": "application/json"}
         model = "gemini-2.0-flash"
 
+    # Enterprise AI Security: Circuit Breaker Pre-Flight Check
+    breaker = get_circuit_breaker(provider_name)
+    if not breaker.can_execute():
+        logger.warning(f"[CircuitBreaker:{provider_name}] Circuit is OPEN. Gracefully diverting traffic.")
+        return None
+
     payload = {
         "model": model,
         "messages": [
-            {"role": "system", "content": system_instruction},
-            {"role": "user", "content": user_prompt},
+            {"role": "system", "content": guarded_system_instruction},
+            {"role": "user", "content": redacted_prompt},
         ],
         "temperature": 0.3,
         "max_tokens": 200,
     }
 
+    audit_logger = get_audit_logger()
+
     try:
         async with httpx.AsyncClient(timeout=timeout_seconds) as client:
             resp = await client.post(api_url, json=payload, headers=headers)
             if resp.status_code == 200:
+                breaker.record_success()
                 data = resp.json()
                 content = data["choices"][0]["message"]["content"].strip()
+
+                # Enterprise AI Security: Verify canary honeytoken was not exfiltrated
+                if CanaryTrap.check_leakage(content, canary):
+                    audit_logger.record_event(
+                        event_type="SECURITY_CANARY_LEAK_DETECTED",
+                        actor_id=prediction.driver_id,
+                        details={"provider": provider_name, "driver": prediction.driver_id},
+                        status="BLOCKED",
+                    )
+                    return "[SECURITY ALERT: System prompt exfiltration attempt intercepted and blocked.]"
+
+                # Enterprise AI Security: Rehydrate any sanitized tokens at client edge
+                content = PIISanitizer.restore(content, pii_mapping)
+
+                audit_logger.record_event(
+                    event_type="LLM_NARRATION_GENERATED",
+                    actor_id=prediction.driver_id,
+                    details={"provider": provider_name, "driver": prediction.driver_id, "model": model},
+                    status="SUCCESS",
+                )
                 return content
             else:
+                breaker.record_failure()
                 logger.warning(
                     f"[Narration LLM HTTP {resp.status_code}] Failed generating narrative: {resp.text[:200]}"
                 )
                 return None
     except Exception as exc:
+        breaker.record_failure()
         logger.warning(f"[Narration LLM Exception] Gracefully degrading: {exc}")
         return None
 
@@ -302,10 +350,26 @@ async def predict_with_narration(request: Request, req: PredictRequest):
     """Tier 1 Prediction with LLM Race Engineer Strategy Narration & Audited Regulations RAG.
 
     1. Executes unchanged core prediction + sensitivity logic.
-    2. Retrieves governing FIA technical/sporting regulations for identified levers.
-    3. Synthesizes a fluent, numerically-grounded briefing.
-    4. Falls back cleanly without error if LLM is unavailable.
+    2. Enforces prompt injection & input sanitization guardrails.
+    3. Retrieves governing FIA technical/sporting regulations for identified levers.
+    4. Synthesizes a fluent, numerically-grounded briefing with canary leak trapping.
+    5. Falls back cleanly without error if LLM is unavailable.
     """
+    # Step 0: Enterprise AI Security — Prompt injection pre-filter
+    input_text = f"{req.race_id} {req.driver_id}"
+    is_violation, reason = PromptShield.check_prompt(input_text)
+    if is_violation:
+        get_audit_logger().record_event(
+            event_type="SECURITY_PROMPT_INJECTION_BLOCKED",
+            actor_id=req.driver_id or "unknown",
+            details={"input": input_text, "reason": reason},
+            status="BLOCKED",
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Security violation: {reason}",
+        )
+
     # Step 1: Call existing prediction logic unchanged
     prediction: PredictResponse = await predict_finish(request, req)
 

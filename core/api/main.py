@@ -5,7 +5,7 @@ Run with:
     uvicorn core.api.main:app --port 8000 --reload
 """
 from typing import Any, Dict, List
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
@@ -34,6 +34,14 @@ from core.api.limiter import limiter
 from core.api.predict import router as predict_router
 from core.api.narration import router as narration_router
 from core.monitoring.drift import WeekendDriftMonitor
+from core.security import (
+    EnterpriseSecurityHeadersMiddleware,
+    Role,
+    configure_enterprise_cors,
+    get_audit_logger,
+    require_role,
+)
+from core.security.circuit_breaker import get_failover_manager
 
 _drift_monitor = WeekendDriftMonitor()
 
@@ -51,13 +59,9 @@ if _SLOWAPI_AVAILABLE and RateLimitExceeded is not None and _rate_limit_exceeded
 
     app.add_exception_handler(RateLimitExceeded, _safe_rate_limit_handler)
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Enterprise Security Headers & CORS Policy
+app.add_middleware(EnterpriseSecurityHeadersMiddleware)
+configure_enterprise_cors(app)
 
 app.include_router(predict_router)
 app.include_router(narration_router)
@@ -72,12 +76,61 @@ async def root():
         "predict_endpoint": "/api/core/predict",
         "narrate_endpoint": "/api/core/predict/narrate",
         "metrics_endpoint": "/metrics",
+        "security_telemetry": "/api/security/telemetry",
     }
 
 
 @app.get("/api/health")
 async def health():
-    return {"status": "healthy", "service": "apex-core-v1"}
+    return {"status": "healthy", "service": "apex-core-v1", "security_active": True}
+
+
+# ── ENTERPRISE AI SECURITY ENDPOINTS ─────────────────────────────────────────
+
+@app.get("/api/security/telemetry")
+async def get_security_telemetry():
+    """Returns runtime telemetry for active enterprise security and AI guardrails."""
+    failover_mgr = get_failover_manager()
+    return {
+        "status": "operational",
+        "guardrails_active": True,
+        "anti_prompt_injection": True,
+        "canary_traps_enabled": True,
+        "pii_redaction_enabled": True,
+        "security_headers_enforced": True,
+        "circuit_breakers": failover_mgr.all_statuses(),
+    }
+
+
+@app.get("/api/security/audit-trail")
+async def get_audit_trail(role: Role = Depends(require_role(Role.ADMIN))):
+    """Retrieves cryptographically chained audit events (SOC 2 / ISO 27001). Requires ADMIN role."""
+    audit_logger = get_audit_logger()
+    return {
+        "events": audit_logger.get_recent_events(limit=50),
+        "chain_verified": audit_logger.verify_chain()[0],
+    }
+
+
+@app.get("/api/security/verify-chain")
+async def verify_audit_chain(role: Role = Depends(require_role(Role.ADMIN))):
+    """Cryptographically verifies tamper evidence across the audit hash chain."""
+    audit_logger = get_audit_logger()
+    is_valid, error = audit_logger.verify_chain()
+    return {
+        "is_valid": is_valid,
+        "error": error,
+        "algorithm": "SHA-256",
+    }
+
+
+@app.get("/api/security/circuit-status")
+async def get_circuit_status(role: Role = Depends(require_role(Role.ENGINEER))):
+    """Returns AI provider circuit breaker operational states. Requires ENGINEER role."""
+    failover_mgr = get_failover_manager()
+    return {
+        "providers": failover_mgr.all_statuses(),
+    }
 
 
 @app.get("/metrics")
