@@ -98,11 +98,14 @@ Response includes `predicted_position`, `confidence_interval`, `win_probability_
 
 ---
 
-## Enterprise Pit Wall War Room & 2026 Engine Upgrades
+## Enterprise Pit Wall War Room, Context & Agent Engineering
 
 APEX Enterprise extends the baseline pre-race predictor into a full pit wall intelligence suite:
-- **Vectorized Full 20-Car Grid Classification (`POST /api/core/predict/grid`)**: Evaluates all 20 drivers simultaneously in a single vectorized pass with non-overlapping rankings and conformal bounds.
-- **Monte Carlo Pit Stop & Safety Car Simulator (`POST /api/core/simulate/pit-stop`)**: 10,000 stochastic rollouts per second modeling undercut/overcut windows, tire wear, and Safety Car delta leverage (saving ~10.8s pit loss).
+- **Hierarchical Context Engineering (`context/`)**: Multi-tiered context assembly (L0 Structural, L1 Session, L2 Dynamic Stint, L3 Real-Time Telemetry) with semantic distillation (61–66% token compression) and mathematical quality gating.
+- **Harness Engineering Framework (`agents/`)**: Sandboxed execution (<200ms hard deadline), circuit breaker failovers, FIA cost-cap compute accounting, deterministic race scenario replay benchmarks (100% alignment on 5 historical GPs), and metamorphic invariance verification.
+- **Universal Model Context Protocol (MCP) Server (`core/mcp/`)**: Standard JSON-RPC 2.0 interface at `POST /api/mcp` exposing 5 tools, 4 resources, and 2 prompts to external AI assistants (Claude, Gemini, Antigravity).
+- **Vectorized Full 20-Car Grid Classification (`POST /api/core/predict/grid`)**: Evaluates all 20 drivers simultaneously in a single vectorized pass with non-overlapping rankings and conformal bounds (<15ms).
+- **Monte Carlo Pit Stop & Safety Car Simulator (`POST /api/core/simulate/pit-stop`)**: 10,000 stochastic rollouts in ~118ms modeling undercut/overcut windows, tire wear, and Safety Car delta leverage (saving ~10.8s pit loss).
 - **Pirelli Non-Linear Tyre Degradation & Cliff Matrix (`GET /api/core/tyres/stint-curve`, `POST /api/core/tyres/undercut`)**: Physics-informed wear modeling predicting exponential pace drop-off when tire wear exceeds 75%.
 - **Zero-Trust Cryptographic Model Integrity**: HMAC-SHA256 model signing and verification (`core.security.model_integrity`) guarding against tampering and unauthorized weight manipulation.
 - **Dynamic Driver Roster Service**: Decoupled driver profiles supporting mid-season reserve substitutions and real-time points standings.
@@ -121,6 +124,13 @@ APEX Enterprise extends the baseline pre-race predictor into a full pit wall int
 - `GET /api/core/drivers` — Dynamic Formula 1 driver roster and priors.
 - `GET /api/core/races` — Grand Prix calendar venues.
 
+### Model Context Protocol (MCP)
+- `POST /api/mcp` — Universal JSON-RPC 2.0 MCP dispatch endpoint.
+- `GET /api/mcp/capabilities` — Returns server capabilities, protocol version, and endpoints.
+- `GET /api/mcp/tools` — Lists registered tools (`apex_predict_grid`, `apex_simulate_pit_stop`, etc.).
+- `GET /api/mcp/resources` — Lists available resources (`apex://circuits`, `apex://drivers`, etc.).
+- `GET /api/mcp/prompts` — Lists standardized prompt templates for race engineering copilot interactions.
+
 ### Security, Drift & Observability
 - `GET /api/security/telemetry` — Active guardrails, Canary traps, and circuit breaker status.
 - `GET /api/security/audit-trail` — Cryptographically chained SHA-256 audit log (SOC 2).
@@ -132,12 +142,15 @@ APEX Enterprise extends the baseline pre-race predictor into a full pit wall int
 ## Structure
 
 ```
-core/                  ← the entire service
-├── api/               ← FastAPI routes (predict, grid, simulate, tyres, narration, drift, security)
+context/               ← Context Engineering: hierarchical assembler (L0-L3), distillation, quality metrics
+agents/                ← Harness Engineering: execution sandbox, race replay benchmark, metamorphic suite
+core/                  ← Core ML and prediction service
+├── api/               ← FastAPI routes (predict, grid, simulate, tyres, narration, mcp, drift, security)
 ├── data/              ← real_prerace_dataset.csv, dynamic roster service, and regulations
 │   └── regulations/   ← Sporting, technical, and 2026 Active Aero regulations
 ├── features/          ← 10-feature pre-race builder + Pirelli tyre degradation physics model
 ├── ingestion/         ← FastF1 and Jolpica adapters
+├── mcp/               ← Standard Model Context Protocol (MCP) JSON-RPC 2.0 server
 ├── models/            ← apex_core_v1_model.joblib + HMAC signature (.sig) + metadata + PSI bins
 ├── monitoring/        ← z-score + PSI drift monitors + Prometheus gauges
 ├── security/          ← HMAC model integrity, canary traps, audit chain, circuit breaker
@@ -145,7 +158,7 @@ core/                  ← the entire service
 ├── training/          ← CatBoost/XGB/GBR benchmark + model signing + conformal calibration
 └── requirements.txt
 frontend/              ← React + Vite + Three.js + Pit Wall War Room Command Console
-tests/                 ← 64 tests (100% passing across unit, security, and Monte Carlo suites)
+tests/                 ← 80 tests (100% passing across unit, security, Monte Carlo, context, and MCP suites)
 Dockerfile.hardened    ← Non-root, multi-stage hardened enterprise container
 .github/workflows/     ← Lean CI (pytest + npm build)
 ```

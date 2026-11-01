@@ -33,6 +33,7 @@ except ImportError:
 from core.api.limiter import limiter
 from core.api.predict import router as predict_router
 from core.api.narration import router as narration_router
+from core.mcp.server import ApexMCPServer
 from core.monitoring.drift import WeekendDriftMonitor
 from core.security import (
     EnterpriseSecurityHeadersMiddleware,
@@ -44,6 +45,7 @@ from core.security import (
 from core.security.circuit_breaker import get_failover_manager
 
 _drift_monitor = WeekendDriftMonitor()
+_mcp_server = ApexMCPServer()
 
 app = FastAPI(
     title="APEX Core — Pre-Race Finishing Position Intelligence",
@@ -75,6 +77,7 @@ async def root():
         "docs_url": "/docs",
         "predict_endpoint": "/api/core/predict",
         "narrate_endpoint": "/api/core/predict/narrate",
+        "mcp_endpoint": "/api/mcp",
         "metrics_endpoint": "/metrics",
         "security_telemetry": "/api/security/telemetry",
     }
@@ -164,6 +167,39 @@ async def check_weekend_drift(records: List[Dict[str, Any]], z_threshold: float 
             if "drift_score_z" in f_data and f_data["drift_score_z"] is not None:
                 FEATURE_DRIFT_Z_SCORE.labels(feature=feat).set(float(f_data["drift_score_z"]))
     return report
+
+
+# ── MODEL CONTEXT PROTOCOL (MCP) ENDPOINTS ───────────────────────────────────
+
+@app.post("/api/mcp")
+async def handle_mcp_json_rpc(request: Request):
+    """Universal Model Context Protocol (MCP) JSON-RPC 2.0 dispatch endpoint."""
+    body = await request.json()
+    return _mcp_server.handle_json_rpc(body)
+
+
+@app.get("/api/mcp/capabilities")
+async def get_mcp_capabilities():
+    """Returns APEX MCP server capabilities."""
+    return _mcp_server.get_server_capabilities()
+
+
+@app.get("/api/mcp/tools")
+async def list_mcp_tools():
+    """Lists registered tools exposed via MCP."""
+    return {"tools": _mcp_server.list_tools()}
+
+
+@app.get("/api/mcp/resources")
+async def list_mcp_resources():
+    """Lists resources inspectable via MCP."""
+    return {"resources": _mcp_server.list_resources()}
+
+
+@app.get("/api/mcp/prompts")
+async def list_mcp_prompts():
+    """Lists prompt templates available via MCP."""
+    return {"prompts": _mcp_server.list_prompts()}
 
 
 if __name__ == "__main__":
