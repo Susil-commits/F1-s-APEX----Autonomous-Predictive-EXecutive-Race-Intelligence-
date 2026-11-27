@@ -10,7 +10,7 @@ This document records the empirical load test benchmarks executed against the st
 - **Tooling**: [Locust 2.46.4](https://locust.io/) headless runner (`locustfile.py`)
 - **Server Framework**: FastAPI on Uvicorn ASGI runtime
 - **Execution Model**: Non-blocking asynchronous event loop; CPU-bound inference (`model.predict` + quantile regression) dispatched to worker threads via `fastapi.concurrency.run_in_threadpool`
-- **Worker Configuration**: Single process benchmark runtime; production container configured with `--workers 2` in `Dockerfile.core`
+- **Worker Configuration**: Single process benchmark runtime; production container configured with `--workers 2` in `Dockerfile`
 - **Rate Limiting**: Bypassed for pure compute saturation testing (`RATE_LIMIT_ENABLED=false`). In standard production operation, SlowAPI enforces a token-bucket rate limit of **30 requests/minute per client IP** on `/api/core/predict` (429 returned on overflow)
 - **Payload Variance**: Random permutations of 16 grid drivers, 14 circuits, qualifying sector splits (S1/S2/S3 deltas), rain forecast variations, and mid-race weather transition flags.
 
@@ -75,7 +75,7 @@ This document records the empirical load test benchmarks executed against the st
    Offloading `model.predict()` and quantile inference to `run_in_threadpool` prevents synchronous NumPy/CatBoost calculations from blocking the single-threaded asyncio event loop.
    - *Trade-off Context*: Threadpool handoff incurs a fractional microsecond context switch overhead per request. For very light, sub-millisecond tree predictions, this trade-off prioritizes event-loop concurrency and I/O responsiveness (e.g. `/api/health` p50 remains 1–23 ms) over single-request microsecond minimization.
 3. **Multi-Worker Scaling (`--workers 2`)**:
-   `Dockerfile.core` is configured with `--workers 2`. Since `get_core_model()` caches the model as a module-level singleton, each worker process loads its own in-memory copy upon fork/spawn. This doubles CPU core utilization without inter-process lock contention.
+   `Dockerfile` is configured with `--workers 2`. Since `get_core_model()` caches the model as a module-level singleton, each worker process loads its own in-memory copy upon fork/spawn. This doubles CPU core utilization without inter-process lock contention.
 4. **Horizontal Scaling**:
    For production clusters requiring >1,000 req/s, deploy containerized replicas behind an NGINX ingress or AWS ALB reverse proxy with round-robin balancing.
 

@@ -158,10 +158,10 @@ def evaluate_model_temporal(model_artifact: Dict[str, Any], n_test_samples: int 
 
     # Evaluate asymmetric quantiles if present
     quantile_eval = {}
-    if quantile_models and "p10" in quantile_models and "p90" in quantile_models:
+    if quantile_models and "q10" in quantile_models and "q90" in quantile_models:
         try:
-            q10_p = quantile_models["p10"].predict(X_test)
-            q90_p = quantile_models["p90"].predict(X_test)
+            q10_p = quantile_models["q10"].predict(X_test)
+            q90_p = quantile_models["q90"].predict(X_test)
             q_covered = (y_test >= q10_p) & (y_test <= q90_p)
             q_cov = float(np.mean(q_covered))
             q_widths = q90_p - q10_p

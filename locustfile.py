@@ -44,22 +44,17 @@ class ApexCorePredictUser(HttpUser):
                 resp.failure(f"HTTP {resp.status_code}: {resp.text}")
 
     @task(2)
-    def predict_with_sectors(self):
-        """Simulates detailed prediction payload including sector deltas and weather transition."""
+    def predict_weather_transition(self):
+        """Simulates prediction payload with rain forecast and mid-race weather transition."""
         driver = random.choice(CANDIDATE_DRIVERS)
         circuit = random.choice(CANDIDATE_CIRCUITS)
         grid = random.randint(1, 20)
-        s1 = round(random.uniform(0.0, 0.6), 3)
-        s2 = round(random.uniform(0.0, 0.8), 3)
-        s3 = round(random.uniform(0.0, 0.5), 3)
 
         payload = {
             "race_id": circuit,
             "driver_id": driver,
             "grid_position": grid,
-            "sector_1_delta_s": s1,
-            "sector_2_delta_s": s2,
-            "sector_3_delta_s": s3,
+            "rain_probability": random.choice([0.25, 0.50, 0.80]),
             "weather_transition": random.choice([True, False]),
         }
         with self.client.post("/api/core/predict", json=payload, catch_response=True) as resp:

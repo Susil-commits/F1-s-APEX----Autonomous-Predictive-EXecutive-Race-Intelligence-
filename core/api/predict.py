@@ -33,34 +33,6 @@ MODEL_FILE = os.path.join(
     os.path.dirname(__file__), "..", "models", "apex_core_v1_model.joblib"
 )
 
-# Reference 2024/2025/2026 driver profiles for pre-race starting priors
-DRIVER_ROSTER: Dict[str, Dict[str, Any]] = {
-    "VER": {"name": "Max Verstappen", "first_name": "Max", "last_name": "VERSTAPPEN", "team": "Red Bull Racing", "number": 1, "color": "#3671C6", "country": "🇳🇱", "default_grid": 1, "photo": "/f1/drivers/VER.webp", "pts_share": 0.28, "rolling_avg": 2.1, "starts": 10},
-    "NOR": {"name": "Lando Norris", "first_name": "Lando", "last_name": "NORRIS", "team": "McLaren", "number": 4, "color": "#FF8000", "country": "🇬🇧", "default_grid": 2, "photo": "/f1/drivers/NOR.webp", "pts_share": 0.24, "rolling_avg": 2.8, "starts": 6},
-    "LEC": {"name": "Charles Leclerc", "first_name": "Charles", "last_name": "LECLERC", "team": "Ferrari", "number": 16, "color": "#E80020", "country": "🇲🇨", "default_grid": 3, "photo": "/f1/drivers/LEC.webp", "pts_share": 0.21, "rolling_avg": 3.4, "starts": 7},
-    "PIA": {"name": "Oscar Piastri", "first_name": "Oscar", "last_name": "PIASTRI", "team": "McLaren", "number": 81, "color": "#FF8000", "country": "🇦🇺", "default_grid": 4, "photo": "/f1/drivers/PIA.webp", "pts_share": 0.24, "rolling_avg": 4.1, "starts": 2},
-    "SAI": {"name": "Carlos Sainz", "first_name": "Carlos", "last_name": "SAINZ", "team": "Williams", "number": 55, "color": "#64C4FF", "country": "🇪🇸", "default_grid": 8, "photo": "/f1/drivers/SAI.webp", "pts_share": 0.21, "rolling_avg": 4.8, "starts": 9},
-    "HAM": {"name": "Lewis Hamilton", "first_name": "Lewis", "last_name": "HAMILTON", "team": "Ferrari", "number": 44, "color": "#E80020", "country": "🇬🇧", "default_grid": 5, "photo": "/f1/drivers/HAM.webp", "pts_share": 0.16, "rolling_avg": 5.2, "starts": 17},
-    "RUS": {"name": "George Russell", "first_name": "George", "last_name": "RUSSELL", "team": "Mercedes", "number": 63, "color": "#00A19B", "country": "🇬🇧", "default_grid": 6, "photo": "/f1/drivers/RUS.webp", "pts_share": 0.16, "rolling_avg": 5.8, "starts": 6},
-    "ANT": {"name": "Kimi Antonelli", "first_name": "Kimi", "last_name": "ANTONELLI", "team": "Mercedes", "number": 12, "color": "#00A19B", "country": "🇮🇹", "default_grid": 7, "photo": "/f1/drivers/ANT.webp", "pts_share": 0.16, "rolling_avg": 7.0, "starts": 0},
-    "PER": {"name": "Sergio Perez", "first_name": "Sergio", "last_name": "PEREZ", "team": "Red Bull Racing", "number": 11, "color": "#3671C6", "country": "🇲🇽", "default_grid": 8, "photo": "/f1/drivers/PER.webp", "pts_share": 0.28, "rolling_avg": 7.4, "starts": 13},
-    "ALO": {"name": "Fernando Alonso", "first_name": "Fernando", "last_name": "ALONSO", "team": "Aston Martin", "number": 14, "color": "#229971", "country": "🇪🇸", "default_grid": 9, "photo": "/f1/drivers/ALO.webp", "pts_share": 0.08, "rolling_avg": 8.5, "starts": 19},
-    "STR": {"name": "Lance Stroll", "first_name": "Lance", "last_name": "STROLL", "team": "Aston Martin", "number": 18, "color": "#229971", "country": "🇨🇦", "default_grid": 10, "photo": "/f1/drivers/STR.webp", "pts_share": 0.08, "rolling_avg": 11.2, "starts": 7},
-    "TSU": {"name": "Yuki Tsunoda", "first_name": "Yuki", "last_name": "TSUNODA", "team": "RB", "number": 22, "color": "#6692FF", "country": "🇯🇵", "default_grid": 11, "photo": "/f1/drivers/TSU.webp", "pts_share": 0.04, "rolling_avg": 11.8, "starts": 4},
-    "HUL": {"name": "Nico Hulkenberg", "first_name": "Nico", "last_name": "HULKENBERG", "team": "Kick Sauber", "number": 27, "color": "#52E252", "country": "🇩🇪", "default_grid": 13, "photo": "/f1/drivers/HUL.webp", "pts_share": 0.03, "rolling_avg": 12.1, "starts": 11},
-    "ALB": {"name": "Alexander Albon", "first_name": "Alexander", "last_name": "ALBON", "team": "Williams", "number": 23, "color": "#64C4FF", "country": "🇹🇭", "default_grid": 12, "photo": "/f1/drivers/ALB.webp", "pts_share": 0.02, "rolling_avg": 12.8, "starts": 5},
-    "RIC": {"name": "Daniel Ricciardo", "first_name": "Daniel", "last_name": "RICCIARDO", "team": "RB", "number": 3, "color": "#6692FF", "country": "🇦🇺", "default_grid": 14, "photo": "/f1/drivers/RIC.webp", "pts_share": 0.04, "rolling_avg": 13.2, "starts": 12},
-    "GAS": {"name": "Pierre Gasly", "first_name": "Pierre", "last_name": "GASLY", "team": "Alpine", "number": 10, "color": "#0093CC", "country": "🇫🇷", "default_grid": 15, "photo": "/f1/drivers/GAS.webp", "pts_share": 0.02, "rolling_avg": 13.9, "starts": 7},
-    "OCO": {"name": "Esteban Ocon", "first_name": "Esteban", "last_name": "OCON", "team": "Alpine", "number": 31, "color": "#0093CC", "country": "🇫🇷", "default_grid": 16, "photo": "/f1/drivers/OCO.webp", "pts_share": 0.02, "rolling_avg": 14.1, "starts": 7},
-    "MAG": {"name": "Kevin Magnussen", "first_name": "Kevin", "last_name": "MAGNUSSEN", "team": "Haas", "number": 20, "color": "#B6BABD", "country": "🇩🇰", "default_grid": 17, "photo": "/f1/drivers/MAG.webp", "pts_share": 0.03, "rolling_avg": 14.5, "starts": 8},
-    "ZHO": {"name": "Zhou Guanyu", "first_name": "Guanyu", "last_name": "ZHOU", "team": "Kick Sauber", "number": 24, "color": "#52E252", "country": "🇨🇳", "default_grid": 18, "photo": "/f1/drivers/ZHO.webp", "pts_share": 0.00, "rolling_avg": 16.8, "starts": 3},
-    "BOT": {"name": "Valtteri Bottas", "first_name": "Valtteri", "last_name": "BOTAS", "team": "Kick Sauber", "number": 77, "color": "#52E252", "country": "🇫🇮", "default_grid": 19, "photo": "/f1/drivers/BOT.webp", "pts_share": 0.00, "rolling_avg": 16.2, "starts": 11},
-    "SAR": {"name": "Logan Sargeant", "first_name": "Logan", "last_name": "SARGEANT", "team": "Williams", "number": 2, "color": "#64C4FF", "country": "🇺🇸", "default_grid": 20, "photo": "/f1/drivers/SAR.webp", "pts_share": 0.02, "rolling_avg": 18.0, "starts": 2},
-    "BEA": {"name": "Oliver Bearman", "first_name": "Oliver", "last_name": "BEARMAN", "team": "Haas", "number": 87, "color": "#B6BABD", "country": "🇬🇧", "default_grid": 14, "photo": "/f1/drivers/BEA.webp", "pts_share": 0.02, "rolling_avg": 11.0, "starts": 2},
-    "LAW": {"name": "Liam Lawson", "first_name": "Liam", "last_name": "LAWSON", "team": "RB", "number": 30, "color": "#6692FF", "country": "🇳🇿", "default_grid": 12, "photo": "/f1/drivers/LAW.webp", "pts_share": 0.03, "rolling_avg": 10.5, "starts": 5},
-    "COL": {"name": "Franco Colapinto", "first_name": "Franco", "last_name": "COLAPINTO", "team": "Williams", "number": 43, "color": "#64C4FF", "country": "🇦🇷", "default_grid": 13, "photo": "/f1/drivers/COL.webp", "pts_share": 0.03, "rolling_avg": 11.5, "starts": 6},
-}
-
 _CACHED_MODEL: Any = None
 _MODEL_LOCK = threading.Lock()
 
@@ -185,8 +157,6 @@ async def compute_sensitivity(
                 continue
             test_dict = dict(base_feat_dict)
             test_dict[dict_key] = test_val
-            if feature_name in test_dict:
-                test_dict[feature_name] = max(0.0, float(base_feat_dict.get(feature_name, 0.0)) + delta)
 
             feat_vec = feature_builder.dict_to_vector(test_dict)
             vectors.append(feat_vec)
@@ -270,9 +240,9 @@ async def predict_finish(request: Request, req: PredictRequest):
             detail="Invalid driver_id: must be a 3-letter F1 driver abbreviation (e.g. 'VER', 'HAM', 'NOR').",
         )
     driver_key = raw_driver.upper()
-    from core.data.roster_service import get_roster_service
+    from core.data.roster_service import DEFAULT_DRIVER_ROSTER, get_roster_service
     roster_svc = get_roster_service()
-    profile = roster_svc.get_driver(driver_key) or DRIVER_ROSTER.get(driver_key)
+    profile = roster_svc.get_driver(driver_key) or DEFAULT_DRIVER_ROSTER.get(driver_key)
     if profile is None:
         # Default generic driver profile
         profile = {
@@ -377,9 +347,6 @@ async def predict_finish(request: Request, req: PredictRequest):
         "race_rain_prob": "Precipitation Forecast",
         "quali_delta_to_pole_s": "Qualifying Pace Delta",
         "circuit_is_street_track": "Street Track Volatility",
-        "sector_1_delta_norm": "Sector 1 Cornering/Pace",
-        "sector_2_delta_norm": "Sector 2 Technical/Pace",
-        "sector_3_delta_norm": "Sector 3 Straight/Pace",
         "weather_transition_flag": "Mid-Race Weather Transition Risk",
     }
 
@@ -398,7 +365,7 @@ async def predict_finish(request: Request, req: PredictRequest):
         imp = float(norm_importances[idx])
         val = feat_dict.get(name, 0.0)
         # Direction
-        if name in ["grid_position_norm", "quali_delta_to_pole_s", "driver_rolling_finish_norm", "sector_1_delta_norm", "sector_2_delta_norm", "sector_3_delta_norm"]:
+        if name in ["grid_position_norm", "quali_delta_to_pole_s", "driver_rolling_finish_norm"]:
             direction = "improves_finish" if val < 0.4 else "hurts_finish"
         else:
             direction = "improves_finish" if val > 0.5 else "neutral"
@@ -516,11 +483,11 @@ async def predict_full_grid(request: Request, req: GridPredictRequest):
     matrix pass with zero cross-driver collisions.
     """
     start_time = time.perf_counter()
-    from core.data.roster_service import get_roster_service
+    from core.data.roster_service import DEFAULT_DRIVER_ROSTER, get_roster_service
     roster_svc = get_roster_service()
     drivers = roster_svc.get_all_drivers(active_only=True)
     if not drivers:
-        drivers = list(DRIVER_ROSTER.values())
+        drivers = list(DEFAULT_DRIVER_ROSTER.values())
 
     circuit_id = req.race_id.lower().replace("_2024", "").replace("_2025", "")
     rain = float(req.rain_probability if req.rain_probability is not None else 0.10)

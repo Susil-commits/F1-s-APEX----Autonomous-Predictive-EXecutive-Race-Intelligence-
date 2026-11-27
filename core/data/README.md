@@ -24,4 +24,4 @@ This directory houses the foundational training data and regulatory reference co
 
 ## 2. Regulations Corpus (`regulations/`)
 
-The [`regulations/`](regulations/) subdirectory contains **3 curated domain summaries** for strategic lever grounding (DRS, Parc Fermé, Tyre/Weather). These are curated summaries rather than full FIA statutory documents.
+The [`regulations/`](regulations/) subdirectory contains **4 curated domain summaries** for strategic lever grounding (DRS, Parc Fermé, Tyre/Weather, and 2026 Power Unit & Active Aero). These are curated summaries rather than full FIA statutory documents.

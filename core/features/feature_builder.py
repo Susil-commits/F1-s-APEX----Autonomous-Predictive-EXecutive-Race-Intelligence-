@@ -84,12 +84,7 @@ class PreRaceFeatureBuilder:
         rain_prob: float = 0.10,
         weather_transition: bool | float = 0.0,
     ) -> Tuple[np.ndarray, Dict[str, float]]:
-        """Constructs a normalized 10-dimensional vector from pre-race inputs.
-
-        Sector-time delta arguments (sector_1/2/3_delta_s) were removed because
-        real_prerace_dataset.csv contains no sector columns.  Accepting them as
-        keyword arguments for a transitional period; they are silently ignored.
-        """
+        """Constructs a normalized 10-dimensional vector from pre-race inputs."""
         profile = CIRCUIT_PROFILES.get(
             circuit_id.lower(),
             {"downforce": 0.60, "power": 0.70, "street": 0.0}
@@ -136,5 +131,5 @@ class PreRaceFeatureBuilder:
 
     @staticmethod
     def dict_to_vector(feat_dict: Dict[str, float]) -> np.ndarray:
-        """Converts a feature dictionary into a 13-dimensional numpy vector aligned with PRE_RACE_FEATURE_NAMES."""
+        """Converts a feature dictionary into a 10-dimensional numpy vector aligned with PRE_RACE_FEATURE_NAMES."""
         return np.array([float(feat_dict.get(name, 0.0)) for name in PRE_RACE_FEATURE_NAMES], dtype=np.float32)
