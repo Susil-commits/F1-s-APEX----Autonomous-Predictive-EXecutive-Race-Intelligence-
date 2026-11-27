@@ -34,11 +34,11 @@ DEFAULT_PSI_BINS_PATH = os.path.join(os.path.dirname(__file__), "..", "models", 
 
 TARGET_FEATURES = ["grid_position", "quali_delta_s", "rain_prob"]
 
-# Fallback reference stats from 2022-2024 training dataset (1,361 records)
+# Fallback reference stats from 2022-2024 training dataset (1,359 records)
 DEFAULT_BASELINE_STATS: Dict[str, Dict[str, float]] = {
     "grid_position": {"mean": 10.50, "std": 5.76, "min": 1.0, "max": 20.0},
     "quali_delta_s": {"mean": 1.25, "std": 0.94, "min": 0.0, "max": 4.50},
-    "rain_prob": {"mean": 0.08, "std": 0.12, "min": 0.0, "max": 0.85},
+    "rain_prob": {"mean": 0.253, "std": 0.261, "min": 0.02, "max": 0.95},
 }
 
 

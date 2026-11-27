@@ -23,9 +23,9 @@ Selection metrics (2023 validation, model trained on 2022 only):
 | Model / Benchmark Strategy | Selection $R^2$ (2023) | Selection MAE | Relative MAE Reduction | Status |
 |---|---|---|---|---|
 | **Naive Mean Predictor** ($\bar{y}$ = P10.5) | — | 4.99 pos | Baseline (0.0%) | Heuristic |
-| **Scikit-Learn Gradient Boosting** (`GBR`) | 0.569 | 2.708 pos | 45.7% | Candidate |
-| **Extreme Gradient Boosting** (`XGBoost`) | 0.579 | 2.708 pos | 45.7% | Candidate |
-| **Categorical Gradient Boosting** (`CatBoost`) | **0.597** | **2.680 pos** | **46.3%** | **WINNER ✓** |
+| **Scikit-Learn Gradient Boosting** (`GBR`) | 0.565 | 2.743 pos | 45.0% | Candidate |
+| **Extreme Gradient Boosting** (`XGBoost`) | 0.585 | 2.675 pos | 46.4% | Candidate |
+| **Categorical Gradient Boosting** (`CatBoost`) | **0.599** | **2.668 pos** | **46.5%** | **WINNER ✓** |
 
 Final evaluation on 2024 holdout (winner refitted on 2022+2023, seed 42):
 
@@ -33,21 +33,21 @@ Final evaluation on 2024 holdout (winner refitted on 2022+2023, seed 42):
 |---|---|
 | Holdout season | 2024 |
 | Holdout N | **479 driver-race entries** |
-| Holdout MAE | **2.362 positions** |
-| Holdout $R^2$ | **0.686** |
-| Holdout RMSE | 3.223 |
-| Pearson $r$ | 0.831 |
-| Spearman $\rho$ | 0.821 |
+| Holdout MAE | **2.390 positions** |
+| Holdout $R^2$ | **0.684** |
+| Holdout RMSE | 3.235 |
+| Pearson $r$ | 0.829 |
+| Spearman $\rho$ | 0.817 |
 | Naive baseline MAE | 4.991 |
-| **MAE reduction vs. naive** | **52.7%** |
-| Conformal q̂ | ±6.470 positions |
-| Conformal coverage (90% target) | **95.8%** |
-| Conformal mean interval width | 12.94 positions |
+| **MAE reduction vs. naive** | **52.1%** |
+| Conformal q̂ | ±6.670 positions |
+| Conformal coverage (90% target) | **95.6%** |
+| Conformal mean interval width | 13.34 positions |
 
 **Key Takeaways**:
-- CatBoost explains **68.6% of finish position variance** ($R^2 = 0.686$) on real held-out 2024 Grand Prix races ($N = 479$ driver entries).
-- Cuts mean absolute error from **4.99 positions down to 2.36 positions** (a **52.7% error reduction** over the naive baseline).
-- Uses a 10-feature representation: grid position, qualifying delta, driver rolling average, circuit experience, constructor points share, circuit downforce/power/type, rain probability, and weather transition flag.
+- CatBoost explains **68.4% of finish position variance** ($R^2 = 0.684$) on real held-out 2024 Grand Prix races ($N = 479$ driver entries).
+- Cuts mean absolute error from **4.99 positions down to 2.39 positions** (a **52.1% error reduction** over the naive baseline).
+- Uses a 10-feature representation: grid position, qualifying delta, driver rolling average, circuit experience, constructor points share, circuit downforce/power/type, Open-Meteo rain probability, and weather transition flag.
 
 > **Note on sector features**: Sector-time delta features (S1/S2/S3) are absent from `real_prerace_dataset.csv`. Rather than imputing them from a quali-delta heuristic (which added negligible signal: +0.008 MAE), they were dropped in v1.0.1. The 10-feature model is the shipped baseline.
 
@@ -77,14 +77,14 @@ uv run python -m core.training.train
 
 Aggregating metrics across all tracks conceals critical variance in how physics and circuit geography govern racing outcomes. In `core/training/evaluate.py`, holdout performance is broken down by circuit typology:
 
-| Circuit Category | Representative Venues | Samples | MAE (pos) | RMSE | Holdout $R^2$ | Pearson $r$ | Conformal Coverage ($\ge 90\%$) |
-|---|---|---|---|---|---|---|---|
-| **High-Speed** | Monza, Las Vegas, Red Bull Ring | 60 | **2.12** | **2.95** | **0.738** | **0.860** | **98.3%** |
-| **Permanent** | Silverstone, Spa, Suzuka, Catalunya, Zandvoort, Bahrain | 300 | **2.40** | **3.24** | **0.684** | **0.829** | **96.0%** |
-| **Street** | Monaco, Singapore, Baku, Miami, Jeddah, Albert Park | 119 | **2.40** | **3.31** | **0.666** | **0.819** | **94.1%** |
+| Circuit Category | Representative Venues | Samples | MAE (pos) | RMSE | Holdout $R^2$ | Conformal Coverage ($\ge 90\%$) |
+|---|---|---|---|---|---|---|
+| **High-Speed** | Monza, Las Vegas, Red Bull Ring | 60 | **2.17** | **3.01** | **0.727** | **98.3%** |
+| **Permanent** | Silverstone, Spa, Suzuka, Catalunya, Zandvoort, Bahrain | 300 | **2.43** | **3.26** | **0.681** | **95.7%** |
+| **Street** | Monaco, Singapore, Baku, Miami, Jeddah, Albert Park | 119 | **2.39** | **3.29** | **0.670** | **94.1%** |
 
 ### The "Street Circuit Finding" (Engineering Discussion)
-- **Honest ML Finding**: The model performs noticeably worse on street circuits ($R^2 = 0.666$) compared to high-speed circuits ($R^2 = 0.738$).
+- **Honest ML Finding**: The model performs slightly worse on street circuits ($R^2 = 0.670$) compared to high-speed circuits ($R^2 = 0.727$).
 - **Causal Interpretation**: Street venues (Monaco, Baku, Singapore) have high safety-car frequencies (>75%), zero runoff margin, tight overtaking delta penalties, and sudden yellow/red flag interventions. Starting position heavily correlates with qualifying, but retirements and safety car pit-stops introduce irreducible stochastic variance that purely pre-race priors cannot anticipate.
 - **Why This Matters**: Acknowledging and explaining subgroup disparity illustrates authentic domain intelligence rather than obscuring variance behind a single global average.
 
@@ -95,15 +95,15 @@ Aggregating metrics across all tracks conceals critical variance in how physics 
 APEX provides dual uncertainty modeling: distribution-free split conformal prediction bands alongside state-dependent asymmetric quantile regression.
 
 ### Asymmetric Uncertainty: Why Quantiles Matter
-A symmetric conformal interval (e.g. $\pm 6.47$ positions, total width 12.94 positions) treats uncertainty symmetrically. However:
+A symmetric conformal interval (e.g. $\pm 6.67$ positions, total width 13.34 positions) treats uncertainty symmetrically. However:
 - **Pole-Sitters (P1–P3)** have zero upside (cannot finish better than P1) but substantial downside risk (first-corner collisions, mechanical DNF, pit-stop delays).
 - **Midfield Drivers (P8–P12)** face traffic battles, alternate tire strategies, and DRS trains.
 - **Backmarkers (P18–P20)** cannot drop below P20, but have asymmetric upside if multi-car collisions occur ahead.
 
 | Model Strategy | Target Coverage | Empirical Coverage | Mean Interval Width |
 |---|---|---|---|
-| **Symmetric Split Conformal** | 90.0% | **95.8%** | **12.94 positions** |
-| **Quantile Regression (P10/P50/P90)** | 80.0% | **73.3%** | **8.00 positions** |
+| **Symmetric Split Conformal** | 90.0% | **95.6%** | **13.34 positions** |
+| **Quantile Regression (P10/P50/P90)** | 80.0% | **72.4%** | **7.91 positions** |
 
 ---
 

@@ -24,14 +24,14 @@ The winner was then refitted on 2022+2023 and evaluated **once** on the 2024 hol
 | Model / Benchmark Strategy | Selection R² (2023 val) | Selection MAE | 2024 Holdout R² | 2024 Holdout MAE | Status |
 |----------------------------|------------------------|---------------|-----------------|------------------|--------|
 | Naive Mean Predictor (P10.5) | — | 4.99 pos | — | 4.99 pos | Heuristic |
-| GradientBoostingRegressor | 0.569 | 2.708 | — | — | Candidate |
-| XGBRegressor | 0.579 | 2.708 | — | — | Candidate |
-| **CatBoostRegressor ✓** | **0.597** | **2.680** | **0.686** | **2.362 pos** | **WINNER (Selected)** |
+| GradientBoostingRegressor | 0.565 | 2.743 | — | — | Candidate |
+| XGBRegressor | 0.585 | 2.675 | — | — | Candidate |
+| **CatBoostRegressor ✓** | **0.599** | **2.668** | **0.684** | **2.390 pos** | **WINNER (Selected)** |
 
-- **Training data**: Jolpica real F1 seasons 2022–2023 (N=880 driver-race entries).
+- **Training data**: Jolpica real F1 seasons 2022–2023 (N=880 driver-race entries) enriched with Open-Meteo historical race-day weather.
 - **Holdout**: 2024 season (N=479 driver entries — strictly held-out, never used in selection).
-- **Conformal coverage on holdout**: **95.8%** (exceeds 90% target, q̂ = ±6.47 pos).
-- **Gain vs. Baseline**: CatBoost explains **68.6% of finishing variance** and reduces MAE by **52.7%** vs naive prediction.
+- **Conformal coverage on holdout**: **95.6%** (exceeds 90% target, q̂ = ±6.67 pos).
+- **Gain vs. Baseline**: CatBoost explains **68.4% of finishing variance** and reduces MAE by **52.1%** vs naive prediction.
 
 ---
 
@@ -117,6 +117,8 @@ APEX Enterprise extends the baseline pre-race predictor into a full pit wall int
 
 ### Core Prediction & Strategy
 - `POST /api/core/predict` — Single driver pre-race finishing position & conformal interval.
+- `POST /api/core/predict/narrate` — Pre-race prediction + FIA regulations RAG + LLM race-engineer briefing.
+- `POST /api/core/strategy/brief` — Live L0–L3 hierarchical context assembly, quality gating, and sandboxed agent tactical brief.
 - `POST /api/core/predict/grid` — Full 20-car grid vectorized finish classification.
 - `POST /api/core/simulate/pit-stop` — 10,000-rollout in-race Monte Carlo pit strategy simulator.
 - `GET /api/core/tyres/stint-curve` — Pirelli tire compound degradation trajectory.
@@ -149,7 +151,7 @@ core/                  ← Core ML and prediction service
 ├── data/              ← real_prerace_dataset.csv, dynamic roster service, and regulations
 │   └── regulations/   ← Sporting, technical, and 2026 Active Aero regulations
 ├── features/          ← 10-feature pre-race builder + Pirelli tyre degradation physics model
-├── ingestion/         ← FastF1 and Jolpica adapters
+├── ingestion/         ← Jolpica F1 & Open-Meteo weather adapters
 ├── mcp/               ← Standard Model Context Protocol (MCP) JSON-RPC 2.0 server
 ├── models/            ← apex_core_v1_model.joblib + HMAC signature (.sig) + metadata + PSI bins
 ├── monitoring/        ← z-score + PSI drift monitors + Prometheus gauges
@@ -158,7 +160,8 @@ core/                  ← Core ML and prediction service
 ├── training/          ← CatBoost/XGB/GBR benchmark + model signing + conformal calibration
 └── requirements.txt
 frontend/              ← React + Vite + Three.js + Pit Wall War Room Command Console
-tests/                 ← 80 tests (100% passing across unit, security, Monte Carlo, context, and MCP suites)
+tests/                 ← 83 tests (100% passing across unit, security, Monte Carlo, context, and MCP suites)
+Dockerfile             ← Lean multi-worker production container
 Dockerfile.hardened    ← Non-root, multi-stage hardened enterprise container
 .github/workflows/     ← Lean CI (pytest + npm build)
 ```

@@ -37,6 +37,8 @@ COPY --from=builder /install /usr/local
 
 # Copy application source code with non-root ownership
 COPY --chown=appuser:appgroup core/ ./core/
+COPY --chown=appuser:appgroup agents/ ./agents/
+COPY --chown=appuser:appgroup context/ ./context/
 
 # Security: Set python runtime flags
 ENV PYTHONUNBUFFERED=1 \

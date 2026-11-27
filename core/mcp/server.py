@@ -8,11 +8,14 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List
+
+import numpy as np
 
 from core.data.roster_service import get_roster_service
-from core.features.feature_builder import CIRCUIT_PROFILES
+from core.features.feature_builder import CIRCUIT_PROFILES, PreRaceFeatureBuilder
 from core.features.tyre_model import TyreDegradationModel
 from core.security.model_integrity import verify_model_integrity
 from core.simulation.monte_carlo import MonteCarloRaceSimulator
@@ -131,21 +134,65 @@ class ApexMCPServer:
         start = time.perf_counter()
 
         if name == "apex_predict_grid":
-            race_id = arguments.get("race_id", "silverstone")
-            rain_prob = arguments.get("rain_probability", 0.0)
-            drivers = self.roster_service.get_all_drivers(active_only=True)
+            from core.api.predict import get_core_model
+
+            race_id = str(arguments.get("race_id", "silverstone"))
+            circuit_id = race_id.lower().replace("_2024", "").replace("_2025", "")
+            rain_prob = float(np.clip(float(arguments.get("rain_probability", 0.0)), 0.0, 1.0))
+            weather_trans = bool(arguments.get("weather_transition", False))
+            grid_overrides = arguments.get("grid_overrides") or {}
+
+            drivers = self.roster_service.get_all_drivers(active_only=True)[:20]
+            artifact = get_core_model()
+            model = artifact["model"]
+            q_hat = float(artifact.get("q_hat_margin", 2.0))
+
+            feature_matrix: List[np.ndarray] = []
+            for d in drivers:
+                code = d["code"]
+                grid = int(grid_overrides.get(code, d.get("default_grid", 10)))
+                feat_vec, _ = PreRaceFeatureBuilder.extract_features(
+                    grid_position=grid,
+                    quali_delta_s=max(0.0, (grid - 1) * 0.12),
+                    rolling_avg_finish=float(d.get("rolling_avg", 10.0)),
+                    circuit_starts=int(d.get("starts", 5)),
+                    constructor_pts_share=float(d.get("pts_share", 0.05)),
+                    circuit_id=circuit_id,
+                    rain_prob=rain_prob,
+                    weather_transition=weather_trans,
+                )
+                feature_matrix.append(feat_vec)
+
+            X = np.array(feature_matrix, dtype=np.float32)
+            raw_preds = model.predict(X)
+            indexed_scores = sorted(enumerate(raw_preds), key=lambda item: float(item[1]))
+
             results = []
-            for i, d in enumerate(drivers[:20]):
-                predicted_pos = i + 1
+            for rank_idx, (orig_idx, score) in enumerate(indexed_scores, start=1):
+                d = drivers[orig_idx]
+                raw_val = float(score)
+                lower = max(1, int(np.floor(raw_val - q_hat)))
+                upper = min(20, int(np.ceil(raw_val + q_hat)))
+                win_prob = float(np.clip(np.exp(-0.9 * max(0.0, raw_val - 1.0)) * 100.0, 0.5, 95.0))
+                podium_prob = float(np.clip(np.exp(-0.45 * max(0.0, raw_val - 3.0)) * 100.0, 1.0, 99.0))
+                if rank_idx == 1:
+                    podium_prob = max(podium_prob, 85.0)
                 results.append({
-                    "driver_id": d["driver_id"],
+                    "driver_id": d["code"],
                     "driver_name": d["name"],
                     "team": d["team"],
-                    "predicted_position": predicted_pos,
-                    "conformal_interval": [max(1, predicted_pos - 3), min(20, predicted_pos + 3)],
+                    "grid_position": int(grid_overrides.get(d["code"], d.get("default_grid", 10))),
+                    "predicted_position": rank_idx,
+                    "raw_score": round(raw_val, 2),
+                    "conformal_interval": [lower, upper],
+                    "win_probability_pct": round(win_prob, 1),
+                    "podium_probability_pct": round(podium_prob, 1),
                 })
             content = {
                 "race_id": race_id,
+                "rain_probability": rain_prob,
+                "weather_transition": weather_trans,
+                "model_version": artifact.get("version", "core-v1.0.0"),
                 "total_drivers": len(results),
                 "grid": results,
                 "latency_ms": round((time.perf_counter() - start) * 1000.0, 2),
@@ -188,19 +235,26 @@ class ApexMCPServer:
             }
 
         elif name == "apex_query_fia_regulations":
-            query = arguments.get("query", "").lower()
-            if "aero" in query or "2026" in query or "mode" in query:
-                text = "FIA 2026 Technical Regulations: Active Aerodynamics mandates Z-Mode for high-downforce cornering and X-Mode for low-drag straights."
-            elif "drs" in query:
-                text = "FIA Sporting Regulations Art 55: DRS is enabled when trailing within 1.000s at detection points under dry green-flag running."
-            elif "parc" in query:
-                text = "FIA Sporting Regulations Art 40: Parc Fermé conditions prohibit suspension geometry and aerodynamic component modifications post-qualifying."
+            from core.api.narration import get_regulations_store
+
+            query = str(arguments.get("query", "")).strip()
+            store = get_regulations_store()
+            matches = store.retrieve(query, top_k=2, threshold=0.05) if query else []
+            if matches:
+                top = matches[0]
+                grounded = f"{top['topic']} ({top['article']}): {top['excerpt']}"
             else:
-                text = "FIA Sporting Regulations: Drivers must use at least two distinct dry-weather compounds during a race unless wet tyres are used."
-            content = {"query": query, "grounded_regulation": text}
+                grounded = (
+                    "FIA Sporting Regulations: Drivers must use at least two distinct dry-weather "
+                    "compounds during a dry Grand Prix unless intermediate or wet tyres are fitted."
+                )
+            content = {
+                "query": query,
+                "grounded_regulation": grounded,
+                "matches": matches,
+            }
 
         elif name == "apex_verify_model_integrity":
-            import os
             model_path = os.path.join(os.path.dirname(__file__), "..", "models", "apex_core_v1_model.joblib")
             sig_path = model_path + ".sig"
             is_valid, msg = verify_model_integrity(model_path, sig_path)

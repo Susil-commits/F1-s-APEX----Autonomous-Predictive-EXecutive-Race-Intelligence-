@@ -722,3 +722,22 @@ def test_psi_drift_monitor_serialization_and_persistence(tmp_path):
     orig_res = monitor.compute(test_df)
     loaded_res = loaded_monitor.compute(test_df)
     assert orig_res == loaded_res
+
+
+def test_shipped_psi_bins_and_weather_signal_non_degenerate():
+    """Verifies shipped PSI bins and rain_prob distribution are non-degenerate after Open-Meteo backfill."""
+    import json
+    import os
+    import joblib
+
+    psi_path = os.path.join("core", "models", "apex_core_v1_psi_bins.json")
+    with open(psi_path, "r", encoding="utf-8") as f:
+        psi_data = json.load(f)
+    rain_edges = psi_data["bin_edges"]["rain_prob"]
+    assert len(rain_edges) >= 6
+    assert rain_edges[1] != rain_edges[2]
+
+    artifact = joblib.load(os.path.join("core", "models", "apex_core_v1_model.joblib"))
+    fi = artifact["model"].get_feature_importance()
+    fi_map = dict(zip(artifact["feature_names"], fi))
+    assert float(fi_map["race_rain_prob"]) > 0.0

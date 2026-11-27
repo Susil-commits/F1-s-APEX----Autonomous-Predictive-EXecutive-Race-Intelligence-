@@ -1,6 +1,6 @@
 {
   "model_version": "core-v1.0.0",
-  "created_at_utc": "2026-10-14T09:48:05.236944+00:00",
+  "created_at_utc": "2026-11-27T05:44:59.831760+00:00",
   "training_scheme": "train=2022, validate=2023, refit=2022+2023, test=2024 (strictly temporal, one evaluation pass)",
   "feature_names": [
     "grid_position_norm",
@@ -20,33 +20,33 @@
     "sector_3_delta_norm"
   ],
   "drop_reason": "sector_1/2/3_delta absent from real_prerace_dataset.csv; heuristic estimate adds negligible predictive value (+0.008 MAE) while misrepresenting data fidelity",
-  "q_hat_margin": 6.47,
+  "q_hat_margin": 6.67,
   "metrics": {
-    "mae": 2.362,
-    "rmse": 3.223,
-    "r2": 0.686,
-    "pearson_r": 0.831,
-    "spearman_rho": 0.821,
+    "mae": 2.39,
+    "rmse": 3.235,
+    "r2": 0.684,
+    "pearson_r": 0.829,
+    "spearman_rho": 0.817,
     "conformal_target_coverage": 0.9,
-    "empirical_coverage": 0.958,
-    "mean_interval_width": 12.94,
+    "empirical_coverage": 0.956,
+    "mean_interval_width": 13.34,
     "holdout_season": 2024,
     "n_holdout": 479,
     "naive_baseline_mae": 4.991,
-    "mae_reduction_vs_naive_pct": 52.7
+    "mae_reduction_vs_naive_pct": 52.1
   },
   "validation_benchmarks": {
     "gradient_boosting": {
-      "validation_mae": 2.708,
-      "validation_r2": 0.569
+      "validation_mae": 2.743,
+      "validation_r2": 0.565
     },
     "xgboost": {
-      "validation_mae": 2.708,
-      "validation_r2": 0.579
+      "validation_mae": 2.675,
+      "validation_r2": 0.585
     },
     "catboost": {
-      "validation_mae": 2.68,
-      "validation_r2": 0.597
+      "validation_mae": 2.668,
+      "validation_r2": 0.599
     }
   },
   "psi_monitoring": {

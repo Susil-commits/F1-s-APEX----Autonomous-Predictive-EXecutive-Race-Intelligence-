@@ -77,6 +77,7 @@ async def root():
         "docs_url": "/docs",
         "predict_endpoint": "/api/core/predict",
         "narrate_endpoint": "/api/core/predict/narrate",
+        "strategy_brief_endpoint": "/api/core/strategy/brief",
         "mcp_endpoint": "/api/mcp",
         "metrics_endpoint": "/metrics",
         "security_telemetry": "/api/security/telemetry",

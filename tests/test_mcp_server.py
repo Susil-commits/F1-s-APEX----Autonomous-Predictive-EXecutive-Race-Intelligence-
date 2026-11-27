@@ -128,3 +128,29 @@ async def test_mcp_rest_discovery_endpoints():
         assert resp_tools.status_code == 200
         assert len(resp_tools.json()["tools"]) >= 5
 
+
+def test_mcp_server_predict_grid_uses_real_model():
+    server = ApexMCPServer()
+    resp = server.call_tool(
+        "apex_predict_grid",
+        {
+            "race_id": "silverstone",
+            "rain_probability": 0.6,
+            "grid_overrides": {"VER": 20, "SAR": 1},
+        },
+    )
+    assert resp["isError"] is False
+    data = json.loads(resp["content"][0]["text"])
+    assert data["total_drivers"] == 20
+    assert data["rain_probability"] == 0.6
+    assert "model_version" in data
+    first = data["grid"][0]
+    assert "raw_score" in first
+    assert "win_probability_pct" in first
+    assert "podium_probability_pct" in first
+    # With VER starting P20, VER should not remain trivially P1 from static roster order
+    ver_entry = next((d for d in data["grid"] if d["driver_id"] == "VER"), None)
+    assert ver_entry is not None
+    assert ver_entry["grid_position"] == 20
+    assert ver_entry["predicted_position"] > 1
+

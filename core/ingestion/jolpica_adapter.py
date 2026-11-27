@@ -6,6 +6,7 @@ via the open Jolpica F1 REST API or local cache snapshot.
 from __future__ import annotations
 
 import logging
+import math
 import random
 import time
 from typing import Any, Dict, List, Optional
@@ -15,6 +16,7 @@ import httpx
 logger = logging.getLogger(__name__)
 
 JOLPICA_BASE_URL = "https://api.jolpi.ca/ergast/f1"
+OPEN_METEO_ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 
 
 class JolpicaAdapter:
@@ -220,6 +222,52 @@ class JolpicaAdapter:
                 break
         return quali_by_round
 
+    def fetch_race_rain_probability(
+        self,
+        client: httpx.Client,
+        race_date: str,
+        race_time: Optional[str],
+        lat: Any,
+        lon: Any,
+    ) -> float:
+        """Fetches historical race-day weather via Open-Meteo Archive and maps to [0.02, 0.95]."""
+        if not race_date or lat is None or lon is None:
+            return 0.05
+        try:
+            hr = int(str(race_time).split(":")[0]) if race_time and ":" in str(race_time) else 14
+            resp = client.get(
+                OPEN_METEO_ARCHIVE_URL,
+                params={
+                    "latitude": lat,
+                    "longitude": lon,
+                    "start_date": race_date,
+                    "end_date": race_date,
+                    "hourly": "precipitation,cloud_cover",
+                    "timezone": "GMT",
+                },
+            )
+            if resp.status_code != 200:
+                return 0.05
+            hourly = resp.json().get("hourly", {})
+            precip_list = hourly.get("precipitation") or []
+            cloud_list = hourly.get("cloud_cover") or []
+            if not precip_list:
+                return 0.05
+
+            lo = max(0, hr - 1)
+            hi = min(len(precip_list), hr + 3)
+            win_precip = sum(float(x or 0.0) for x in precip_list[lo:hi])
+            day_precip = sum(float(x or 0.0) for x in precip_list)
+            win_clouds = [float(x or 0.0) for x in cloud_list[lo:hi]] if cloud_list else [0.0]
+            cloud_pct = sum(win_clouds) / max(1, len(win_clouds))
+
+            precip_signal = 1.0 - math.exp(-0.65 * win_precip - 0.08 * day_precip)
+            prob = 0.02 + 0.15 * (cloud_pct / 100.0) + 0.80 * precip_signal
+            return round(min(0.95, max(0.02, prob)), 3)
+        except Exception as exc:
+            logger.debug(f"[JolpicaAdapter] Open-Meteo lookup failed for {race_date}: {exc}")
+            return 0.05
+
     def fetch_historical_prerace_records(self, seasons: List[int]) -> List[Dict[str, Any]]:
         """Fetches and builds real pre-race features and actual finishing positions across seasons."""
         records: List[Dict[str, Any]] = []
@@ -233,7 +281,16 @@ class JolpicaAdapter:
 
                 for race_obj in season_races:
                     r_num = int(race_obj.get("round", 0))
-                    circuit_id = race_obj.get("Circuit", {}).get("circuitId", "silverstone")
+                    circuit_info = race_obj.get("Circuit", {})
+                    circuit_id = circuit_info.get("circuitId", "silverstone")
+                    loc = circuit_info.get("Location", {})
+                    race_rain_prob = self.fetch_race_rain_probability(
+                        client=client,
+                        race_date=race_obj.get("date", ""),
+                        race_time=race_obj.get("time"),
+                        lat=loc.get("lat"),
+                        lon=loc.get("long"),
+                    )
                     results = race_obj.get("Results", [])
                     quali = quali_by_round.get(r_num, [])
                     if not results:
@@ -298,7 +355,7 @@ class JolpicaAdapter:
                             "rolling_avg_finish": round(rolling_finish, 2),
                             "circuit_starts": c_starts,
                             "constructor_pts_share": round(constructor_share, 4),
-                            "rain_prob": 0.05,
+                            "rain_prob": race_rain_prob,
                             "finishing_position": fin_pos,
                             "data_source": "jolpica_real",
                         })

@@ -1,135 +1,146 @@
-# APEX — Architecture
+# APEX — Architecture & System Design
 
-## Single-Tier Pipeline
+**Autonomous Predictive Executive Race Intelligence Platform**
 
+---
+
+## 1. End-to-End System Architecture
+
+```mermaid
+flowchart TB
+    subgraph IngestionLayer["1. Data Ingestion & Paddock Telemetry"]
+        JOL["Jolpica FIA Historical Records"]
+        OM["Open-Meteo Historical & Forecast Weather"]
+        FIA_DOCS["FIA Sporting & 2026 Technical Regulations"]
+    end
+
+    subgraph SecurityGateway["2. Zero-Trust Security & Integrity Gateway"]
+        AUTH["RBAC & API Key Authenticator (Admin/Engineer/Guest)"]
+        SHIELD["PromptShield & Input Sanitizer"]
+        CANARY["Canary Honeytoken Leak Traps"]
+        HMAC_GATE["HMAC-SHA256 Model Integrity Verifier"]
+        AUDIT_CHAIN["Cryptographically Chained SHA-256 Audit Logger"]
+    end
+
+    subgraph ContextEngine["3. Context Engineering Engine (context/)"]
+        L0["L0: Structural / Regulations & Track Topography"]
+        L1["L1: Session Priors (Grid, Form, Constructor Share)"]
+        L2["L2: Dynamic Stint & Pirelli Tyre Cliff Physics"]
+        L3["L3: Real-Time Micro-Telemetry (Deltas, Flags, 2026 Aero)"]
+        DISTILL["Semantic Telemetry Distillation & Token Budgeting"]
+        QUALITY["Context Quality Gate (Groundedness, Freshness, Risk)"]
+    end
+
+    subgraph CoreInference["4. Multi-Tier Inferencing & Simulation Engine (core/)"]
+        T1["Tier-1 ML Predictor (CatBoost Regressor, R²=0.684, MAE=2.390)"]
+        CONF["Split-Conformal Calibration (q̂=±6.67 pos, 95.6% Coverage)"]
+        T2["Tier-2 Monte Carlo In-Race Engine (10k Sims, <150ms)"]
+        TYRE["Pirelli Non-Linear Tyre Degradation Physics Model"]
+        GRID_VEC["Vectorized 20-Car Full Grid Batch Inferencing"]
+    end
+
+    subgraph AgentHarness["5. Agent Harness Engineering (agents/)"]
+        SANDBOX["Execution Sandbox (Hard <200ms Timeout SLA)"]
+        CB_FAIL["AICircuitBreaker Multi-Provider Failover"]
+        COST_CAP["FIA Cost-Cap Compute Quota Tracker"]
+        REPLAY["Historical Race Scenario Replay Benchmark"]
+        METAMORPHIC["Metamorphic Invariance & Monotonicity Suite"]
+    end
+
+    subgraph MCPInterface["6. Model Context Protocol Server (core/mcp/)"]
+        MCP_RPC["Universal JSON-RPC 2.0 Protocol Handler"]
+        TOOLS["Tools: apex_predict_grid · apex_simulate_pit_stop · apex_evaluate_tyre_cliff"]
+        RESOURCES["Resources: apex://circuits · apex://drivers · apex://regulations/2026"]
+        PROMPTS["Prompts: race_engineer_briefing · undercut_threat_analysis"]
+    end
+
+    subgraph UIAndClients["7. Pit Wall Command Console & Client Ecosystem"]
+        WAR_ROOM["Pit Wall War Room (React + Three.js + Tailwind)"]
+        AGENT_CLIENTS["External AI Copilots (Claude / Gemini / Antigravity via MCP)"]
+        GRAFANA["Prometheus Metrics & PSI Feature Drift Dashboard"]
+    end
+
+    IngestionLayer --> SecurityGateway
+    SecurityGateway --> ContextEngine
+    ContextEngine --> CoreInference
+    ContextEngine --> AgentHarness
+    CoreInference --> AgentHarness
+    CoreInference --> MCPInterface
+    ContextEngine --> MCPInterface
+    AgentHarness --> MCPInterface
+    CoreInference --> UIAndClients
+    AgentHarness --> UIAndClients
+    MCPInterface --> AGENT_CLIENTS
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  Pre-Race Inputs (no live telemetry — zero leakage)             │
-│  race_id · driver_id · grid_position · rain_probability         │
-└───────────────────────────┬─────────────────────────────────────┘
-                            │
-              ┌─────────────▼──────────────┐
-              │  core/features/             │
-              │  PreRaceFeatureBuilder      │
-              │  10 deterministic features  │
-              └─────────────┬──────────────┘
-                            │
-              ┌─────────────▼──────────────┐
-              │  core/models/               │
-              │  apex_core_v1_model.joblib  │
-              │  CatBoostRegressor          │
-              │  (selected on 2023 val      │
-              │   benchmark vs XGB / GBR,   │
-              │   refitted on 2022+2023)    │
-              └─────────────┬──────────────┘
-                            │
-              ┌─────────────▼──────────────┐
-              │  Split-Conformal Calibration│
-              │  N=176 calibration samples  │
-              │  q̂ = ±6.47 positions        │
-              │  95.8% empirical coverage   │
-              │  (exceeds 90% target)       │
-              └─────────────┬──────────────┘
-                            │
-              ┌─────────────▼──────────────┐
-              │  core/api/                  │
-              │  FastAPI  POST /predict     │
-              │  GET /health  GET /version  │
-              │  GET /metrics               │
-              │  POST /api/core/drift/check │
-              └─────────────┬──────────────┘
-                            │
-              ┌─────────────▼──────────────┐
-              │  frontend/                  │
-              │  React + Vite + Tailwind    │
-              │  F1 design system           │
-              │  Driver cards, GP selector  │
-              │  Broadcast prediction card  │
-              └────────────────────────────┘
-```
 
-## Features & Domain Reasoning (Zero-Leakage Pre-Race Priors)
+---
 
-APEX constructs a normalized 10-dimensional feature vector using **strictly point-in-time facts verifiably known prior to race start**. No live telemetry, lap times, pitstop deltas, or in-race sensor streams are utilized, ensuring absolute immunity to lookahead bias.
+## 2. Single-Tier Core Pipeline & Zero-Leakage Features
 
-Every feature was selected based on fundamental aerodynamic, mechanical, and sporting principles governing Formula 1:
-
-| Feature | Feature Key | Source | Domain Reasoning |
-|---|---|---|---|
-| **Constructor Points Share** | `constructor_pts_share` | Constructors' Standings | Team machinery pace dominates modern Formula 1. The top 3 constructors routinely capture >60% of all championship points. Car aerodynamic efficiency and power unit reliability set the baseline envelope for both drivers. |
-| **Starting Grid Slot** | `grid_position_norm` | Official Qualifying Result | Starting grid position strongly dictates race finish (Spearman $\rho = 0.82$). First-corner track position determines traffic exposure, dirty air severity, and vulnerability to lap-1 collisions. |
-| **Driver 5-Race Rolling Average** | `driver_rolling_finish_norm` | Historical Race Results | Recent form over the last 5 Grands Prix captures short-term driver confidence, tyre management form, and synergy with recent aerodynamic upgrade packages far better than lifetime career averages. |
-| **Qualifying Pace Delta to Pole** | `quali_delta_to_pole_s` | Q3 Session Classification | The absolute time delta (in seconds) to the pole-sitter provides an unbiased quantitative measurement of single-lap raw package pace and tyre activation efficiency. |
-| **Circuit Downforce Demand** | `circuit_downforce_index` | Track Engineering Profile | High-downforce circuits (Monaco, Singapore, Hungaroring) are highly overtaking-resistant, heavily preserving starting grid positions. Low-drag circuits (Monza, Spa) allow significantly more DRS-assisted overtakes. |
-| **Circuit Power Sensitivity** | `circuit_power_sensitivity` | Track Engineering Profile | Circuits with prolonged full-throttle sections (Monza, Spa, Baku) reward engine thermal efficiency and MGU-K deployment over low-speed mechanical cornering grip. |
-| **Street Circuit Indicator** | `circuit_is_street_track` | Track Classification | Street circuits feature zero runoff, unforgiving concrete barriers, and elevated Safety Car probabilities (~75%+ at Singapore/Monaco/Baku), dramatically amplifying non-linear outcome variance. |
-| **Forecasted Rain Probability** | `race_rain_prob` | Official Meteorological Prior | Precipitation reduces tyre grip thresholds, nullifies pure aerodynamic downforce advantages, introduces intermediate/wet pitstop crossover gambles, and multiplies attrition. |
-| **Mid-Race Weather Transition Flag** | `weather_transition_flag` | Official Weather Forecast | Binary flag indicating high probability of rain onset or drying conditions mid-race, triggering mandatory intermediate/wet crossover pit-stops. |
-| **Driver Circuit Experience** | `driver_circuit_experience` | Historical Career Starts | Previous race starts at the specific track capture driver familiarity with braking reference markers, kerb ride characteristics, and thermal tyre degradation nuances. |
-
-> **Removed Dead Features**:
-> `sector_1_delta_norm`, `sector_2_delta_norm`, and `sector_3_delta_norm` were previously defined but absent from `real_prerace_dataset.csv` (filled with 0.0 constant values). They were permanently dropped in v1.0.1, reducing dimensionality from 13 to 10 with zero loss in predictive fidelity (+0.008 MAE delta) while eliminating synthetic zero-imputation and cleaning up the API contract.
+APEX constructs a normalized 10-dimensional feature vector using **strictly point-in-time facts verifiably known prior to race start**. No live lap times, pit-stop deltas, or in-race sensor streams enter the Tier-1 model, ensuring immunity to lookahead bias.
 
 ```
 Pre-Race Inputs  ──▶  PreRaceFeatureBuilder  ──▶  10-dim Float32 Tensor [0.0, 1.0]  ──▶  CatBoost Model
 ```
 
-## Data Architecture & Training Pipeline
+| Feature | Feature Key | Source | Domain Reasoning |
+|---|---|---|---|
+| **Constructor Points Share** | `constructor_pts_share` | Constructors' Standings | Team machinery pace dominates modern F1; top constructors capture the bulk of points and set baseline race pace. |
+| **Starting Grid Slot** | `grid_position_norm` | Official Qualifying Result | Starting grid slot strongly drives finish order (Spearman $\rho = 0.817$), shaping lap-1 traffic and dirty-air exposure. |
+| **Driver 5-Race Rolling Average** | `driver_rolling_finish_norm` | Historical Race Results | Recent 5-race rolling form captures short-term driver confidence, tyre management, and upgrade synergy. |
+| **Qualifying Pace Delta to Pole** | `quali_delta_to_pole_s` | Qualifying Classification | Time delta to pole (seconds) measures single-lap raw package pace and tyre activation efficiency. |
+| **Circuit Downforce Demand** | `circuit_downforce_index` | Track Engineering Profile | High-downforce tracks (Monaco, Singapore, Hungaroring) resist overtaking; low-drag tracks (Monza, Spa) enable DRS passes. |
+| **Circuit Power Sensitivity** | `circuit_power_sensitivity` | Track Engineering Profile | Full-throttle tracks reward ICE thermal efficiency and MGU-K deployment. |
+| **Street Circuit Indicator** | `circuit_is_street_track` | Track Classification | Street circuits carry elevated Safety Car probabilities and zero runoff margin. |
+| **Forecasted Rain Probability** | `race_rain_prob` | Open-Meteo Historical / Forecast | Captures precipitation & cloud-cover race-day risk, tyre crossover potential, and wet-weather attrition. |
+| **Mid-Race Weather Transition Flag** | `weather_transition_flag` | Meteorological Forecast | Binary flag for mid-race dry-to-wet or wet-to-dry crossovers triggering strategy variance. |
+| **Driver Circuit Experience** | `driver_circuit_experience` | Historical Career Starts | Prior career starts at the venue reflect track-specific braking and kerb familiarity. |
 
-- **Training & Selection Data**: Jolpica F1 API historical seasons 2022–2023 (N=880 driver-race entries)
-  - **Selection Training Set**: 2022 season (N=440) — used to fit candidate architectures (GBR, XGBoost, CatBoost)
-  - **Selection Validation Set**: 2023 season (N=440) — used to select the winning architecture without touching 2024 data
-  - **Refit Set**: 2022 + 2023 combined (N=880) — winner is refitted on all historical data prior to 2024
-- **Calibration Fold**: Last 20% of 2022–2023 chronologically (N=176 driver entries) — used to calibrate the conformal prediction interval width ($q̂ = \pm 5.673$)
-- **Holdout Test Set**: Full 2024 season (N=479 driver entries) — strictly held out chronologically and evaluated **once** after refit
-- **Regulations Corpus**: `core/data/regulations/` contains **3 curated domain summaries** (DRS, Parc Fermé, Tyre/Weather rules) used for tactical lever grounding by the RAG narration layer (`core/api/narration.py`). These are concise curated summaries, not official FIA statutory documents.
-
-## Deployment
-
-- **Backend**: Single Uvicorn process, Python 3.12-slim Docker image (~280MB) with threadpool offloading for CPU-bound inference
-- **Frontend**: Static Vite build served via Nginx or Vercel CDN
-- **No external stateful services required** — zero dependency on external databases, Redis, or Kafka for core inference
+> **Removed Dead Features**: `sector_1_delta_norm`, `sector_2_delta_norm`, and `sector_3_delta_norm` were permanently removed in v1.0.1 because sector splits are absent from `real_prerace_dataset.csv`. `race_rain_prob` was subsequently backfilled from Open-Meteo historical hourly weather across all 68 Grands Prix (2022–2024) so weather signal and PSI drift bins are non-degenerate.
 
 ---
 
-## Enterprise Tier Extensions: Context, Harness, Inferencing & MCP
+## 3. Data Architecture & Temporal Training Pipeline
 
-APEX has evolved from a standalone single-tier pre-race model into an enterprise-grade racing intelligence system incorporating:
+- **Training & Selection Data**: Jolpica F1 API + Open-Meteo Archive across 2022–2023 ($N=880$ driver-race entries):
+  - **Selection Training Set**: 2022 season ($N=440$) — fits GBR, XGBoost, and CatBoost.
+  - **Selection Validation Set**: 2023 season ($N=440$) — selects winning architecture without touching 2024 data.
+  - **Refit & Calibration**: Winner refitted chronologically on 2022–2023; last 20% ($N=176$) calibrates split-conformal margin ($\hat{q} = \pm 6.67$ positions).
+- **Holdout Test Set**: Full 2024 season ($N=479$ driver entries) — strictly held out and evaluated **once** ($R^2 = 0.684$, $\text{MAE} = 2.390$, **95.6% empirical coverage**).
+- **Regulations Corpus**: `core/data/regulations/` contains **4 curated domain summaries** (DRS, Parc Fermé, Tyre/Weather, and 2026 Power Unit & Active Aero) indexed by `RegulationsVectorStore` (`core/api/narration.py`).
 
-### 1. Context Engineering Architecture (`context/`)
-- **Hierarchical Context Tiering**: Organizes context into 4 decoupled levels:
-  - **L0 (Structural)**: Circuit downforce/power profiles, FIA 2026 Active Aero (Z-Mode/X-Mode), DRS actuation rules.
-  - **L1 (Session Priors)**: Grid position, rolling 5-race form, constructor points share, weather radar.
-  - **L2 (Dynamic Stint)**: Tyre compound, stint lap age, Pirelli non-linear pace degradation ($s/\text{lap}$), laps to thermal cliff, undercut gaps.
-  - **L3 (Real-Time Micro-Telemetry)**: Track control flags, active aerodynamic modes, tactical alerts (`UNDERCUT_THREAT_REAR`, `TYRE_CLIFF_ALERT`).
-- **Semantic Distillation & Token Budgeting**: Compresses multi-channel telemetry by **61% to 66%**, preventing token bloat and guaranteeing $<50\text{ms}$ synthesis.
-- **Context Quality Evaluator (`context/quality/`)**: Mathematical quality assessment calculating compression ratio, information density, regulatory groundedness ($\ge 0.75$), telemetry freshness, and hallucination risk before admitting context to inference.
+---
 
-### 2. Harness Engineering POV (`agents/`)
-- **Execution Sandbox (`agents/harness.py`)**: Guarantees a hard execution timeout ceiling ($<200\text{ms}$ SLA), integrates automatic `AICircuitBreaker` failover to deterministic heuristics, tracks FIA Cost-Cap compute quotas, and signs tactical actions into the SHA-256 audit hash chain.
-- **Race Scenario Replay Benchmark (`agents/evaluation/race_replay.py`)**: Deterministically benchmarks agent tactical decisions against 5 curated ground-truth historical F1 scenarios (e.g. Monaco 2024 SC, Silverstone 2024 rain crossover), achieving **100% tactical alignment accuracy**.
-- **Metamorphic Invariance Verification (`agents/evaluation/metamorphic.py`)**: Validates domain physical laws (monotonic tyre degradation, undercut sensitivity boundaries at 1.4s, Safety Car opportunism) with **0 invariant violations**.
+## 4. Enterprise Extensions: Context, Harness, Simulation & MCP
 
-### 3. Multi-Tier Inferencing Concepts
-- **Tier-1 Deterministic ML**: Point-in-time CatBoost regressor ($P_{99} < 5\text{ms}$) with split-conformal coverage ($q̂ = \pm 6.470$ pos, 95.8% empirical coverage).
-- **Tier-2 Stochastic In-Race Simulation**: Vectorized Monte Carlo pit stop simulator executing **10,000 rollouts in ~118ms** modeling Poisson SC arrival and non-linear Pirelli tyre cliffs.
-- **Vectorized Full-Grid Batching (`/api/core/predict/grid`)**: Evaluates all 20 drivers in parallel in $<15\text{ms}$.
-- **Cryptographic Model Verification**: SHA-256 hash and HMAC-SHA256 signature verification prior to deserialization.
+### 1. Hierarchical Context Engineering (`context/`)
+- **Four Abstraction Tiers**:
+  - **L0 (Structural)**: Circuit downforce/power profiles, FIA 2026 Active Aero (`Z_MODE`/`X_MODE`), DRS & compound rules.
+  - **L1 (Session Priors)**: Grid slot, rolling 5-race form, constructor points share, weather radar.
+  - **L2 (Dynamic Stint)**: Compound, stint age, Pirelli non-linear pace degradation ($s/\text{lap}$), laps to thermal cliff, undercut gaps.
+  - **L3 (Real-Time Micro-Telemetry)**: Track flags (`GREEN`, `VSC`, `SAFETY_CAR`, `RED`), active aero mode, tactical alerts (`UNDERCUT_THREAT_REAR`, `TYRE_CLIFF_ALERT`, `DRS_ATTACK_WINDOW`).
+- **Semantic Distillation & Quality Gate**: Compresses telemetry payloads by **61%–66%** within strict token budgets, evaluated via `ContextEvaluator` (compression ratio, information density, regulatory groundedness, latency-decay freshness, hallucination risk) and exposed live via `POST /api/core/strategy/brief`.
+
+### 2. Agent Harness Engineering (`agents/`)
+- **Execution Sandbox (`agents/harness.py`)**: Enforces a hard `<200ms` timeout SLA, integrates `AICircuitBreaker` failover to deterministic tactical heuristics, computes FIA Cost-Cap compute units ($\text{Latency}_{\text{ms}}/10 + \text{Tokens}/500$), and records every recommendation to the SHA-256 audit chain.
+- **Race Scenario Replay (`agents/evaluation/race_replay.py`)**: Validates tactical alignment across 5 historical GP scenarios (**100% match**).
+- **Metamorphic Invariance (`agents/evaluation/metamorphic.py`)**: Verifies monotonic tyre degradation, undercut threshold boundaries ($1.4\text{s}$), and Safety Car pit opportunism (**0 invariant violations**).
+
+### 3. Multi-Tier Inferencing & Security (`core/`)
+- **Tier-1 Deterministic ML**: CatBoost regressor + P10/P50/P90 quantile regressors + vectorized 20-car grid classification (`POST /api/core/predict/grid`).
+- **Tier-2 Stochastic Monte Carlo (`core/simulation/monte_carlo.py`)**: 10,000 vectorized rollouts modeling Poisson VSC/SC arrivals, pit-lane loss, and Pirelli thermal cliffs.
+- **Zero-Trust Security (`core/security/`)**: HMAC-SHA256 model integrity verification prior to `joblib.load()`, `PromptShield`, `CanaryTrap`, `PIISanitizer`, RBAC, and tamper-evident SHA-256 audit log chaining.
 
 ### 4. Model Context Protocol (MCP) Server (`core/mcp/`)
-- Implements the standard JSON-RPC 2.0 MCP protocol at `POST /api/mcp` and discovery routes at `GET /api/mcp/*`.
-- **Exposed Tools**: `apex_predict_grid`, `apex_simulate_pit_stop`, `apex_evaluate_tyre_cliff`, `apex_query_fia_regulations`, `apex_verify_model_integrity`.
-- **Exposed Resources**: `apex://circuits/catalog`, `apex://drivers/roster`, `apex://regulations/2026_active_aero`, `apex://monitoring/drift_thresholds`.
-- **Standardized Prompts**: `race_engineer_briefing`, `undercut_threat_analysis`.
-- Allows external AI assistants (Claude, Gemini, Antigravity) to query and control APEX natively.
+- Implements JSON-RPC 2.0 at `POST /api/mcp` and discovery routes at `GET /api/mcp/*`.
+- **Tools**: `apex_predict_grid` (live ML + conformal scoring), `apex_simulate_pit_stop` (Monte Carlo rollouts), `apex_evaluate_tyre_cliff`, `apex_query_fia_regulations` (TF-IDF RAG over `core/data/regulations/`), `apex_verify_model_integrity`.
+- **Resources**: `apex://circuits/catalog`, `apex://drivers/roster`, `apex://regulations/2026_active_aero`, `apex://monitoring/drift_thresholds`.
+- **Prompts**: `race_engineer_briefing`, `undercut_threat_analysis`.
 
 ---
 
-## What is NOT in Scope (preserved in `v1-v5-exploration`)
+## 5. Deployment
 
-- PPO / DQN reinforcement learning agents
-- 60Hz vehicle digital twin
-- Kafka streaming race state
-- LangGraph multi-agent deliberation
-- SHAP surrogate explainer
-- Pit-wall multi-panel UI
+- **Backend**: Single Uvicorn multi-worker service (`Dockerfile`, `Dockerfile.hardened`), Python 3.12-slim with threadpool offloading for CPU-bound inference.
+- **Frontend**: Static React + Vite + Three.js + Tailwind build (`frontend/`).
+- **Zero external stateful dependencies** required for core inference.

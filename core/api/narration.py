@@ -8,6 +8,7 @@ or sensitivity logic. Provides:
 """
 from __future__ import annotations
 
+import dataclasses
 import glob
 import logging
 import os
@@ -16,9 +17,13 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 from fastapi import APIRouter, HTTPException, Request, status
-from pydantic import Field
+from pydantic import BaseModel, Field
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics.pairwise import cosine_similarity
+
+from agents.harness import AgentExecutionHarness
+from context.assembler import HierarchicalContextAssembler
+from context.quality.evaluator import ContextEvaluator
 
 from core.api.limiter import limiter
 from core.api.predict import (
@@ -75,7 +80,10 @@ class RegulationsVectorStore:
 
     def _load_and_index(self) -> None:
         """Parses regulatory markdown documents and builds TF-IDF vector index."""
-        md_files = glob.glob(os.path.join(self.regulations_dir, "*.md"))
+        md_files = [
+            p for p in glob.glob(os.path.join(self.regulations_dir, "*.md"))
+            if os.path.basename(p).lower() != "readme.md"
+        ]
         self.chunks.clear()
 
         for file_path in md_files:
@@ -405,3 +413,89 @@ async def predict_with_narration(request: Request, req: PredictRequest):
     pred_dict["retrieved_sources"] = retrieved_sources if retrieved_sources else None
 
     return NarratePredictResponse(**pred_dict)
+
+
+class StrategyBriefRequest(BaseModel):
+    """In-race tactical strategy request routed through HierarchicalContextAssembler and AgentExecutionHarness."""
+
+    race_id: str = Field(..., description="Circuit identifier (e.g. 'silverstone', 'monaco')")
+    driver_id: str = Field(..., description="3-letter driver abbreviation (e.g. 'NOR', 'VER')")
+    current_lap: int = Field(default=18, ge=1, le=80)
+    current_compound: str = Field(default="C3")
+    current_tyre_age: int = Field(default=12, ge=0, le=80)
+    gap_ahead_s: Optional[float] = Field(default=None, ge=0.0)
+    gap_behind_s: Optional[float] = Field(default=None, ge=0.0)
+    rival_driver_ahead: Optional[str] = Field(default=None)
+    rival_driver_behind: Optional[str] = Field(default=None)
+    track_temp_c: float = Field(default=30.0, ge=0.0, le=70.0)
+    rain_probability: float = Field(default=0.10, ge=0.0, le=1.0)
+    race_control_flag: str = Field(default="GREEN")
+    active_aero_mode: str = Field(default="Z_MODE")
+    token_budget: int = Field(default=512, ge=64, le=4096)
+
+
+_CONTEXT_ASSEMBLER = HierarchicalContextAssembler()
+_CONTEXT_EVALUATOR = ContextEvaluator()
+_AGENT_HARNESS = AgentExecutionHarness()
+
+
+@router.post("/strategy/brief")
+@limiter.limit("30/minute")
+async def generate_tactical_strategy_brief(request: Request, req: StrategyBriefRequest) -> Dict[str, Any]:
+    """Synthesizes an in-race pit wall decision using L0-L3 context engineering and sandboxed agent harness."""
+    input_text = f"{req.race_id} {req.driver_id} {req.race_control_flag} {req.active_aero_mode}"
+    is_violation, reason = PromptShield.check_prompt(input_text)
+    if is_violation:
+        get_audit_logger().record_event(
+            event_type="SECURITY_PROMPT_INJECTION_BLOCKED",
+            actor_id=req.driver_id or "unknown",
+            details={"input": input_text, "reason": reason},
+            status="BLOCKED",
+        )
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Security violation: {reason}",
+        )
+
+    circuit_id = req.race_id.lower().replace("_2024", "").replace("_2025", "")
+    bundle = _CONTEXT_ASSEMBLER.assemble(
+        driver_id=req.driver_id,
+        circuit_id=circuit_id,
+        current_lap=req.current_lap,
+        current_compound=req.current_compound,
+        current_tyre_age=req.current_tyre_age,
+        gap_ahead_s=req.gap_ahead_s,
+        gap_behind_s=req.gap_behind_s,
+        rival_driver_ahead=req.rival_driver_ahead,
+        rival_driver_behind=req.rival_driver_behind,
+        track_temp_c=req.track_temp_c,
+        rain_probability=req.rain_probability,
+        race_control_flag=req.race_control_flag,
+        active_aero_mode=req.active_aero_mode,
+        token_budget=req.token_budget,
+    )
+    quality_report = _CONTEXT_EVALUATOR.evaluate(bundle)
+    harness_result = _AGENT_HARNESS.execute(bundle)
+
+    return {
+        "driver_id": bundle.driver_id,
+        "circuit_id": bundle.circuit_id,
+        "action": harness_result.action,
+        "decision": harness_result.decision_payload,
+        "distilled_context": bundle.distilled_prompt,
+        "active_flags": bundle.active_flags,
+        "context_quality": {
+            "is_ready_for_inference": quality_report.is_ready_for_inference,
+            "grade": quality_report.metrics.overall_quality_grade,
+            "diagnostic_notes": quality_report.diagnostic_notes,
+            "metrics": dataclasses.asdict(quality_report.metrics),
+        },
+        "harness_telemetry": {
+            "success": harness_result.success,
+            "latency_ms": harness_result.latency_ms,
+            "token_usage": harness_result.token_usage,
+            "cost_cap_compute_units": harness_result.cost_cap_compute_units,
+            "fallback_invoked": harness_result.fallback_invoked,
+            "audit_event_id": harness_result.audit_event_id,
+        },
+    }

@@ -6,6 +6,8 @@ COPY core/requirements.txt requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
 
 COPY core/ ./core/
+COPY agents/ ./agents/
+COPY context/ ./context/
 
 ENV PYTHONPATH=/app
 
