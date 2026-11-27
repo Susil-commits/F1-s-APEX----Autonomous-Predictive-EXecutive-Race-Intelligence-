@@ -10,13 +10,14 @@ import os
 import threading
 import time
 from datetime import datetime, timezone
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import joblib
 import numpy as np
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.concurrency import run_in_threadpool
 from pydantic import BaseModel, Field, field_validator
+from scipy.stats import norm
 
 from core.api.limiter import limiter
 from core.api.metrics import PREDICTION_LATENCY_SECONDS, PREDICTION_REQUESTS_TOTAL
@@ -24,6 +25,7 @@ from core.features.feature_builder import (
     PRE_RACE_FEATURE_NAMES,
     PreRaceFeatureBuilder,
 )
+from core.security.auth import Role, require_role
 
 logger = logging.getLogger(__name__)
 
@@ -68,6 +70,7 @@ class PredictRequest(BaseModel):
     race_id: str = Field(..., description="Circuit identifier or race code (e.g. 'silverstone', 'monza')")
     driver_id: str = Field(..., description="Driver 3-letter abbreviation (e.g. 'VER', 'HAM', 'NOR')")
     grid_position: Optional[int] = Field(None, ge=1, le=20, description="Override grid position")
+    quali_delta_s: Optional[float] = Field(None, ge=0.0, le=10.0, description="Optional qualifying gap to pole in seconds")
     rain_probability: Optional[float] = Field(None, description="Override rain forecast (clamped to [0.0, 1.0])")
     weather_transition: Optional[bool] = Field(False, description="Forecasted mid-race dry-to-wet or wet-to-dry weather transition")
 
@@ -228,6 +231,20 @@ def rank_opportunities(contributions: list, feat_dict: dict) -> list:
     return opportunities[:1]  # single biggest opportunity
 
 
+def estimate_finish_probabilities(
+    raw_pred: float,
+    residual_std: float,
+    rank_pos: Optional[int] = None,
+) -> Tuple[float, float]:
+    """Calibrated normal-CDF win (P1) and podium (P1-P3) probabilities from calibration residual spread."""
+    sigma = max(1.0, float(residual_std))
+    win_prob = float(np.clip(norm.cdf((1.5 - raw_pred) / sigma) * 100.0, 0.1, 95.0))
+    podium_prob = float(np.clip(norm.cdf((3.5 - raw_pred) / sigma) * 100.0, 0.5, 99.0))
+    if rank_pos == 1:
+        podium_prob = max(podium_prob, 80.0)
+    return round(win_prob, 1), round(podium_prob, 1)
+
+
 @router.post("/predict", response_model=PredictResponse)
 @limiter.limit("30/minute")
 async def predict_finish(request: Request, req: PredictRequest):
@@ -257,6 +274,11 @@ async def predict_finish(request: Request, req: PredictRequest):
     start_time = time.perf_counter()
     circuit_id = req.race_id.lower().replace("_2024", "").replace("_2025", "")
     grid: int = req.grid_position if req.grid_position is not None else int(profile.get("default_grid", 10))
+    quali_delta_s: float = (
+        float(req.quali_delta_s)
+        if req.quali_delta_s is not None
+        else max(0.0, (grid - 1) * 0.12)
+    )
     rain: float = req.rain_probability if req.rain_probability is not None else 0.10
 
     weather_trans: bool = req.weather_transition if req.weather_transition is not None else False
@@ -269,7 +291,7 @@ async def predict_finish(request: Request, req: PredictRequest):
 
     feat_vec, feat_dict = PreRaceFeatureBuilder.extract_features(
         grid_position=grid,
-        quali_delta_s=max(0.0, (grid - 1) * 0.12),
+        quali_delta_s=quali_delta_s,
         rolling_avg_finish=rolling_avg,
         circuit_starts=starts,
         constructor_pts_share=pts_share,
@@ -330,11 +352,9 @@ async def predict_finish(request: Request, req: PredictRequest):
         except Exception as q_exc:
             logger.warning(f"[APEX Quantile Inference Error] {q_exc}")
 
-    # Win & podium probability heuristics calibrated from continuous score
-    win_prob = float(np.clip(np.exp(-0.9 * max(0, raw_pred - 1.0)) * 100.0, 0.5, 95.0))
-    podium_prob = float(np.clip(np.exp(-0.45 * max(0, raw_pred - 3.0)) * 100.0, 1.0, 99.0))
-    if pred_pos == 1:
-        podium_prob = max(podium_prob, 85.0)
+    # Calibrated win & podium probabilities from empirical calibration residual spread
+    residual_std = float(artifact.get("residual_std", max(1.0, float(q_hat) / 1.645)))
+    win_prob, podium_prob = estimate_finish_probabilities(raw_pred, residual_std, rank_pos=pred_pos)
 
     # Plain feature contributions for transparent UI explanation
     feature_labels = {
@@ -427,6 +447,7 @@ class GridPredictRequest(BaseModel):
     rain_probability: Optional[float] = Field(0.10, ge=0.0, le=1.0)
     weather_transition: Optional[bool] = Field(False)
     grid_overrides: Optional[Dict[str, int]] = Field(default_factory=dict, description="Custom grid positions by driver code")
+    quali_delta_overrides: Optional[Dict[str, float]] = Field(default_factory=dict, description="Optional qualifying gap to pole (seconds) by driver code")
 
 
 class GridDriverFinish(BaseModel):
@@ -503,13 +524,18 @@ async def predict_full_grid(request: Request, req: GridPredictRequest):
     for d in drivers:
         code = d["code"]
         grid = req.grid_overrides.get(code, d.get("default_grid", 10))
+        q_delta = (
+            float(req.quali_delta_overrides[code])
+            if req.quali_delta_overrides and code in req.quali_delta_overrides
+            else max(0.0, (grid - 1) * 0.12)
+        )
         rolling_avg = float(d.get("rolling_avg", 10.0))
         starts = int(d.get("starts", 5))
         pts_share = float(d.get("pts_share", 0.05))
 
         feat_vec, _ = PreRaceFeatureBuilder.extract_features(
             grid_position=grid,
-            quali_delta_s=max(0.0, (grid - 1) * 0.12),
+            quali_delta_s=q_delta,
             rolling_avg_finish=rolling_avg,
             circuit_starts=starts,
             constructor_pts_share=pts_share,
@@ -536,6 +562,7 @@ async def predict_full_grid(request: Request, req: GridPredictRequest):
     indexed_scores = list(enumerate(raw_preds))
     indexed_scores.sort(key=lambda x: x[1])
 
+    residual_std = float(artifact.get("residual_std", max(1.0, q_hat / 1.645)))
     grid_results: List[GridDriverFinish] = []
     for rank_idx, (orig_idx, score) in enumerate(indexed_scores, start=1):
         meta = driver_meta_list[orig_idx]
@@ -543,10 +570,7 @@ async def predict_full_grid(request: Request, req: GridPredictRequest):
         lower = max(1, int(np.floor(raw_val - q_hat)))
         upper = min(20, int(np.ceil(raw_val + q_hat)))
 
-        win_prob = float(np.clip(np.exp(-0.9 * max(0, raw_val - 1.0)) * 100.0, 0.5, 95.0))
-        podium_prob = float(np.clip(np.exp(-0.45 * max(0, raw_val - 3.0)) * 100.0, 1.0, 99.0))
-        if rank_idx == 1:
-            podium_prob = max(podium_prob, 85.0)
+        win_prob, podium_prob = estimate_finish_probabilities(raw_val, residual_std, rank_pos=rank_idx)
 
         grid_results.append(
             GridDriverFinish(
@@ -660,5 +684,17 @@ async def list_available_drivers():
     roster_svc = get_roster_service()
     drivers = roster_svc.get_all_drivers(active_only=False)
     return {"drivers": drivers}
+
+
+@router.post("/drivers/sync")
+async def sync_drivers_from_jolpica(year: int = 2026, role: Role = Depends(require_role(Role.ENGINEER))):
+    """Synchronizes active driver roster and constructor points share from live Jolpica standings. Requires ENGINEER role."""
+    from core.data.roster_service import get_roster_service
+    roster_svc = get_roster_service()
+    try:
+        result = await run_in_threadpool(roster_svc.sync_from_jolpica, year=year)
+        return {"status": "synced", **result}
+    except Exception as exc:
+        raise HTTPException(status_code=502, detail=f"Jolpica standings sync failed: {exc}")
 
 

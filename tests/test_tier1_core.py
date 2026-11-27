@@ -741,3 +741,36 @@ def test_shipped_psi_bins_and_weather_signal_non_degenerate():
     fi = artifact["model"].get_feature_importance()
     fi_map = dict(zip(artifact["feature_names"], fi))
     assert float(fi_map["race_rain_prob"]) > 0.0
+    assert float(artifact.get("residual_std", 0.0)) > 0.0
+
+
+@pytest.mark.asyncio
+async def test_predict_accepts_explicit_quali_delta_and_calibrated_probabilities():
+    """Verifies PredictRequest honors explicit quali_delta_s and calibrated CDF probabilities are monotonic."""
+    from core.api.predict import estimate_finish_probabilities
+
+    w1, p1 = estimate_finish_probabilities(1.0, residual_std=3.3)
+    w5, p5 = estimate_finish_probabilities(5.0, residual_std=3.3)
+    w15, p15 = estimate_finish_probabilities(15.0, residual_std=3.3)
+    assert w1 > w5 > w15
+    assert p1 > p5 > p15
+
+    transport = ASGITransport(app=core_app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        res = await client.post(
+            "/api/core/predict",
+            json={
+                "race_id": "silverstone",
+                "driver_id": "NOR",
+                "grid_position": 2,
+                "quali_delta_s": 2.5,
+            },
+        )
+        assert res.status_code == 200
+        data = res.json()
+        quali_contrib = next(
+            (c for c in data["feature_contributions"] if c["feature"] == "quali_delta_to_pole_s"),
+            None,
+        )
+        assert quali_contrib is not None
+        assert quali_contrib["value"] == 0.5  # 2.5 / 5.0 normalization scale

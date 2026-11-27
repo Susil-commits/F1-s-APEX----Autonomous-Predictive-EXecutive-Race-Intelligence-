@@ -81,3 +81,15 @@ async def test_pit_stop_simulation_endpoint():
         data = resp.json()
         assert data["optimal_strategy"]
         assert "strategies" in data
+
+
+def test_circuit_registry_parity_across_all_profiles():
+    """Verifies Monte Carlo laps and SC hazard rates cover every circuit in CIRCUIT_PROFILES."""
+    from core.features.feature_builder import CIRCUIT_PROFILES
+    from core.simulation.monte_carlo import CIRCUIT_SC_HAZARD_RATES, CIRCUIT_TOTAL_LAPS
+
+    for cid in CIRCUIT_PROFILES:
+        assert cid in CIRCUIT_TOTAL_LAPS
+        assert cid in CIRCUIT_SC_HAZARD_RATES
+        assert 40 <= CIRCUIT_TOTAL_LAPS[cid] <= 80
+        assert 0.1 <= CIRCUIT_SC_HAZARD_RATES[cid] <= 1.0

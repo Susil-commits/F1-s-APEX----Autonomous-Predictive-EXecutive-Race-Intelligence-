@@ -124,6 +124,7 @@ APEX Enterprise extends the baseline pre-race predictor into a full pit wall int
 - `GET /api/core/tyres/stint-curve` — Pirelli tire compound degradation trajectory.
 - `POST /api/core/tyres/undercut` — Live undercut delta and out-lap gap evaluator.
 - `GET /api/core/drivers` — Dynamic Formula 1 driver roster and priors.
+- `POST /api/core/drivers/sync` — Sync active driver roster and constructor points share from Jolpica standings.
 - `GET /api/core/races` — Grand Prix calendar venues.
 
 ### Model Context Protocol (MCP)
@@ -160,7 +161,7 @@ core/                  ← Core ML and prediction service
 ├── training/          ← CatBoost/XGB/GBR benchmark + model signing + conformal calibration
 └── requirements.txt
 frontend/              ← React + Vite + Three.js + Pit Wall War Room Command Console
-tests/                 ← 83 tests (100% passing across unit, security, Monte Carlo, context, and MCP suites)
+tests/                 ← 87 tests (100% passing across unit, security, Monte Carlo, context, and MCP suites)
 Dockerfile             ← Lean multi-worker production container
 Dockerfile.hardened    ← Non-root, multi-stage hardened enterprise container
 .github/workflows/     ← Lean CI (pytest + npm build)

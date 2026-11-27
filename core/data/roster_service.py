@@ -475,6 +475,79 @@ class DriverRosterService:
             self._roster = copy.deepcopy(DEFAULT_DRIVER_ROSTER)
             self._persist()
 
+    def sync_from_jolpica(self, year: int = 2026, timeout_seconds: float = 10.0) -> Dict[str, Any]:
+        """Synchronizes active driver lineup, teams, and constructor points share from Jolpica standings."""
+        import httpx
+
+        base_url = "https://api.jolpi.ca/ergast/f1"
+        with httpx.Client(timeout=timeout_seconds) as client:
+            d_resp = client.get(f"{base_url}/{year}/driverStandings.json")
+            c_resp = client.get(f"{base_url}/{year}/constructorStandings.json")
+            d_resp.raise_for_status()
+            c_resp.raise_for_status()
+
+        d_lists = d_resp.json().get("MRData", {}).get("StandingsTable", {}).get("StandingsLists", [])
+        c_lists = c_resp.json().get("MRData", {}).get("StandingsTable", {}).get("StandingsLists", [])
+        if not d_lists:
+            raise ValueError(f"No Jolpica driver standings found for season {year}")
+
+        constructor_pts: Dict[str, float] = {}
+        total_c_pts = 0.0
+        if c_lists:
+            for c_entry in c_lists[0].get("ConstructorStandings", []):
+                c_name = c_entry.get("Constructor", {}).get("name", "")
+                pts = float(c_entry.get("points", 0.0))
+                constructor_pts[c_name] = pts
+                total_c_pts += pts
+
+        synced_codes = set()
+        with self._lock:
+            for idx, entry in enumerate(d_lists[0].get("DriverStandings", []), start=1):
+                drv = entry.get("Driver", {})
+                code = str(drv.get("code") or drv.get("driverId", "")[:3]).upper().strip()
+                if len(code) != 3:
+                    continue
+                synced_codes.add(code)
+                constructors = entry.get("Constructors") or [{}]
+                team_name = str(constructors[-1].get("name", "F1 Competitor"))
+                c_pts = constructor_pts.get(team_name, 0.0)
+                pts_share = round(min(0.50, max(0.01, c_pts / total_c_pts)), 4) if total_c_pts > 0 else 0.05
+
+                existing = self._roster.get(code, {})
+                first_name = str(drv.get("givenName", existing.get("first_name", code)))
+                last_name = str(drv.get("familyName", existing.get("last_name", code))).upper()
+                pos_val = int(entry.get("position", idx)) if str(entry.get("position", "")).isdigit() else idx
+                default_grid = min(20, max(1, pos_val))
+
+                self._roster[code] = {
+                    "code": code,
+                    "name": f"{first_name} {last_name.title()}",
+                    "first_name": first_name,
+                    "last_name": last_name,
+                    "team": team_name,
+                    "number": int(drv.get("permanentNumber", existing.get("number", 0))) if str(drv.get("permanentNumber", "")).isdigit() else int(existing.get("number", 0)),
+                    "color": existing.get("color", "#E10600"),
+                    "country": existing.get("country", "🏁"),
+                    "default_grid": default_grid,
+                    "photo": existing.get("photo", f"/f1/drivers/{code}.webp"),
+                    "pts_share": pts_share,
+                    "rolling_avg": float(existing.get("rolling_avg", min(20.0, float(default_grid)))),
+                    "starts": int(existing.get("starts", 1)),
+                    "is_active": True,
+                }
+
+            for code, profile in self._roster.items():
+                if code not in synced_codes:
+                    profile["is_active"] = False
+
+            self._persist()
+
+        return {
+            "year": year,
+            "synced_drivers": len(synced_codes),
+            "active_codes": sorted(synced_codes),
+        }
+
 
 _GLOBAL_ROSTER_SERVICE: Optional[DriverRosterService] = None
 _SERVICE_INIT_LOCK = threading.Lock()

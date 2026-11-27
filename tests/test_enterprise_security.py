@@ -253,6 +253,41 @@ async def test_protected_audit_endpoint_requires_admin_role():
             assert data["chain_verified"] is True
 
 
+def test_production_security_config_validation():
+    """Verifies production secret validation warns and fails strictly when unsafe defaults are used."""
+    from core.security.auth import validate_production_security_config
+
+    with patch.dict("os.environ", {"ENVIRONMENT": "development"}, clear=False):
+        assert validate_production_security_config() == []
+
+    with patch.dict(
+        "os.environ",
+        {
+            "ENVIRONMENT": "production",
+            "APEX_API_KEYS": "",
+            "APEX_AUTH_REQUIRED": "false",
+            "APEX_MODEL_SIGNING_KEY": "",
+        },
+        clear=False,
+    ):
+        warnings_list = validate_production_security_config(strict=False)
+        assert len(warnings_list) == 3
+        with pytest.raises(RuntimeError, match="Production security validation failed"):
+            validate_production_security_config(strict=True)
+
+    with patch.dict(
+        "os.environ",
+        {
+            "ENVIRONMENT": "production",
+            "APEX_API_KEYS": "prod_key:admin",
+            "APEX_AUTH_REQUIRED": "true",
+            "APEX_MODEL_SIGNING_KEY": "custom-strong-key-xyz",
+        },
+        clear=False,
+    ):
+        assert validate_production_security_config(strict=True) == []
+
+
 # ── TEST 9: RUNTIME PROMPT INJECTION & CANARY LEAK INTERCEPTION ───────────────
 
 @pytest.mark.asyncio

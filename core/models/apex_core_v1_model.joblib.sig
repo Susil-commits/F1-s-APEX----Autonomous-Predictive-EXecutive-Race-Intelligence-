@@ -1,9 +1,9 @@
 {
   "model_file": "apex_core_v1_model.joblib",
-  "sha256": "1e21b7f39364a47eb881691ccc2056977a080438fb3dc86c2e640bc53096fcfe",
-  "hmac_sha256_signature": "8bb784cda1830e9a02c94ad7ae1595f9b60ddab8fb3d1ce3a66d9f6cd806e32a",
+  "sha256": "b8825cddd7986c2a76584a5c7e1f3ded1e1950155fb573df70b14e973dc91399",
+  "hmac_sha256_signature": "019a4e9a508b7027479ea65543c9fd1182e186fa22fed38e4b7fc04de0522b9e",
   "algorithm": "HMAC-SHA256",
-  "file_size_bytes": 685712,
+  "file_size_bytes": 685744,
   "custom_metadata": {
     "version": "core-v1.0.0",
     "status": "PASS"

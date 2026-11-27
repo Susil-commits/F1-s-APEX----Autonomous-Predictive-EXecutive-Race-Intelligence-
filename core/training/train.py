@@ -339,7 +339,9 @@ def train_finishing_position_model(
     # Split Conformal Prediction Interval Calibration (held-out calibration fold)
     # Compute nonconformity scores on X_cal: R_i = |y_i - f(X_i)|
     cal_preds = best_model.predict(X_cal)
-    cal_residuals = np.abs(y_cal - cal_preds)
+    signed_cal_residuals = y_cal - cal_preds
+    cal_residuals = np.abs(signed_cal_residuals)
+    residual_std = float(np.std(signed_cal_residuals)) if len(signed_cal_residuals) > 1 else 3.2
     n_cal = len(cal_residuals)
 
     # Conformal finite-sample adjusted quantile for 90% target coverage:
@@ -401,6 +403,7 @@ def train_finishing_position_model(
         "feature_names": PRE_RACE_FEATURE_NAMES,
         "winning_model_family": best_name,
         "q_hat_margin": q_hat,
+        "residual_std": round(residual_std, 4),
         "conformal": {
             "method": "split_conformal",
             "coverage_target": 0.90,

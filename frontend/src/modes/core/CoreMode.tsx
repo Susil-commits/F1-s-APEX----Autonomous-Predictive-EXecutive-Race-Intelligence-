@@ -66,7 +66,7 @@ export const CoreMode: React.FC = () => {
     const gridVal = customGrid === '' ? driverObj.defaultGrid : Number(customGrid);
 
     try {
-      const res = await fetch(`${API_BASE}/api/core/predict`, {
+      const res = await fetch(`${API_BASE}/api/core/predict/narrate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

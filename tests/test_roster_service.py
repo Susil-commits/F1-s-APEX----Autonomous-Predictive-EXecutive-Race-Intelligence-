@@ -50,3 +50,66 @@ def test_roster_service_update_profile(tmp_path):
     # Reload from disk to verify persistence
     svc_reloaded = DriverRosterService(persistence_file=storage)
     assert svc_reloaded.get_driver("ROO") is not None
+
+
+def test_roster_service_sync_from_jolpica(tmp_path):
+    """Verifies dynamic standings sync updates active lineup and constructor points share."""
+    from unittest.mock import MagicMock, patch
+
+    storage = str(tmp_path / "roster_sync.json")
+    svc = DriverRosterService(persistence_file=storage)
+
+    mock_driver_resp = MagicMock()
+    mock_driver_resp.json.return_value = {
+        "MRData": {
+            "StandingsTable": {
+                "StandingsLists": [
+                    {
+                        "DriverStandings": [
+                            {
+                                "position": "1",
+                                "Driver": {"code": "ANT", "givenName": "Andrea Kimi", "familyName": "Antonelli", "permanentNumber": "12"},
+                                "Constructors": [{"name": "Mercedes"}],
+                            },
+                            {
+                                "position": "2",
+                                "Driver": {"code": "NOR", "givenName": "Lando", "familyName": "Norris", "permanentNumber": "4"},
+                                "Constructors": [{"name": "McLaren"}],
+                            },
+                        ]
+                    }
+                ]
+            }
+        }
+    }
+    mock_constructor_resp = MagicMock()
+    mock_constructor_resp.json.return_value = {
+        "MRData": {
+            "StandingsTable": {
+                "StandingsLists": [
+                    {
+                        "ConstructorStandings": [
+                            {"Constructor": {"name": "Mercedes"}, "points": "600"},
+                            {"Constructor": {"name": "McLaren"}, "points": "400"},
+                        ]
+                    }
+                ]
+            }
+        }
+    }
+
+    mock_client = MagicMock()
+    mock_client.__enter__.return_value = mock_client
+    mock_client.get.side_effect = [mock_driver_resp, mock_constructor_resp]
+
+    with patch("httpx.Client", return_value=mock_client):
+        res = svc.sync_from_jolpica(year=2026)
+
+    assert res["year"] == 2026
+    assert res["synced_drivers"] == 2
+    ant = svc.get_driver("ANT")
+    assert ant is not None
+    assert ant["pts_share"] == 0.5  # clamped from 0.60
+    assert ant["default_grid"] == 1
+    ric = svc.get_driver("RIC")
+    assert ric is not None and ric["is_active"] is False

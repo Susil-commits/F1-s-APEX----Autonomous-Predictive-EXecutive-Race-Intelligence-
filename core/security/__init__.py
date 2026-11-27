@@ -18,6 +18,7 @@ from core.security.auth import (
     Role,
     get_current_role,
     require_role,
+    validate_production_security_config,
 )
 from core.security.audit import (
     AuditLogger,
@@ -49,6 +50,7 @@ __all__ = [
     "Role",
     "get_current_role",
     "require_role",
+    "validate_production_security_config",
     "AuditLogger",
     "AuditEvent",
     "get_audit_logger",

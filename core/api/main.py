@@ -41,11 +41,13 @@ from core.security import (
     configure_enterprise_cors,
     get_audit_logger,
     require_role,
+    validate_production_security_config,
 )
 from core.security.circuit_breaker import get_failover_manager
 
 _drift_monitor = WeekendDriftMonitor()
 _mcp_server = ApexMCPServer()
+_security_warnings = validate_production_security_config()
 
 app = FastAPI(
     title="APEX Core — Pre-Race Finishing Position Intelligence",
@@ -102,6 +104,7 @@ async def get_security_telemetry():
         "canary_traps_enabled": True,
         "pii_redaction_enabled": True,
         "security_headers_enforced": True,
+        "production_config_warnings": validate_production_security_config(),
         "circuit_breakers": failover_mgr.all_statuses(),
     }
 

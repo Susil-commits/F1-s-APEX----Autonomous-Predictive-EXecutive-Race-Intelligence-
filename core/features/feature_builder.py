@@ -35,38 +35,40 @@ PRE_RACE_FEATURE_NAMES: List[str] = [
 
 CIRCUIT_PROFILES: Dict[str, Dict[str, float]] = {
     # Core European & Classic High-Speed Venues
-    "silverstone": {"downforce": 0.75, "power": 0.85, "street": 0.0},
-    "monza": {"downforce": 0.10, "power": 1.00, "street": 0.0},
-    "spa": {"downforce": 0.65, "power": 0.90, "street": 0.0},
-    "suzuka": {"downforce": 0.85, "power": 0.80, "street": 0.0},
-    "interlagos": {"downforce": 0.70, "power": 0.75, "street": 0.0},
-    "catalunya": {"downforce": 0.80, "power": 0.75, "street": 0.0},
-    "imola": {"downforce": 0.75, "power": 0.70, "street": 0.0},
-    "red_bull_ring": {"downforce": 0.50, "power": 0.90, "street": 0.0},
-    "hungaroring": {"downforce": 0.95, "power": 0.30, "street": 0.0},
-    "zandvoort": {"downforce": 0.90, "power": 0.50, "street": 0.0},
-    "ricard": {"downforce": 0.60, "power": 0.80, "street": 0.0},
+    "silverstone": {"downforce": 0.75, "power": 0.85, "street": 0.0, "laps": 52, "sc_probability": 0.45},
+    "monza": {"downforce": 0.10, "power": 1.00, "street": 0.0, "laps": 53, "sc_probability": 0.25},
+    "spa": {"downforce": 0.65, "power": 0.90, "street": 0.0, "laps": 44, "sc_probability": 0.55},
+    "suzuka": {"downforce": 0.85, "power": 0.80, "street": 0.0, "laps": 53, "sc_probability": 0.45},
+    "interlagos": {"downforce": 0.70, "power": 0.75, "street": 0.0, "laps": 71, "sc_probability": 0.60},
+    "catalunya": {"downforce": 0.80, "power": 0.75, "street": 0.0, "laps": 66, "sc_probability": 0.30},
+    "imola": {"downforce": 0.75, "power": 0.70, "street": 0.0, "laps": 63, "sc_probability": 0.50},
+    "red_bull_ring": {"downforce": 0.50, "power": 0.90, "street": 0.0, "laps": 71, "sc_probability": 0.35},
+    "hungaroring": {"downforce": 0.95, "power": 0.30, "street": 0.0, "laps": 70, "sc_probability": 0.30},
+    "zandvoort": {"downforce": 0.90, "power": 0.50, "street": 0.0, "laps": 72, "sc_probability": 0.50},
+    "ricard": {"downforce": 0.60, "power": 0.80, "street": 0.0, "laps": 53, "sc_probability": 0.30},
 
     # Middle East & Asian Venues
-    "bahrain": {"downforce": 0.70, "power": 0.75, "street": 0.0},
-    "losail": {"downforce": 0.85, "power": 0.75, "street": 0.0},
-    "yas_marina": {"downforce": 0.70, "power": 0.80, "street": 0.0},
-    "shanghai": {"downforce": 0.70, "power": 0.85, "street": 0.0},
+    "bahrain": {"downforce": 0.70, "power": 0.75, "street": 0.0, "laps": 57, "sc_probability": 0.35},
+    "losail": {"downforce": 0.85, "power": 0.75, "street": 0.0, "laps": 57, "sc_probability": 0.40},
+    "yas_marina": {"downforce": 0.70, "power": 0.80, "street": 0.0, "laps": 58, "sc_probability": 0.35},
+    "shanghai": {"downforce": 0.70, "power": 0.85, "street": 0.0, "laps": 56, "sc_probability": 0.45},
 
     # High-Altitude & North/South American Venues
-    "americas": {"downforce": 0.75, "power": 0.80, "street": 0.0},
-    "rodriguez": {"downforce": 0.95, "power": 0.85, "street": 0.0},
+    "americas": {"downforce": 0.75, "power": 0.80, "street": 0.0, "laps": 56, "sc_probability": 0.45},
+    "austin": {"downforce": 0.75, "power": 0.80, "street": 0.0, "laps": 56, "sc_probability": 0.45},  # alias for americas
+    "rodriguez": {"downforce": 0.95, "power": 0.85, "street": 0.0, "laps": 71, "sc_probability": 0.40},
 
     # Street & Semi-Street Circuits
-    "monaco": {"downforce": 1.00, "power": 0.20, "street": 1.0},
-    "marina_bay": {"downforce": 0.95, "power": 0.35, "street": 1.0},
-    "singapore": {"downforce": 0.95, "power": 0.35, "street": 1.0},  # alias for marina_bay
-    "baku": {"downforce": 0.40, "power": 0.95, "street": 1.0},
-    "jeddah": {"downforce": 0.40, "power": 0.95, "street": 1.0},
-    "albert_park": {"downforce": 0.65, "power": 0.70, "street": 1.0},
-    "miami": {"downforce": 0.60, "power": 0.85, "street": 1.0},
-    "vegas": {"downforce": 0.30, "power": 0.95, "street": 1.0},
-    "villeneuve": {"downforce": 0.45, "power": 0.85, "street": 1.0},
+    "monaco": {"downforce": 1.00, "power": 0.20, "street": 1.0, "laps": 78, "sc_probability": 0.75},
+    "marina_bay": {"downforce": 0.95, "power": 0.35, "street": 1.0, "laps": 62, "sc_probability": 0.85},
+    "singapore": {"downforce": 0.95, "power": 0.35, "street": 1.0, "laps": 62, "sc_probability": 0.85},  # alias for marina_bay
+    "baku": {"downforce": 0.40, "power": 0.95, "street": 1.0, "laps": 51, "sc_probability": 0.70},
+    "jeddah": {"downforce": 0.40, "power": 0.95, "street": 1.0, "laps": 50, "sc_probability": 0.70},
+    "albert_park": {"downforce": 0.65, "power": 0.70, "street": 1.0, "laps": 58, "sc_probability": 0.60},
+    "melbourne": {"downforce": 0.65, "power": 0.70, "street": 1.0, "laps": 58, "sc_probability": 0.60},  # alias for albert_park
+    "miami": {"downforce": 0.60, "power": 0.85, "street": 1.0, "laps": 57, "sc_probability": 0.55},
+    "vegas": {"downforce": 0.30, "power": 0.95, "street": 1.0, "laps": 50, "sc_probability": 0.55},
+    "villeneuve": {"downforce": 0.45, "power": 0.85, "street": 1.0, "laps": 70, "sc_probability": 0.65},
 }
 
 

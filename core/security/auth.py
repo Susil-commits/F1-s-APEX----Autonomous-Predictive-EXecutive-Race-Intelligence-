@@ -10,9 +10,12 @@ from __future__ import annotations
 
 import enum
 import hashlib
+import logging
 import os
 import secrets
-from typing import Dict, Optional
+from typing import Dict, List, Optional
+
+logger = logging.getLogger(__name__)
 
 from fastapi import Depends, Header, HTTPException, status
 from fastapi.security import APIKeyHeader
@@ -154,3 +157,30 @@ def require_role(min_role: Role):
         return current_role
 
     return dependency
+
+
+def validate_production_security_config(strict: Optional[bool] = None) -> List[str]:
+    """Audits production security environment variables and warns or raises on unsafe defaults."""
+    env = os.environ.get("ENVIRONMENT", "development").lower()
+    if env != "production":
+        return []
+
+    warnings_list: List[str] = []
+    if not os.environ.get("APEX_API_KEYS", "").strip():
+        warnings_list.append("APEX_API_KEYS is unset in production; Admin/Engineer keys are unconfigured.")
+
+    if os.environ.get("APEX_AUTH_REQUIRED", "false").lower() != "true":
+        warnings_list.append("APEX_AUTH_REQUIRED is not 'true' in production; RBAC endpoints default to open.")
+
+    signing_key = os.environ.get("APEX_MODEL_SIGNING_KEY", "").strip()
+    if not signing_key or signing_key == "apex-f1-enterprise-secret-signing-key-2026-v1":
+        warnings_list.append("APEX_MODEL_SIGNING_KEY uses the hardcoded default or is unset in production.")
+
+    for w in warnings_list:
+        logger.warning("[APEX Security Config] %s", w)
+
+    enforce_strict = strict if strict is not None else (os.environ.get("APEX_STRICT_SECURITY", "false").lower() == "true")
+    if enforce_strict and warnings_list:
+        raise RuntimeError("Production security validation failed: " + "; ".join(warnings_list))
+
+    return warnings_list

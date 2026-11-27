@@ -10,7 +10,11 @@ jobs:
         with:
           python-version: "3.12"
       - name: Install dependencies
-        run: pip install -r core/requirements.txt pytest pytest-asyncio
+        run: pip install -r core/requirements.txt pytest pytest-asyncio ruff
+      - name: Lint and compile check
+        run: |
+          python -m compileall -q core agents context tests
+          ruff check --select F,E9,W6 core agents context tests
       - name: Run tests
         run: pytest tests/ -v
 

@@ -20,6 +20,13 @@ export interface OpportunityItem {
   opportunity_score: number;
 }
 
+export interface RetrievedRegulationSource {
+  topic: string;
+  article: string;
+  similarity: number;
+  excerpt: string;
+}
+
 export interface PredictionData {
   race_id: string;
   driver_id: string;
@@ -36,6 +43,8 @@ export interface PredictionData {
   strategy_recommendations?: StrategyLeverItem[];
   biggest_opportunity?: OpportunityItem;
   summary_explanation: string;
+  narrative?: string;
+  retrieved_sources?: RetrievedRegulationSource[];
 }
 
 interface PredictionCardProps {
@@ -359,6 +368,50 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ data }) => {
                 <span className="hidden sm:inline text-[10px] font-mono uppercase font-bold text-amber-600 dark:text-amber-400">
                   Setup Priority
                 </span>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Race Engineer Radio Brief & FIA Regulatory Grounding */}
+        {(data.narrative || (data.retrieved_sources && data.retrieved_sources.length > 0)) && (
+          <div className="matte-panel p-5 flex flex-col gap-3 border-l-4 border-l-[#E10600]">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-700 dark:text-slate-200">
+                <Activity className="w-4 h-4 text-[#E10600]" />
+                <span>Race Engineer Radio & FIA Regulatory Grounding</span>
+              </div>
+              <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-slate-100 dark:bg-white/5 text-slate-500 dark:text-slate-400">
+                RAG Audited
+              </span>
+            </div>
+
+            {data.narrative && (
+              <p className="text-sm text-slate-800 dark:text-slate-100 leading-relaxed italic">
+                "{data.narrative}"
+              </p>
+            )}
+
+            {data.retrieved_sources && data.retrieved_sources.length > 0 && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2.5 pt-1">
+                {data.retrieved_sources.map((src, idx) => (
+                  <div
+                    key={idx}
+                    className="p-3 rounded-lg bg-slate-50 dark:bg-white/[0.02] border border-slate-200 dark:border-white/10 text-xs flex flex-col gap-1"
+                  >
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="font-bold text-slate-900 dark:text-white truncate">
+                        {src.article}
+                      </span>
+                      <span className="font-mono text-[10px] text-emerald-600 dark:text-emerald-400">
+                        {Math.round(src.similarity * 100)}% match
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 dark:text-slate-400 line-clamp-2">
+                      {src.excerpt}
+                    </p>
+                  </div>
+                ))}
               </div>
             )}
           </div>

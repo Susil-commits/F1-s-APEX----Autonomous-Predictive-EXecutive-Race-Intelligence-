@@ -15,42 +15,18 @@ from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
 from pydantic import BaseModel, Field
 
+from core.features.feature_builder import CIRCUIT_PROFILES
 from core.features.tyre_model import TyreDegradationModel
 
 logger = logging.getLogger(__name__)
 
+# Derived from canonical CIRCUIT_PROFILES so all 25+ Grand Prix circuits stay aligned
 CIRCUIT_TOTAL_LAPS: Dict[str, int] = {
-    "monaco": 78,
-    "silverstone": 52,
-    "monza": 53,
-    "spa": 44,
-    "suzuka": 53,
-    "interlagos": 71,
-    "bahrain": 57,
-    "singapore": 62,
-    "baku": 51,
-    "vegas": 50,
-    "austin": 56,
-    "hungaroring": 70,
-    "zandvoort": 72,
-    "jeddah": 50,
-    "melbourne": 58,
+    cid: int(profile.get("laps", 55)) for cid, profile in CIRCUIT_PROFILES.items()
 }
 
-# Historical Safety Car probability per race
 CIRCUIT_SC_HAZARD_RATES: Dict[str, float] = {
-    "monaco": 0.75,
-    "singapore": 0.85,
-    "baku": 0.70,
-    "jeddah": 0.70,
-    "spa": 0.55,
-    "silverstone": 0.45,
-    "interlagos": 0.60,
-    "melbourne": 0.60,
-    "monza": 0.25,
-    "bahrain": 0.35,
-    "hungaroring": 0.30,
-    "zandvoort": 0.50,
+    cid: float(profile.get("sc_probability", 0.40)) for cid, profile in CIRCUIT_PROFILES.items()
 }
 
 

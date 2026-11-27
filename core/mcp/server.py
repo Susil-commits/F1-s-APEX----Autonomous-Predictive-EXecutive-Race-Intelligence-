@@ -134,7 +134,7 @@ class ApexMCPServer:
         start = time.perf_counter()
 
         if name == "apex_predict_grid":
-            from core.api.predict import get_core_model
+            from core.api.predict import estimate_finish_probabilities, get_core_model
 
             race_id = str(arguments.get("race_id", "silverstone"))
             circuit_id = race_id.lower().replace("_2024", "").replace("_2025", "")
@@ -167,16 +167,14 @@ class ApexMCPServer:
             raw_preds = model.predict(X)
             indexed_scores = sorted(enumerate(raw_preds), key=lambda item: float(item[1]))
 
+            residual_std = float(artifact.get("residual_std", max(1.0, q_hat / 1.645)))
             results = []
             for rank_idx, (orig_idx, score) in enumerate(indexed_scores, start=1):
                 d = drivers[orig_idx]
                 raw_val = float(score)
                 lower = max(1, int(np.floor(raw_val - q_hat)))
                 upper = min(20, int(np.ceil(raw_val + q_hat)))
-                win_prob = float(np.clip(np.exp(-0.9 * max(0.0, raw_val - 1.0)) * 100.0, 0.5, 95.0))
-                podium_prob = float(np.clip(np.exp(-0.45 * max(0.0, raw_val - 3.0)) * 100.0, 1.0, 99.0))
-                if rank_idx == 1:
-                    podium_prob = max(podium_prob, 85.0)
+                win_prob, podium_prob = estimate_finish_probabilities(raw_val, residual_std, rank_pos=rank_idx)
                 results.append({
                     "driver_id": d["code"],
                     "driver_name": d["name"],
@@ -185,8 +183,8 @@ class ApexMCPServer:
                     "predicted_position": rank_idx,
                     "raw_score": round(raw_val, 2),
                     "conformal_interval": [lower, upper],
-                    "win_probability_pct": round(win_prob, 1),
-                    "podium_probability_pct": round(podium_prob, 1),
+                    "win_probability_pct": win_prob,
+                    "podium_probability_pct": podium_prob,
                 })
             content = {
                 "race_id": race_id,

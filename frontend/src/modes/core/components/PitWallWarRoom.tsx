@@ -107,6 +107,7 @@ export const PitWallWarRoom: React.FC<PitWallWarRoomProps> = ({
   const [simData, setSimData] = useState<MonteCarloResponse | null>(null);
   const [gridData, setGridData] = useState<GridResponse | null>(null);
   const [tyreCurve, setTyreCurve] = useState<TyrePoint[]>([]);
+  const [strategyBrief, setStrategyBrief] = useState<any>(null);
 
   // Run Monte Carlo Simulation
   const runMonteCarlo = useCallback(async () => {
@@ -194,12 +195,40 @@ export const PitWallWarRoom: React.FC<PitWallWarRoomProps> = ({
     }
   }, [apiBase, tyreAge, currentCompound, rivalGap, trackTemp]);
 
+  // Fetch L0-L3 Context & Agent Harness Strategy Brief
+  const fetchStrategyBrief = useCallback(async () => {
+    try {
+      const res = await fetch(`${apiBase}/api/core/strategy/brief`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          race_id: selectedRace,
+          driver_id: selectedDriver,
+          current_lap: currentLap,
+          current_compound: currentCompound,
+          current_tyre_age: tyreAge,
+          gap_behind_s: rivalGap,
+          track_temp_c: trackTemp,
+          rain_probability: rainForecast / 100.0,
+          active_aero_mode: aeroMode === 'X-MODE' ? 'X_MODE' : 'Z_MODE',
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setStrategyBrief(data);
+      }
+    } catch {
+      // Ignore
+    }
+  }, [apiBase, selectedRace, selectedDriver, currentLap, currentCompound, tyreAge, rivalGap, trackTemp, rainForecast, aeroMode]);
+
   useEffect(() => {
     runMonteCarlo();
     fetchFullGrid();
     fetchTyreCurve();
     handleCalculateUndercut();
-  }, [runMonteCarlo, fetchFullGrid, fetchTyreCurve, handleCalculateUndercut]);
+    fetchStrategyBrief();
+  }, [runMonteCarlo, fetchFullGrid, fetchTyreCurve, handleCalculateUndercut, fetchStrategyBrief]);
 
   return (
     <div className="w-full bg-[#0E1015]/90 border border-white/10 rounded-2xl p-6 backdrop-blur-xl shadow-2xl space-y-6 text-white">
@@ -270,6 +299,45 @@ export const PitWallWarRoom: React.FC<PitWallWarRoomProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Live L0-L3 Context & Sandboxed Agent Tactical Call */}
+      {strategyBrief && (
+        <div className="p-4 rounded-xl bg-gradient-to-r from-red-500/10 via-black/40 to-cyan-500/10 border border-white/10 flex flex-col lg:flex-row lg:items-center justify-between gap-3">
+          <div className="space-y-1">
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="text-[10px] font-mono uppercase tracking-wider px-2 py-0.5 rounded bg-red-600 text-white font-bold">
+                {strategyBrief.action}
+              </span>
+              {Array.isArray(strategyBrief.active_flags) &&
+                strategyBrief.active_flags.map((flag: string) => (
+                  <span
+                    key={flag}
+                    className="text-[10px] font-mono px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 border border-amber-500/25"
+                  >
+                    {flag}
+                  </span>
+                ))}
+            </div>
+            <p className="text-xs text-gray-300">
+              {strategyBrief.decision?.reasoning || 'Tactical brief synthesized under hard <200ms harness SLA.'}
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono text-gray-400">
+            <span className="px-2 py-1 rounded bg-white/5 border border-white/10">
+              Grade: <strong className="text-emerald-400">{strategyBrief.context_quality?.grade}</strong>
+            </span>
+            <span className="px-2 py-1 rounded bg-white/5 border border-white/10">
+              Compression:{' '}
+              <strong className="text-cyan-400">
+                {Math.round((strategyBrief.context_quality?.metrics?.compression_ratio || 0) * 100)}%
+              </strong>
+            </span>
+            <span className="px-2 py-1 rounded bg-white/5 border border-white/10">
+              Harness: <strong className="text-white">{strategyBrief.harness_telemetry?.latency_ms}ms</strong>
+            </span>
+          </div>
+        </div>
+      )}
 
       {/* TAB 1: MONTE CARLO IN-RACE PIT STRATEGY */}
       {activeTab === 'monte_carlo' && (
