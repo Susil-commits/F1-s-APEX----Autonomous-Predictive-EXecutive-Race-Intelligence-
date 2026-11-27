@@ -6,7 +6,6 @@ Run with:
 """
 from typing import Any, Dict, List
 from fastapi import Depends, FastAPI
-from fastapi.middleware.cors import CORSMiddleware
 from starlette.requests import Request
 from starlette.responses import Response
 from core.api.metrics import (

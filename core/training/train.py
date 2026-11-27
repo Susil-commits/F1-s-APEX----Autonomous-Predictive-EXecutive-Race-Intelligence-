@@ -387,7 +387,6 @@ def train_finishing_position_model(
         q_mod.fit(X_fit, y_fit)
 
     q10_val = quantile_models["q10"].predict(X_val)
-    q50_val = quantile_models["q50"].predict(X_val)
     q90_val = quantile_models["q90"].predict(X_val)
 
     # Quantile empirical coverage and mean interval width on validation holdout

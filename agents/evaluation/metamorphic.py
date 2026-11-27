@@ -9,7 +9,6 @@ Verifies domain-invariant properties and monotonic physical laws:
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List
 
 from agents.harness import AgentExecutionHarness
 from context.assembler import HierarchicalContextAssembler

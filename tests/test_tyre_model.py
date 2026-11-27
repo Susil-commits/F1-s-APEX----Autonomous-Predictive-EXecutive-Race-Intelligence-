@@ -1,6 +1,5 @@
 """Unit tests for Pirelli Physics-Informed Tyre Degradation Engine."""
-import pytest
-from core.features.tyre_model import TyreDegradationModel, PIRELLI_COMPOUNDS
+from core.features.tyre_model import TyreDegradationModel
 
 
 def test_tyre_model_initialization():

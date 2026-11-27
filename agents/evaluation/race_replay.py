@@ -5,12 +5,11 @@ to quantitatively evaluate agent tactical decisions against ground-truth F1 race
 """
 from __future__ import annotations
 
-import time
 from dataclasses import dataclass
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 from agents.harness import AgentExecutionHarness
-from context.assembler import HierarchicalContextAssembler, RaceContextBundle
+from context.assembler import HierarchicalContextAssembler
 
 
 @dataclass

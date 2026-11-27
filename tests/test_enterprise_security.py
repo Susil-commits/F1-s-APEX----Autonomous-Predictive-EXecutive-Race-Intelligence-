@@ -18,7 +18,7 @@ from httpx import ASGITransport, AsyncClient
 
 from core.api.main import app
 from core.security.auth import APIKeyAuthenticator, Role
-from core.security.audit import AuditEvent, AuditLogger, GENESIS_HASH, get_audit_logger
+from core.security.audit import AuditLogger, GENESIS_HASH
 from core.security.circuit_breaker import AICircuitBreaker, CircuitState
 from core.security.guardrails import (
     CanaryTrap,

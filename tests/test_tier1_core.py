@@ -15,7 +15,7 @@ import pytest
 from httpx import ASGITransport, AsyncClient
 
 from core.api.main import app as core_app
-from core.features.feature_builder import PRE_RACE_FEATURE_NAMES, PreRaceFeatureBuilder
+from core.features.feature_builder import PreRaceFeatureBuilder
 from core.training.evaluate import evaluate_model_temporal
 from core.training.train import train_finishing_position_model
 

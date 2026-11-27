@@ -5,7 +5,6 @@ import json
 import logging
 import os
 from datetime import datetime, timezone
-import joblib
 
 from core.training.train import train_finishing_position_model
 from core.training.evaluate import evaluate_model_temporal
@@ -61,7 +60,7 @@ def build_and_save_core_baseline(output_dir: str = DEFAULT_MODEL_DIR) -> str:
 
     # Cryptographically sign the model artifact for zero-trust enterprise verification
     from core.security.model_integrity import sign_model_file
-    sig_manifest = sign_model_file(model_path, metadata={"version": artifact["version"], "status": eval_report["status"]})
+    sign_model_file(model_path, metadata={"version": artifact["version"], "status": eval_report["status"]})
 
     logger.info(f"[APEX Core] Saved model to {model_path}, metadata to {meta_path}, and signature to {model_path}.sig")
     return model_path

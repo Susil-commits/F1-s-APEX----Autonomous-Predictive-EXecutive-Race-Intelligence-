@@ -69,7 +69,6 @@ class HierarchicalContextAssembler:
         token_budget: Optional[int] = None,
     ) -> RaceContextBundle:
         """Assembles unified context across all four tiers with token budgeting."""
-        start_time = time.perf_counter()
         budget = token_budget or self.default_token_budget
 
         # 1. Tier L0: Structural / Circuit & Regulatory Baseline

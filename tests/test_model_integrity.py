@@ -1,6 +1,4 @@
 """Unit tests for APEX Cryptographic Model Integrity Engine."""
-import os
-import pytest
 from core.security.model_integrity import (
     compute_file_sha256,
     sign_model_file,

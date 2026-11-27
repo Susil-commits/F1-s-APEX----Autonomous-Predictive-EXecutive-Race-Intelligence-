@@ -13,7 +13,7 @@ import logging
 import time
 from typing import Any, Dict, List, Optional, Tuple
 import numpy as np
-from pydantic import BaseModel, Field
+from pydantic import BaseModel
 
 from core.features.feature_builder import CIRCUIT_PROFILES
 from core.features.tyre_model import TyreDegradationModel

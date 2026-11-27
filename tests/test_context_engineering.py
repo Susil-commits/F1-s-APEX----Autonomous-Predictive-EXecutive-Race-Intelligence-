@@ -1,5 +1,4 @@
 """Unit tests for APEX Context Engineering Framework."""
-import pytest
 from context.assembler import (
     ContextLevel,
     HierarchicalContextAssembler,

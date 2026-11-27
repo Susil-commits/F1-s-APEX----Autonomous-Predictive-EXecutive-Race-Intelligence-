@@ -8,7 +8,6 @@ Enforces:
 from __future__ import annotations
 
 import os
-from typing import List
 from fastapi import FastAPI, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
 from starlette.middleware.base import BaseHTTPMiddleware

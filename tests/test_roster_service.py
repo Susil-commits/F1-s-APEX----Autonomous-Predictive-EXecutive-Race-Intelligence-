@@ -1,6 +1,5 @@
 """Unit tests for APEX Dynamic Driver Roster Service."""
-import pytest
-from core.data.roster_service import DriverRosterService, DriverProfile, DEFAULT_DRIVER_ROSTER
+from core.data.roster_service import DriverRosterService, DriverProfile
 
 
 def test_roster_service_initialization(tmp_path):
