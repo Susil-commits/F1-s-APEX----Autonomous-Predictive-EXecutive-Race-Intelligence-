@@ -35,6 +35,8 @@ export interface PredictionData {
   grid_position: number;
   predicted_position: number;
   confidence_interval: [number, number];
+  quantile_interval?: [number, number] | null;
+  quantile_p50?: number | null;
   win_probability_pct: number;
   podium_probability_pct: number;
   model_version: string;
@@ -234,8 +236,14 @@ export const PredictionCard: React.FC<PredictionCardProps> = ({ data }) => {
               </span>
             </div>
             <span className="text-[11px] font-medium text-slate-500 dark:text-slate-400 mt-2">
-              Expected variance window under normal race pacing
+              90% Conformal Guarantee
             </span>
+            {data.quantile_interval && (
+              <span className="text-[11px] font-mono text-cyan-700 dark:text-cyan-300 mt-1 px-2 py-0.5 rounded bg-cyan-500/10 border border-cyan-500/20">
+                P10–P90: P{data.quantile_interval[0]}–P{data.quantile_interval[1]}
+                {data.quantile_p50 ? ` (Med P${data.quantile_p50})` : ''}
+              </span>
+            )}
           </div>
 
           {/* 3. Win & Podium Odds */}

@@ -3,24 +3,34 @@ import { CloudRain, Sun, Play, Sliders, Shield } from 'lucide-react';
 
 export interface RaceConditionsPanelProps {
   gridPosition: number | '';
+  qualiDelta: number | '';
   rainForecast: number;
+  weatherTransition: boolean;
   activeDriverDefaultGrid: number;
   isAnalyzing: boolean;
   onGridChange: (grid: number) => void;
+  onQualiDeltaChange: (delta: number | '') => void;
   onRainChange: (rain: number) => void;
+  onWeatherTransitionChange: (transition: boolean) => void;
   onAnalyze: () => void;
 }
 
 export const RaceConditionsPanel: React.FC<RaceConditionsPanelProps> = ({
   gridPosition,
+  qualiDelta,
   rainForecast,
+  weatherTransition,
   activeDriverDefaultGrid,
   isAnalyzing,
   onGridChange,
+  onQualiDeltaChange,
   onRainChange,
+  onWeatherTransitionChange,
   onAnalyze,
 }) => {
   const currentGrid = gridPosition === '' ? activeDriverDefaultGrid : gridPosition;
+  const effectiveQualiDelta =
+    qualiDelta === '' ? Number(Math.max(0, (currentGrid - 1) * 0.12).toFixed(2)) : qualiDelta;
 
   return (
     <div className="w-full matte-panel p-6 flex flex-col gap-6">
@@ -68,6 +78,25 @@ export const RaceConditionsPanel: React.FC<RaceConditionsPanelProps> = ({
           <p className="text-[11px] text-slate-500 dark:text-slate-400">
             Starting position on the grid strongly dictates initial race track position and clean air advantage.
           </p>
+
+          {/* Qualifying Delta to Pole Override */}
+          <div className="pt-2 border-t border-slate-200 dark:border-white/10 flex flex-col gap-2">
+            <div className="flex items-center justify-between text-xs font-bold uppercase">
+              <span className="text-slate-700 dark:text-slate-300">Qualifying Gap to Pole</span>
+              <span className="text-slate-900 dark:text-white font-mono">
+                +{effectiveQualiDelta.toFixed(2)}s {qualiDelta === '' && '(Auto)'}
+              </span>
+            </div>
+            <input
+              type="range"
+              min="0"
+              max="3.5"
+              step="0.05"
+              value={effectiveQualiDelta}
+              onChange={(e) => onQualiDeltaChange(Number(e.target.value))}
+              className="w-full accent-[#E10600] cursor-pointer h-1.5 bg-slate-200 dark:bg-slate-800 rounded-lg"
+            />
+          </div>
         </div>
 
         {/* Track Weather & Rain Probability */}
@@ -115,6 +144,18 @@ export const RaceConditionsPanel: React.FC<RaceConditionsPanelProps> = ({
               WET / INTERMEDIATES (&gt;55%)
             </span>
           </div>
+
+          <label className="pt-2 border-t border-slate-200 dark:border-white/10 flex items-center justify-between cursor-pointer text-xs">
+            <span className="text-slate-700 dark:text-slate-300 font-semibold">
+              Mid-Race Weather Transition (Dry ↔ Wet Crossover)
+            </span>
+            <input
+              type="checkbox"
+              checked={weatherTransition}
+              onChange={(e) => onWeatherTransitionChange(e.target.checked)}
+              className="w-4 h-4 accent-[#E10600] cursor-pointer"
+            />
+          </label>
         </div>
       </div>
 

@@ -21,11 +21,7 @@ from core.training.train import train_finishing_position_model
 
 
 def test_core_features_dimension_and_bounds():
-    """Validates 10-dimensional vector construction and strict [0.0, 1.0] normalization.
-
-    Note: sector_1/2/3_delta_norm were dropped in v1.0.1 because real_prerace_dataset.csv
-    contains no sector columns.  The vector is now 10-dimensional.
-    """
+    """Validates 12-dimensional vector construction and strict [0.0, 1.0] normalization."""
     vec, feat_dict = PreRaceFeatureBuilder.extract_features(
         grid_position=1,
         quali_delta_s=0.0,
@@ -35,14 +31,18 @@ def test_core_features_dimension_and_bounds():
         circuit_id="silverstone",
         rain_prob=0.0,
         weather_transition=0.0,
+        dnf_rate=0.05,
+        constructor_race_gain=1.0,
     )
-    assert len(vec) == 10
-    assert len(feat_dict) == 10
+    assert len(vec) == 12
+    assert len(feat_dict) == 12
     assert all(0.0 <= x <= 1.0 for x in vec)
     assert feat_dict["grid_position_norm"] == 0.0
     assert feat_dict["quali_delta_to_pole_s"] == 0.0
     assert "sector_1_delta_norm" not in feat_dict
     assert feat_dict["weather_transition_flag"] == 0.0
+    assert feat_dict["driver_dnf_rate"] == 0.05
+    assert abs(feat_dict["constructor_race_gain_norm"] - 0.6) < 1e-6
 
 
 def test_core_baseline_training_pipeline():

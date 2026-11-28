@@ -187,8 +187,10 @@ def evaluate_model_temporal(model_artifact: Dict[str, Any], n_test_samples: int 
         except Exception as q_err:
             logger.warning(f"[APEX Evaluation] Could not evaluate quantile models: {q_err}")
 
+    holdout_season = int(df_test["season"].max()) if "season" in df_test.columns and len(df_test) > 0 else 2026
     report = {
         "model_version": model_artifact.get("version", "core-v1.0.0"),
+        "holdout_season": holdout_season,
         "test_samples": n_actual,
         "metrics": {
             "mae": round(mae, 3),

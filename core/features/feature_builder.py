@@ -25,12 +25,14 @@ PRE_RACE_FEATURE_NAMES: List[str] = [
     "quali_delta_to_pole_s",       # min(delta_s, 5.0) / 5.0
     "driver_rolling_finish_norm",  # (avg_finish_5_races - 1) / 19.0
     "driver_circuit_experience",   # min(starts_at_track, 10) / 10.0
-    "constructor_pts_share",       # team_pts / total_team_pts
+    "constructor_pts_share",       # team_pts / total_team_pts (strictly prior to round)
     "circuit_downforce_index",     # 0.0 (low/Monza) to 1.0 (high/Monaco)
     "circuit_power_sensitivity",   # 0.0 to 1.0
     "circuit_is_street_track",     # 1.0 or 0.0
     "race_rain_prob",              # 0.0 to 1.0
     "weather_transition_flag",     # 1.0 (conditions shifted mid-race) or 0.0
+    "driver_dnf_rate",             # rolling 10-race DNF rate [0.0, 1.0]
+    "constructor_race_gain_norm",  # (constructor_race_gain + 5.0) / 10.0
 ]
 
 CIRCUIT_PROFILES: Dict[str, Dict[str, float]] = {
@@ -52,6 +54,7 @@ CIRCUIT_PROFILES: Dict[str, Dict[str, float]] = {
     "losail": {"downforce": 0.85, "power": 0.75, "street": 0.0, "laps": 57, "sc_probability": 0.40},
     "yas_marina": {"downforce": 0.70, "power": 0.80, "street": 0.0, "laps": 58, "sc_probability": 0.35},
     "shanghai": {"downforce": 0.70, "power": 0.85, "street": 0.0, "laps": 56, "sc_probability": 0.45},
+    "sepang": {"downforce": 0.75, "power": 0.85, "street": 0.0, "laps": 56, "sc_probability": 0.40},
 
     # High-Altitude & North/South American Venues
     "americas": {"downforce": 0.75, "power": 0.80, "street": 0.0, "laps": 56, "sc_probability": 0.45},
@@ -69,6 +72,7 @@ CIRCUIT_PROFILES: Dict[str, Dict[str, float]] = {
     "miami": {"downforce": 0.60, "power": 0.85, "street": 1.0, "laps": 57, "sc_probability": 0.55},
     "vegas": {"downforce": 0.30, "power": 0.95, "street": 1.0, "laps": 50, "sc_probability": 0.55},
     "villeneuve": {"downforce": 0.45, "power": 0.85, "street": 1.0, "laps": 70, "sc_probability": 0.65},
+    "madring": {"downforce": 0.75, "power": 0.75, "street": 1.0, "laps": 57, "sc_probability": 0.60},
 }
 
 
@@ -85,8 +89,10 @@ class PreRaceFeatureBuilder:
         circuit_id: str = "silverstone",
         rain_prob: float = 0.10,
         weather_transition: bool | float = 0.0,
+        dnf_rate: float = 0.08,
+        constructor_race_gain: float = 0.0,
     ) -> Tuple[np.ndarray, Dict[str, float]]:
-        """Constructs a normalized 10-dimensional vector from pre-race inputs."""
+        """Constructs a normalized 12-dimensional vector from pre-race inputs."""
         profile = CIRCUIT_PROFILES.get(
             circuit_id.lower(),
             {"downforce": 0.60, "power": 0.70, "street": 0.0}
@@ -102,6 +108,8 @@ class PreRaceFeatureBuilder:
         is_street = profile["street"]
         rain = np.clip(rain_prob, 0.0, 1.0)
         transition_flag = 1.0 if float(weather_transition) > 0.5 else 0.0
+        dnf_norm = np.clip(dnf_rate, 0.0, 1.0)
+        gain_norm = np.clip((constructor_race_gain + 5.0) / 10.0, 0.0, 1.0)
 
         vec = np.array([
             grid_norm,
@@ -114,6 +122,8 @@ class PreRaceFeatureBuilder:
             is_street,
             rain,
             transition_flag,
+            dnf_norm,
+            gain_norm,
         ], dtype=np.float32)
 
         feat_dict = {
@@ -127,11 +137,13 @@ class PreRaceFeatureBuilder:
             "circuit_is_street_track": is_street,
             "race_rain_prob": float(rain),
             "weather_transition_flag": transition_flag,
+            "driver_dnf_rate": float(dnf_norm),
+            "constructor_race_gain_norm": float(gain_norm),
         }
 
         return vec, feat_dict
 
     @staticmethod
     def dict_to_vector(feat_dict: Dict[str, float]) -> np.ndarray:
-        """Converts a feature dictionary into a 10-dimensional numpy vector aligned with PRE_RACE_FEATURE_NAMES."""
+        """Converts a feature dictionary into a 12-dimensional numpy vector aligned with PRE_RACE_FEATURE_NAMES."""
         return np.array([float(feat_dict.get(name, 0.0)) for name in PRE_RACE_FEATURE_NAMES], dtype=np.float32)

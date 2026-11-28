@@ -32,8 +32,8 @@ flowchart TB
     end
 
     subgraph CoreInference["4. Multi-Tier Inferencing & Simulation Engine (core/)"]
-        T1["Tier-1 ML Predictor (CatBoost Regressor, R²=0.684, MAE=2.390)"]
-        CONF["Split-Conformal Calibration (q̂=±6.67 pos, 95.6% Coverage)"]
+        T1["Tier-1 ML Predictor (CatBoost Regressor, 12 Features, 2026 Holdout R²=0.439, MAE=3.552)"]
+        CONF["Split-Conformal Calibration (q̂=±7.12 pos, 90.3% Coverage)"]
         T2["Tier-2 Monte Carlo In-Race Engine (10k Sims, <150ms)"]
         TYRE["Pirelli Non-Linear Tyre Degradation Physics Model"]
         GRID_VEC["Vectorized 20-Car Full Grid Batch Inferencing"]
@@ -77,18 +77,20 @@ flowchart TB
 
 ## 2. Single-Tier Core Pipeline & Zero-Leakage Features
 
-APEX constructs a normalized 10-dimensional feature vector using **strictly point-in-time facts verifiably known prior to race start**. No live lap times, pit-stop deltas, or in-race sensor streams enter the Tier-1 model, ensuring immunity to lookahead bias.
+APEX constructs a normalized 12-dimensional feature vector using **strictly point-in-time facts verifiably known prior to race start**. No current-race points, live lap times, pit-stop deltas, or in-race sensor streams enter the Tier-1 model, ensuring immunity to lookahead bias.
 
 ```
-Pre-Race Inputs  ──▶  PreRaceFeatureBuilder  ──▶  10-dim Float32 Tensor [0.0, 1.0]  ──▶  CatBoost Model
+Pre-Race Inputs  ──▶  PreRaceFeatureBuilder  ──▶  12-dim Float32 Tensor [0.0, 1.0]  ──▶  CatBoost Model
 ```
 
 | Feature | Feature Key | Source | Domain Reasoning |
 |---|---|---|---|
-| **Constructor Points Share** | `constructor_pts_share` | Constructors' Standings | Team machinery pace dominates modern F1; top constructors capture the bulk of points and set baseline race pace. |
-| **Starting Grid Slot** | `grid_position_norm` | Official Qualifying Result | Starting grid slot strongly drives finish order (Spearman $\rho = 0.817$), shaping lap-1 traffic and dirty-air exposure. |
+| **Starting Grid Slot** | `grid_position_norm` | Official Qualifying Result | Starting grid slot strongly drives finish order (Spearman $\rho = 0.668$), shaping lap-1 traffic and dirty-air exposure. |
+| **Constructor Points Share** | `constructor_pts_share` | Prior-Round Standings | Cumulative team points share strictly prior to the current round sets baseline machinery competitiveness without target leakage. |
 | **Driver 5-Race Rolling Average** | `driver_rolling_finish_norm` | Historical Race Results | Recent 5-race rolling form captures short-term driver confidence, tyre management, and upgrade synergy. |
 | **Qualifying Pace Delta to Pole** | `quali_delta_to_pole_s` | Qualifying Classification | Time delta to pole (seconds) measures single-lap raw package pace and tyre activation efficiency. |
+| **Constructor Race-Day Pace Gain** | `constructor_race_gain_norm` | Past-10 Constructor Entries | Rolling average positions gained/lost from grid to flag captures race-trim pace vs qualifying trim. |
+| **Driver Historical DNF Rate** | `driver_dnf_rate` | Past-10 Race Finishes | Rolling non-finish rate captures mechanical reliability and incident exposure prior to race start. |
 | **Circuit Downforce Demand** | `circuit_downforce_index` | Track Engineering Profile | High-downforce tracks (Monaco, Singapore, Hungaroring) resist overtaking; low-drag tracks (Monza, Spa) enable DRS passes. |
 | **Circuit Power Sensitivity** | `circuit_power_sensitivity` | Track Engineering Profile | Full-throttle tracks reward ICE thermal efficiency and MGU-K deployment. |
 | **Street Circuit Indicator** | `circuit_is_street_track` | Track Classification | Street circuits carry elevated Safety Car probabilities and zero runoff margin. |
@@ -102,11 +104,11 @@ Pre-Race Inputs  ──▶  PreRaceFeatureBuilder  ──▶  10-dim Float32 Ten
 
 ## 3. Data Architecture & Temporal Training Pipeline
 
-- **Training & Selection Data**: Jolpica F1 API + Open-Meteo Archive across 2022–2023 ($N=880$ driver-race entries):
-  - **Selection Training Set**: 2022 season ($N=440$) — fits GBR, XGBoost, and CatBoost.
-  - **Selection Validation Set**: 2023 season ($N=440$) — selects winning architecture without touching 2024 data.
-  - **Refit & Calibration**: Winner refitted chronologically on 2022–2023; last 20% ($N=176$) calibrates split-conformal margin ($\hat{q} = \pm 6.67$ positions).
-- **Holdout Test Set**: Full 2024 season ($N=479$ driver entries) — strictly held out and evaluated **once** ($R^2 = 0.684$, $\text{MAE} = 2.390$, **95.6% empirical coverage**).
+- **Training & Selection Data**: Jolpica F1 API + Open-Meteo Archive across 2022–2025 ($N=1,838$ driver-race entries):
+  - **Selection Training Set**: 2022–2024 seasons ($N=1,359$) — fits GBR, XGBoost, and CatBoost.
+  - **Selection Validation Set**: 2025 season ($N=479$) — selects winning architecture without touching 2026 data.
+  - **Refit & Calibration**: Winner refitted chronologically on 2022–2025; last 20% ($N=368$) calibrates split-conformal margin ($\hat{q} = \pm 7.12$ positions).
+- **Holdout Test Set**: 2026 season ($N=462$ driver entries) — strictly held out and evaluated **once** ($R^2 = 0.439$, $\text{MAE} = 3.552$, **90.3% empirical coverage**).
 - **Regulations Corpus**: `core/data/regulations/` contains **4 curated domain summaries** (DRS, Parc Fermé, Tyre/Weather, and 2026 Power Unit & Active Aero) indexed by `RegulationsVectorStore` (`core/api/narration.py`).
 
 ---

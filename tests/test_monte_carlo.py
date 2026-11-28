@@ -17,7 +17,7 @@ def test_monte_carlo_simulation_execution():
     assert results["circuit"] == "silverstone"
     assert results["current_lap"] == 18
     assert results["simulations_count"] == 5000
-    assert len(results["strategies"]) == 3
+    assert len(results["strategies"]) >= 3
     assert results["optimal_strategy"] in [s["strategy_name"] for s in results["strategies"]]
     assert results["total_runtime_ms"] < 2000.0  # Must be fast under vectorized NumPy
 
@@ -93,3 +93,33 @@ def test_circuit_registry_parity_across_all_profiles():
         assert cid in CIRCUIT_SC_HAZARD_RATES
         assert 40 <= CIRCUIT_TOTAL_LAPS[cid] <= 80
         assert 0.1 <= CIRCUIT_SC_HAZARD_RATES[cid] <= 1.0
+
+
+def test_monte_carlo_two_stop_wet_crossover_and_thread_safe_determinism():
+    """Verifies 2-stop push strategy, wet intermediate crossover, and deterministic per-call RNG."""
+    from core.simulation.monte_carlo import MonteCarloRaceSimulator
+
+    sim = MonteCarloRaceSimulator(random_seed=42)
+    res_wet_1 = sim.simulate_strategy_comparison(
+        circuit_id="silverstone",
+        current_lap=15,
+        current_pos=4,
+        current_compound="C3",
+        current_tyre_age=10,
+        n_simulations=1500,
+        rain_probability=0.75,
+    )
+    res_wet_2 = sim.simulate_strategy_comparison(
+        circuit_id="silverstone",
+        current_lap=15,
+        current_pos=4,
+        current_compound="C3",
+        current_tyre_age=10,
+        n_simulations=1500,
+        rain_probability=0.75,
+    )
+    names = [s["strategy_name"] for s in res_wet_1["strategies"]]
+    assert any("2-Stop" in n for n in names)
+    assert any("Intermediate" in n for n in names)
+    assert res_wet_1["optimal_strategy"] == "Intermediate Weather Crossover"
+    assert res_wet_1["expected_finish"] == res_wet_2["expected_finish"]

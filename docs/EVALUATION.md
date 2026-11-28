@@ -10,44 +10,44 @@ Every metric documented in APEX is reproducible on demand using dedicated evalua
 
 | Phase | Seasons | Rows | Purpose |
 |---|---|---|---|
-| Selection training | 2022 | 440 | Fit each candidate architecture |
-| Selection validation | 2023 | 440 | Pick best architecture (no 2024 data touched) |
-| Refit | 2022 + 2023 | 880 | Refit winner with more data |
-| Calibration fold | last 20% of refit set | 176 | Conformal q̂ calibration (chronological, deterministic) |
-| **Final holdout** | **2024** | **479 driver entries** | **Single evaluation pass — never used in selection** |
+| Selection training | 2022–2024 | 1,359 | Fit each candidate architecture (strictly causal priors) |
+| Selection validation | 2025 | 479 | Pick best architecture (no 2026 data touched) |
+| Refit | 2022–2025 | 1,838 | Refit winner with all prior seasons |
+| Calibration fold | last 20% of refit set | 368 | Conformal q̂ calibration (chronological, deterministic) |
+| **Final holdout** | **2026** | **462 driver entries** | **Single evaluation pass — never used in selection** |
 
 ### Baseline vs. Candidate Benchmark
 
-Selection metrics (2023 validation, model trained on 2022 only):
+Selection metrics (2025 validation, model trained on 2022–2024 only):
 
-| Model / Benchmark Strategy | Selection $R^2$ (2023) | Selection MAE | Relative MAE Reduction | Status |
+| Model / Benchmark Strategy | Selection $R^2$ (2025) | Selection MAE | Relative MAE Reduction | Status |
 |---|---|---|---|---|
 | **Naive Mean Predictor** ($\bar{y}$ = P10.5) | — | 4.99 pos | Baseline (0.0%) | Heuristic |
-| **Scikit-Learn Gradient Boosting** (`GBR`) | 0.565 | 2.743 pos | 45.0% | Candidate |
-| **Extreme Gradient Boosting** (`XGBoost`) | 0.585 | 2.675 pos | 46.4% | Candidate |
-| **Categorical Gradient Boosting** (`CatBoost`) | **0.599** | **2.668 pos** | **46.5%** | **WINNER ✓** |
+| **Scikit-Learn Gradient Boosting** (`GBR`) | 0.421 | 3.383 pos | 32.2% | Candidate |
+| **Extreme Gradient Boosting** (`XGBoost`) | 0.419 | 3.375 pos | 32.4% | Candidate |
+| **Categorical Gradient Boosting** (`CatBoost`) | **0.443** | **3.274 pos** | **34.4%** | **WINNER ✓** |
 
-Final evaluation on 2024 holdout (winner refitted on 2022+2023, seed 42):
+Final evaluation on 2026 holdout (winner refitted on 2022–2025, seed 42):
 
 | Metric | Value |
 |---|---|
-| Holdout season | 2024 |
-| Holdout N | **479 driver-race entries** |
-| Holdout MAE | **2.390 positions** |
-| Holdout $R^2$ | **0.684** |
-| Holdout RMSE | 3.235 |
-| Pearson $r$ | 0.829 |
-| Spearman $\rho$ | 0.817 |
+| Holdout season | 2026 |
+| Holdout N | **462 driver-race entries** |
+| Holdout MAE | **3.552 positions** |
+| Holdout $R^2$ | **0.439** |
+| Holdout RMSE | 4.750 |
+| Pearson $r$ | 0.672 |
+| Spearman $\rho$ | 0.668 |
 | Naive baseline MAE | 4.991 |
-| **MAE reduction vs. naive** | **52.1%** |
-| Conformal q̂ | ±6.670 positions |
-| Conformal coverage (90% target) | **95.6%** |
-| Conformal mean interval width | 13.34 positions |
+| **MAE reduction vs. naive** | **28.8%** |
+| Conformal q̂ | ±7.116 positions |
+| Conformal coverage (90% target) | **90.3%** |
+| Conformal mean interval width | 14.23 positions |
 
 **Key Takeaways**:
-- CatBoost explains **68.4% of finish position variance** ($R^2 = 0.684$) on real held-out 2024 Grand Prix races ($N = 479$ driver entries).
-- Cuts mean absolute error from **4.99 positions down to 2.39 positions** (a **52.1% error reduction** over the naive baseline).
-- Uses a 10-feature representation: grid position, qualifying delta, driver rolling average, circuit experience, constructor points share, circuit downforce/power/type, Open-Meteo rain probability, and weather transition flag.
+- CatBoost explains **43.9% of finish position variance** ($R^2 = 0.439$) on real held-out 2026 Grand Prix races ($N = 462$ driver entries) even across the 2026 aerodynamic/power-unit regulation reset.
+- Cuts mean absolute error from **4.99 positions down to 3.55 positions** (a **28.8% error reduction** over the naive baseline, and outperforming raw starting grid position MAE of 3.636).
+- Uses a strictly causal 12-feature representation (zero current-race points leakage): grid position, qualifying delta, driver rolling average, circuit experience, prior-round constructor points share, constructor race-day gain, rolling driver DNF rate, circuit downforce/power/type, Open-Meteo rain probability, and weather transition flag.
 
 > **Note on sector features**: Sector-time delta features (S1/S2/S3) are absent from `real_prerace_dataset.csv`. Rather than imputing them from a quali-delta heuristic (which added negligible signal: +0.008 MAE), they were dropped in v1.0.1. The 10-feature model is the shipped baseline.
 
@@ -79,12 +79,12 @@ Aggregating metrics across all tracks conceals critical variance in how physics 
 
 | Circuit Category | Representative Venues | Samples | MAE (pos) | RMSE | Holdout $R^2$ | Conformal Coverage ($\ge 90\%$) |
 |---|---|---|---|---|---|---|
-| **High-Speed** | Monza, Las Vegas, Red Bull Ring | 60 | **2.17** | **3.01** | **0.727** | **98.3%** |
-| **Permanent** | Silverstone, Spa, Suzuka, Catalunya, Zandvoort, Bahrain | 300 | **2.43** | **3.26** | **0.681** | **95.7%** |
-| **Street** | Monaco, Singapore, Baku, Miami, Jeddah, Albert Park | 119 | **2.39** | **3.29** | **0.670** | **94.1%** |
+| **High-Speed** | Monza, Las Vegas, Red Bull Ring | 66 | **3.51** | **4.60** | **0.474** | **89.4%** |
+| **Permanent** | Silverstone, Spa, Suzuka, Catalunya, Zandvoort, Bahrain | 286 | **3.40** | **4.62** | **0.469** | **91.3%** |
+| **Street** | Monaco, Singapore, Baku, Miami, Jeddah, Albert Park | 110 | **3.98** | **5.14** | **0.342** | **88.2%** |
 
 ### The "Street Circuit Finding" (Engineering Discussion)
-- **Honest ML Finding**: The model performs slightly worse on street circuits ($R^2 = 0.670$) compared to high-speed circuits ($R^2 = 0.727$).
+- **Honest ML Finding**: The model performs noticeably worse on street circuits ($R^2 = 0.342$, $\text{MAE} = 3.98$) compared to permanent ($R^2 = 0.469$) and high-speed circuits ($R^2 = 0.474$).
 - **Causal Interpretation**: Street venues (Monaco, Baku, Singapore) have high safety-car frequencies (>75%), zero runoff margin, tight overtaking delta penalties, and sudden yellow/red flag interventions. Starting position heavily correlates with qualifying, but retirements and safety car pit-stops introduce irreducible stochastic variance that purely pre-race priors cannot anticipate.
 - **Why This Matters**: Acknowledging and explaining subgroup disparity illustrates authentic domain intelligence rather than obscuring variance behind a single global average.
 
@@ -95,15 +95,15 @@ Aggregating metrics across all tracks conceals critical variance in how physics 
 APEX provides dual uncertainty modeling: distribution-free split conformal prediction bands alongside state-dependent asymmetric quantile regression.
 
 ### Asymmetric Uncertainty: Why Quantiles Matter
-A symmetric conformal interval (e.g. $\pm 6.67$ positions, total width 13.34 positions) treats uncertainty symmetrically. However:
+A symmetric conformal interval (e.g. $\pm 7.12$ positions, total width 14.23 positions) treats uncertainty symmetrically. However:
 - **Pole-Sitters (P1–P3)** have zero upside (cannot finish better than P1) but substantial downside risk (first-corner collisions, mechanical DNF, pit-stop delays).
 - **Midfield Drivers (P8–P12)** face traffic battles, alternate tire strategies, and DRS trains.
 - **Backmarkers (P18–P20)** cannot drop below P20, but have asymmetric upside if multi-car collisions occur ahead.
 
 | Model Strategy | Target Coverage | Empirical Coverage | Mean Interval Width |
 |---|---|---|---|
-| **Symmetric Split Conformal** | 90.0% | **95.6%** | **13.34 positions** |
-| **Quantile Regression (P10/P50/P90)** | 80.0% | **72.4%** | **7.91 positions** |
+| **Symmetric Split Conformal** | 90.0% | **90.3%** | **14.23 positions** |
+| **Quantile Regression (P10/P50/P90)** | 80.0% | **60.8%** | **9.16 positions** |
 
 ---
 

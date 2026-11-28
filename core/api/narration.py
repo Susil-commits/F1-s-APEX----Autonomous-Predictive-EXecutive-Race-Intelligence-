@@ -395,6 +395,9 @@ async def predict_with_narration(request: Request, req: PredictRequest):
     if req.weather_transition or (req.rain_probability and req.rain_probability > 0.3):
         query_candidates.append("weather_transition_flag")
 
+    if not query_candidates:
+        query_candidates.append("quali_delta_to_pole_s")
+
     for candidate in query_candidates[:2]:
         matched = reg_store.retrieve(candidate, top_k=1)
         for m in matched:

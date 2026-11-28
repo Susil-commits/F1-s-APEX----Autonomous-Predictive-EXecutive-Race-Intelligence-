@@ -269,15 +269,20 @@ class JolpicaAdapter:
             return 0.05
 
     def fetch_historical_prerace_records(self, seasons: List[int]) -> List[Dict[str, Any]]:
-        """Fetches and builds real pre-race features and actual finishing positions across seasons."""
+        """Fetches and builds strictly causal pre-race features and actual finishing positions across seasons."""
         records: List[Dict[str, Any]] = []
         driver_recent_finishes: Dict[str, List[float]] = {}
+        driver_recent_dnfs: Dict[str, List[float]] = {}
         driver_circuit_starts: Dict[str, Dict[str, int]] = {}
+        constructor_recent_gains: Dict[str, List[float]] = {}
+        prior_season_team_share: Dict[str, float] = {}
 
         with httpx.Client(timeout=self.timeout) as client:
             for year in sorted(seasons):
                 season_races = self.fetch_season_results_all(client, year)
                 quali_by_round = self.fetch_season_qualifying_all(client, year)
+                season_team_points: Dict[str, float] = {}
+                season_total_pts = 0.0
 
                 for race_obj in season_races:
                     r_num = int(race_obj.get("round", 0))
@@ -307,18 +312,17 @@ class JolpicaAdapter:
                             if pole_time_s == 0.0 or best_time < pole_time_s:
                                 pole_time_s = best_time
 
-                    # Team points share proxy for constructor strength in season
-                    team_points: Dict[str, float] = {}
-                    total_pts = 0.0
-                    for r in results:
-                        c_id = r.get("Constructor", {}).get("constructorId", "")
-                        pts = float(r.get("points", 0.0))
-                        team_points[c_id] = team_points.get(c_id, 0.0) + pts
-                        total_pts += pts
+                    race_team_points: Dict[str, float] = {}
+                    race_total_pts = 0.0
+                    post_race_updates: List[tuple[str, str, float, float, float]] = []
 
                     for r in results:
                         d_id = r.get("Driver", {}).get("driverId", "")
                         c_id = r.get("Constructor", {}).get("constructorId", "")
+                        pts = float(r.get("points", 0.0))
+                        race_team_points[c_id] = race_team_points.get(c_id, 0.0) + pts
+                        race_total_pts += pts
+
                         try:
                             grid_pos = int(r.get("grid", 10))
                             if grid_pos <= 0:
@@ -331,19 +335,34 @@ class JolpicaAdapter:
                         except (ValueError, TypeError):
                             fin_pos = 20
 
+                        status_str = str(r.get("status", "Finished"))
+                        is_dnf = 0.0 if (status_str == "Finished" or "Lap" in status_str) else 1.0
+
                         driver_q_time = quali_by_driver.get(d_id, 0.0)
                         quali_delta = max(0.0, driver_q_time - pole_time_s) if (driver_q_time > 0.0 and pole_time_s > 0.0) else 1.2
 
-                        # Causal rolling average finish (past 5 races only)
+                        # Strictly causal rolling average finish (past 5 races only)
                         past_finishes = driver_recent_finishes.get(d_id, [])
                         rolling_finish = (sum(past_finishes[-5:]) / len(past_finishes[-5:])) if past_finishes else float(grid_pos)
 
-                        # Circuit starts experience
+                        # Strictly causal rolling DNF rate (past 10 races)
+                        past_dnfs = driver_recent_dnfs.get(d_id, [])
+                        dnf_rate = (sum(past_dnfs[-10:]) / len(past_dnfs[-10:])) if past_dnfs else 0.08
+
+                        # Strictly causal constructor qualifying-to-race position gain (past 10 entries)
+                        past_gains = constructor_recent_gains.get(c_id, [])
+                        c_race_gain = (sum(past_gains[-10:]) / len(past_gains[-10:])) if past_gains else 0.0
+
+                        # Circuit starts experience prior to this race
                         starts_map = driver_circuit_starts.setdefault(d_id, {})
                         c_starts = starts_map.get(circuit_id, 0)
                         starts_map[circuit_id] = c_starts + 1
 
-                        constructor_share = (team_points.get(c_id, 0.0) / total_pts) if total_pts > 0 else 0.10
+                        # Strictly causal constructor points share PRIOR to current round
+                        if season_total_pts > 0.0:
+                            constructor_share = season_team_points.get(c_id, 0.0) / season_total_pts
+                        else:
+                            constructor_share = prior_season_team_share.get(c_id, 0.10)
 
                         records.append({
                             "season": year,
@@ -356,11 +375,27 @@ class JolpicaAdapter:
                             "circuit_starts": c_starts,
                             "constructor_pts_share": round(constructor_share, 4),
                             "rain_prob": race_rain_prob,
+                            "driver_dnf_rate": round(dnf_rate, 3),
+                            "constructor_race_gain": round(c_race_gain, 3),
                             "finishing_position": fin_pos,
                             "data_source": "jolpica_real",
                         })
 
-                        # Update history post-race
-                        driver_recent_finishes.setdefault(d_id, []).append(float(fin_pos))
+                        post_race_updates.append((d_id, c_id, float(fin_pos), is_dnf, float(grid_pos - fin_pos)))
+
+                    # Update all causal history strictly AFTER the race finishes
+                    for d_id, c_id, fin_f, is_dnf, pos_gain in post_race_updates:
+                        driver_recent_finishes.setdefault(d_id, []).append(fin_f)
+                        driver_recent_dnfs.setdefault(d_id, []).append(is_dnf)
+                        constructor_recent_gains.setdefault(c_id, []).append(pos_gain)
+
+                    for c_id, r_pts in race_team_points.items():
+                        season_team_points[c_id] = season_team_points.get(c_id, 0.0) + r_pts
+                    season_total_pts += race_total_pts
+
+                if season_total_pts > 0.0:
+                    prior_season_team_share = {
+                        c_id: pts / season_total_pts for c_id, pts in season_team_points.items()
+                    }
 
         return records

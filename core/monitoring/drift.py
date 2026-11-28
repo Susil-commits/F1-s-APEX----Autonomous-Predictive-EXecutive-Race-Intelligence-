@@ -301,7 +301,7 @@ class WeekendDriftMonitor:
         if os.path.exists(self.csv_path):
             try:
                 df = pd.read_csv(self.csv_path)
-                train_df = df[df["season"] < 2024] if "season" in df.columns else df
+                train_df = df[df["season"] < int(df["season"].max())] if "season" in df.columns else df
                 monitor = PsiDriftMonitor()
                 monitor.fit(train_df, features=TARGET_FEATURES)
                 logger.info(f"[DriftMonitor] Fitted PsiDriftMonitor on {len(train_df)} rows from {self.csv_path}")

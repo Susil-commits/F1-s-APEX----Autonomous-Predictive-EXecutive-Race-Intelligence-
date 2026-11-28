@@ -141,7 +141,7 @@ def load_or_fetch_prerace_data(
     allow_synthetic: bool = False,
 ) -> Tuple[np.ndarray, np.ndarray, pd.DataFrame]:
     """Loads real pre-race features from disk cache or ingests from Jolpica API."""
-    target_seasons = seasons or [2022, 2023, 2024]
+    target_seasons = seasons or [2022, 2023, 2024, 2025, 2026]
 
     if os.path.exists(cache_path) and not force_fetch:
         logger.info(f"[APEX Core] Loading cached pre-race dataset from {cache_path}")
@@ -166,8 +166,7 @@ def load_or_fetch_prerace_data(
         sort_cols = [c for c in ["season", "round", "grid_position", "driver_id"] if c in df.columns]
         df = df.sort_values(by=sort_cols).reset_index(drop=True)
 
-    # Convert DataFrame records to standardized 10-dimensional feature vectors
-    # (sector_1/2/3_delta_s columns absent from real dataset — dropped in v1.0.1)
+    # Convert DataFrame records to standardized 12-dimensional feature vectors
     X_list = []
     y_list = []
     for _, row in df.iterrows():
@@ -186,6 +185,8 @@ def load_or_fetch_prerace_data(
             circuit_id=cid,
             rain_prob=_safe_float(row.get("rain_prob"), 0.05),
             weather_transition=is_transition > 0.5,
+            dnf_rate=_safe_float(row.get("driver_dnf_rate"), 0.08),
+            constructor_race_gain=_safe_float(row.get("constructor_race_gain"), 0.0),
         )
         fin_pos = _safe_float(row.get("finishing_position"), _safe_float(row.get("grid_position"), 10.0))
         X_list.append(feat_vec)
@@ -221,16 +222,16 @@ def train_finishing_position_model(
         X_select_train, y_select_train = X_train, y_train
         X_select_val, y_select_val = X_val, y_val
         max_train_season = 2023
+        test_season = 2024
     else:
         X, y, df = load_or_fetch_prerace_data(allow_synthetic=True)
         if "season" in df.columns and len(df["season"].unique()) >= 3:
-            # Phase 1: select winner on 2022 → 2023 validation
+            # Phase 1: select winner on prior seasons → second-latest season validation
             seasons_sorted = sorted(df["season"].unique())
-            sel_train_season = seasons_sorted[-3]   # 2022
-            sel_val_season = seasons_sorted[-2]     # 2023
-            test_season = seasons_sorted[-1]        # 2024
+            sel_val_season = seasons_sorted[-2]
+            test_season = seasons_sorted[-1]
 
-            sel_train_mask = np.asarray(df["season"] == sel_train_season, dtype=bool)
+            sel_train_mask = np.asarray(df["season"] < sel_val_season, dtype=bool)
             sel_val_mask = np.asarray(df["season"] == sel_val_season, dtype=bool)
             # Phase 2: refit mask = all seasons prior to holdout
             refit_mask = np.asarray(df["season"] < test_season, dtype=bool)
@@ -247,7 +248,8 @@ def train_finishing_position_model(
             X_val, y_val = X[split_idx:], y[split_idx:]
             X_select_train, y_select_train = X_train, y_train
             X_select_val, y_select_val = X_val, y_val
-            max_train_season = 2023
+            max_train_season = 2025
+            test_season = 2026
 
     # Split Conformal calibration: last 20% of the refit training set chronologically
     n_train = len(X_train)
@@ -321,11 +323,11 @@ def train_finishing_position_model(
     best_model = refit_candidates[best_name]
     best_model.fit(X_fit, y_fit)  # X_fit = 80% of 2022+2023 chronologically
 
-    # Evaluate on 2024 holdout (one pass)
+    # Evaluate on holdout (one pass)
     best_val_preds = best_model.predict(X_val)
     best_mae = float(mean_absolute_error(y_val, best_val_preds))
     best_r2 = float(r2_score(y_val, best_val_preds))
-    logger.info(f"[APEX Holdout] 2024 final: R²={best_r2:.3f}, MAE={best_mae:.2f}")
+    logger.info(f"[APEX Holdout] {test_season} final: R²={best_r2:.3f}, MAE={best_mae:.2f}")
 
     # Expose per-architecture selection scores as benchmarks for metadata
     benchmarks: Dict[str, Dict[str, float]] = {

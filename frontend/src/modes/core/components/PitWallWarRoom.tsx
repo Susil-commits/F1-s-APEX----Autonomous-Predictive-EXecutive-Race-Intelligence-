@@ -99,8 +99,9 @@ export const PitWallWarRoom: React.FC<PitWallWarRoomProps> = ({
   const [rivalGap, setRivalGap] = useState<number>(1.8);
   const [undercutResult, setUndercutResult] = useState<any>(null);
 
-  // 2026 Aero toggle
+  // 2026 Aero & Track Flag toggles
   const [aeroMode, setAeroMode] = useState<'Z-MODE' | 'X-MODE'>('Z-MODE');
+  const [raceControlFlag, setRaceControlFlag] = useState<'GREEN' | 'VSC' | 'SAFETY_CAR'>('GREEN');
 
   // Response state
   const [simLoading, setSimLoading] = useState<boolean>(false);
@@ -123,6 +124,7 @@ export const PitWallWarRoom: React.FC<PitWallWarRoomProps> = ({
           current_compound: currentCompound,
           current_tyre_age: tyreAge,
           simulations_count: 10000,
+          rain_probability: rainForecast / 100.0,
         }),
       });
       if (res.ok) {
@@ -134,7 +136,7 @@ export const PitWallWarRoom: React.FC<PitWallWarRoomProps> = ({
     } finally {
       setSimLoading(false);
     }
-  }, [apiBase, selectedRace, currentLap, currentPosition, currentCompound, tyreAge]);
+  }, [apiBase, selectedRace, currentLap, currentPosition, currentCompound, tyreAge, rainForecast]);
 
   // Fetch Full 20-Car Grid Predictions
   const fetchFullGrid = useCallback(async () => {
@@ -210,6 +212,7 @@ export const PitWallWarRoom: React.FC<PitWallWarRoomProps> = ({
           gap_behind_s: rivalGap,
           track_temp_c: trackTemp,
           rain_probability: rainForecast / 100.0,
+          race_control_flag: raceControlFlag,
           active_aero_mode: aeroMode === 'X-MODE' ? 'X_MODE' : 'Z_MODE',
         }),
       });
@@ -220,7 +223,7 @@ export const PitWallWarRoom: React.FC<PitWallWarRoomProps> = ({
     } catch {
       // Ignore
     }
-  }, [apiBase, selectedRace, selectedDriver, currentLap, currentCompound, tyreAge, rivalGap, trackTemp, rainForecast, aeroMode]);
+  }, [apiBase, selectedRace, selectedDriver, currentLap, currentCompound, tyreAge, rivalGap, trackTemp, rainForecast, raceControlFlag, aeroMode]);
 
   useEffect(() => {
     runMonteCarlo();
@@ -322,7 +325,25 @@ export const PitWallWarRoom: React.FC<PitWallWarRoomProps> = ({
               {strategyBrief.decision?.reasoning || 'Tactical brief synthesized under hard <200ms harness SLA.'}
             </p>
           </div>
-          <div className="flex flex-wrap items-center gap-3 text-[11px] font-mono text-gray-400">
+          <div className="flex flex-wrap items-center gap-2 text-[11px] font-mono text-gray-400">
+            <div className="flex items-center bg-black/40 rounded border border-white/10 p-0.5">
+              {(['GREEN', 'VSC', 'SAFETY_CAR'] as const).map((flagOption) => (
+                <button
+                  key={flagOption}
+                  type="button"
+                  onClick={() => setRaceControlFlag(flagOption)}
+                  className={`px-2 py-0.5 rounded text-[10px] font-bold cursor-pointer transition-colors ${
+                    raceControlFlag === flagOption
+                      ? flagOption === 'GREEN'
+                        ? 'bg-emerald-600 text-white'
+                        : 'bg-amber-500 text-black'
+                      : 'text-gray-400 hover:text-white'
+                  }`}
+                >
+                  {flagOption === 'SAFETY_CAR' ? 'SC' : flagOption}
+                </button>
+              ))}
+            </div>
             <span className="px-2 py-1 rounded bg-white/5 border border-white/10">
               Grade: <strong className="text-emerald-400">{strategyBrief.context_quality?.grade}</strong>
             </span>

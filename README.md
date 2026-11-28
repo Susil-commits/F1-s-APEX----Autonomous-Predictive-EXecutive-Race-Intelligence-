@@ -18,20 +18,20 @@ APEX takes pre-race priors and returns:
 
 ## Model & Benchmark Comparison
 
-Selection was performed on 2023 validation (trained on 2022 only).  
-The winner was then refitted on 2022+2023 and evaluated **once** on the 2024 holdout.
+Selection was performed on 2025 validation (trained strictly causally on 2022–2024 with zero current-race points leakage).  
+The winner was then refitted on 2022–2025 and evaluated **once** on the 2026 holdout.
 
-| Model / Benchmark Strategy | Selection R² (2023 val) | Selection MAE | 2024 Holdout R² | 2024 Holdout MAE | Status |
+| Model / Benchmark Strategy | Selection R² (2025 val) | Selection MAE | 2026 Holdout R² | 2026 Holdout MAE | Status |
 |----------------------------|------------------------|---------------|-----------------|------------------|--------|
 | Naive Mean Predictor (P10.5) | — | 4.99 pos | — | 4.99 pos | Heuristic |
-| GradientBoostingRegressor | 0.565 | 2.743 | — | — | Candidate |
-| XGBRegressor | 0.585 | 2.675 | — | — | Candidate |
-| **CatBoostRegressor ✓** | **0.599** | **2.668** | **0.684** | **2.390 pos** | **WINNER (Selected)** |
+| GradientBoostingRegressor | 0.421 | 3.383 | — | — | Candidate |
+| XGBRegressor | 0.419 | 3.375 | — | — | Candidate |
+| **CatBoostRegressor ✓** | **0.443** | **3.274** | **0.439** | **3.552 pos** | **WINNER (Selected)** |
 
-- **Training data**: Jolpica real F1 seasons 2022–2023 (N=880 driver-race entries) enriched with Open-Meteo historical race-day weather.
-- **Holdout**: 2024 season (N=479 driver entries — strictly held-out, never used in selection).
-- **Conformal coverage on holdout**: **95.6%** (exceeds 90% target, q̂ = ±6.67 pos).
-- **Gain vs. Baseline**: CatBoost explains **68.4% of finishing variance** and reduces MAE by **52.1%** vs naive prediction.
+- **Training data**: Jolpica real F1 seasons 2022–2025 (N=1,838 driver-race entries across 92 Grands Prix) enriched with Open-Meteo historical race-day weather.
+- **Holdout**: 2026 season (N=462 driver entries across 21 Grands Prix — strictly held-out, never used in selection).
+- **Conformal coverage on holdout**: **90.3%** (meets 90% target, q̂ = ±7.12 pos).
+- **Gain vs. Baseline**: CatBoost explains **43.9% of finishing variance** under the 2026 regulation reset and reduces MAE by **28.8%** vs naive prediction.
 
 ---
 
@@ -151,7 +151,7 @@ core/                  ← Core ML and prediction service
 ├── api/               ← FastAPI routes (predict, grid, simulate, tyres, narration, mcp, drift, security)
 ├── data/              ← real_prerace_dataset.csv, dynamic roster service, and regulations
 │   └── regulations/   ← Sporting, technical, and 2026 Active Aero regulations
-├── features/          ← 10-feature pre-race builder + Pirelli tyre degradation physics model
+├── features/          ← 12-feature pre-race builder + Pirelli tyre degradation physics model
 ├── ingestion/         ← Jolpica F1 & Open-Meteo weather adapters
 ├── mcp/               ← Standard Model Context Protocol (MCP) JSON-RPC 2.0 server
 ├── models/            ← apex_core_v1_model.joblib + HMAC signature (.sig) + metadata + PSI bins
@@ -161,7 +161,7 @@ core/                  ← Core ML and prediction service
 ├── training/          ← CatBoost/XGB/GBR benchmark + model signing + conformal calibration
 └── requirements.txt
 frontend/              ← React + Vite + Three.js + Pit Wall War Room Command Console
-tests/                 ← 87 tests (100% passing across unit, security, Monte Carlo, context, and MCP suites)
+tests/                 ← 89 backend tests + Vitest frontend component tests
 Dockerfile             ← Lean multi-worker production container
 Dockerfile.hardened    ← Non-root, multi-stage hardened enterprise container
 .github/workflows/     ← Lean CI (pytest + npm build)

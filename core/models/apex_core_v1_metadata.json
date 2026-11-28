@@ -1,7 +1,7 @@
 {
   "model_version": "core-v1.0.0",
-  "created_at_utc": "2026-11-27T05:58:25.902187+00:00",
-  "training_scheme": "train=2022, validate=2023, refit=2022+2023, test=2024 (strictly temporal, one evaluation pass)",
+  "created_at_utc": "2026-11-28T05:29:19.035820+00:00",
+  "training_scheme": "train=2022-2024, validate=2025, refit=2022-2025, test=2026 (strictly temporal, one evaluation pass)",
   "feature_names": [
     "grid_position_norm",
     "quali_delta_to_pole_s",
@@ -12,7 +12,9 @@
     "circuit_power_sensitivity",
     "circuit_is_street_track",
     "race_rain_prob",
-    "weather_transition_flag"
+    "weather_transition_flag",
+    "driver_dnf_rate",
+    "constructor_race_gain_norm"
   ],
   "features_dropped": [
     "sector_1_delta_norm",
@@ -20,33 +22,33 @@
     "sector_3_delta_norm"
   ],
   "drop_reason": "sector_1/2/3_delta absent from real_prerace_dataset.csv; heuristic estimate adds negligible predictive value (+0.008 MAE) while misrepresenting data fidelity",
-  "q_hat_margin": 6.67,
+  "q_hat_margin": 7.116,
   "metrics": {
-    "mae": 2.39,
-    "rmse": 3.235,
-    "r2": 0.684,
-    "pearson_r": 0.829,
-    "spearman_rho": 0.817,
+    "mae": 3.552,
+    "rmse": 4.75,
+    "r2": 0.439,
+    "pearson_r": 0.672,
+    "spearman_rho": 0.668,
     "conformal_target_coverage": 0.9,
-    "empirical_coverage": 0.956,
-    "mean_interval_width": 13.34,
-    "holdout_season": 2024,
-    "n_holdout": 479,
+    "empirical_coverage": 0.903,
+    "mean_interval_width": 14.23,
+    "holdout_season": 2026,
+    "n_holdout": 462,
     "naive_baseline_mae": 4.991,
-    "mae_reduction_vs_naive_pct": 52.1
+    "mae_reduction_vs_naive_pct": 28.8
   },
   "validation_benchmarks": {
     "gradient_boosting": {
-      "validation_mae": 2.743,
-      "validation_r2": 0.565
+      "validation_mae": 3.383,
+      "validation_r2": 0.421
     },
     "xgboost": {
-      "validation_mae": 2.675,
-      "validation_r2": 0.585
+      "validation_mae": 3.375,
+      "validation_r2": 0.419
     },
     "catboost": {
-      "validation_mae": 2.668,
-      "validation_r2": 0.599
+      "validation_mae": 3.274,
+      "validation_r2": 0.443
     }
   },
   "psi_monitoring": {

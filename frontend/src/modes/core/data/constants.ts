@@ -19,6 +19,23 @@ export const GRAND_PRIX_LIST: GrandPrix[] = [
   { id: 'bahrain', name: 'Bahrain GP', circuit: 'Bahrain International Circuit', round: 1, flag: '🇧🇭', laps: 57, distanceKm: 5.412, downforce: 'MEDIUM', city: 'Sakhir', country: 'Bahrain' },
   { id: 'suzuka', name: 'Japanese GP', circuit: 'Suzuka International Racing Course', round: 4, flag: '🇯🇵', laps: 53, distanceKm: 5.807, downforce: 'HIGH', city: 'Suzuka', country: 'Japan' },
   { id: 'interlagos', name: 'São Paulo GP', circuit: 'Autódromo José Carlos Pace', round: 21, flag: '🇧🇷', laps: 71, distanceKm: 4.309, downforce: 'MEDIUM', city: 'São Paulo', country: 'Brazil' },
+  { id: 'albert_park', name: 'Australian GP', circuit: 'Albert Park Circuit', round: 3, flag: '🇦🇺', laps: 58, distanceKm: 5.278, downforce: 'MEDIUM', city: 'Melbourne', country: 'Australia' },
+  { id: 'jeddah', name: 'Saudi Arabian GP', circuit: 'Jeddah Corniche Circuit', round: 2, flag: '🇸🇦', laps: 50, distanceKm: 6.174, downforce: 'LOW', city: 'Jeddah', country: 'Saudi Arabia' },
+  { id: 'shanghai', name: 'Chinese GP', circuit: 'Shanghai International Circuit', round: 5, flag: '🇨🇳', laps: 56, distanceKm: 5.451, downforce: 'MEDIUM', city: 'Shanghai', country: 'China' },
+  { id: 'miami', name: 'Miami GP', circuit: 'Miami International Autodrome', round: 6, flag: '🇺🇸', laps: 57, distanceKm: 5.412, downforce: 'MEDIUM', city: 'Miami', country: 'United States' },
+  { id: 'imola', name: 'Emilia Romagna GP', circuit: 'Autodromo Enzo e Dino Ferrari', round: 7, flag: '🇮🇹', laps: 63, distanceKm: 4.909, downforce: 'HIGH', city: 'Imola', country: 'Italy' },
+  { id: 'villeneuve', name: 'Canadian GP', circuit: 'Circuit Gilles Villeneuve', round: 9, flag: '🇨🇦', laps: 70, distanceKm: 4.361, downforce: 'LOW', city: 'Montreal', country: 'Canada' },
+  { id: 'catalunya', name: 'Spanish GP', circuit: 'Circuit de Barcelona-Catalunya', round: 10, flag: '🇪🇸', laps: 66, distanceKm: 4.657, downforce: 'HIGH', city: 'Barcelona', country: 'Spain' },
+  { id: 'red_bull_ring', name: 'Austrian GP', circuit: 'Red Bull Ring', round: 11, flag: '🇦🇹', laps: 71, distanceKm: 4.318, downforce: 'MEDIUM', city: 'Spielberg', country: 'Austria' },
+  { id: 'hungaroring', name: 'Hungarian GP', circuit: 'Hungaroring', round: 13, flag: '🇭🇺', laps: 70, distanceKm: 4.381, downforce: 'MAXIMUM', city: 'Budapest', country: 'Hungary' },
+  { id: 'zandvoort', name: 'Dutch GP', circuit: 'Circuit Zandvoort', round: 15, flag: '🇳🇱', laps: 72, distanceKm: 4.259, downforce: 'MAXIMUM', city: 'Zandvoort', country: 'Netherlands' },
+  { id: 'baku', name: 'Azerbaijan GP', circuit: 'Baku City Circuit', round: 17, flag: '🇦🇿', laps: 51, distanceKm: 6.003, downforce: 'LOW', city: 'Baku', country: 'Azerbaijan' },
+  { id: 'marina_bay', name: 'Singapore GP', circuit: 'Marina Bay Street Circuit', round: 18, flag: '🇸🇬', laps: 62, distanceKm: 4.940, downforce: 'MAXIMUM', city: 'Singapore', country: 'Singapore' },
+  { id: 'americas', name: 'United States GP', circuit: 'Circuit of the Americas', round: 19, flag: '🇺🇸', laps: 56, distanceKm: 5.513, downforce: 'HIGH', city: 'Austin', country: 'United States' },
+  { id: 'rodriguez', name: 'Mexico City GP', circuit: 'Autódromo Hermanos Rodríguez', round: 20, flag: '🇲🇽', laps: 71, distanceKm: 4.304, downforce: 'MAXIMUM', city: 'Mexico City', country: 'Mexico' },
+  { id: 'vegas', name: 'Las Vegas GP', circuit: 'Las Vegas Strip Circuit', round: 22, flag: '🇺🇸', laps: 50, distanceKm: 6.201, downforce: 'LOW', city: 'Las Vegas', country: 'United States' },
+  { id: 'losail', name: 'Qatar GP', circuit: 'Lusail International Circuit', round: 23, flag: '🇶🇦', laps: 57, distanceKm: 5.419, downforce: 'HIGH', city: 'Lusail', country: 'Qatar' },
+  { id: 'yas_marina', name: 'Abu Dhabi GP', circuit: 'Yas Marina Circuit', round: 24, flag: '🇦🇪', laps: 58, distanceKm: 5.281, downforce: 'MEDIUM', city: 'Abu Dhabi', country: 'UAE' },
 ];
 
 export interface DriverItem {

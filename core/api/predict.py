@@ -286,6 +286,8 @@ async def predict_finish(request: Request, req: PredictRequest):
     rolling_avg: float = float(profile.get("rolling_avg", 10.0))
     starts: int = int(profile.get("starts", 5))
     pts_share: float = float(profile.get("pts_share", 0.05))
+    dnf_rate: float = float(profile.get("dnf_rate", 0.08))
+    constructor_race_gain: float = float(profile.get("constructor_race_gain", 0.0))
     driver_name: str = str(profile.get("name", f"Driver {driver_key}"))
     team_name: str = str(profile.get("team", "F1 Competitor"))
 
@@ -298,6 +300,8 @@ async def predict_finish(request: Request, req: PredictRequest):
         circuit_id=circuit_id,
         rain_prob=rain,
         weather_transition=weather_trans,
+        dnf_rate=dnf_rate,
+        constructor_race_gain=constructor_race_gain,
     )
 
     artifact = get_core_model()
@@ -368,6 +372,8 @@ async def predict_finish(request: Request, req: PredictRequest):
         "quali_delta_to_pole_s": "Qualifying Pace Delta",
         "circuit_is_street_track": "Street Track Volatility",
         "weather_transition_flag": "Mid-Race Weather Transition Risk",
+        "driver_dnf_rate": "Historical DNF Reliability Risk",
+        "constructor_race_gain_norm": "Constructor Race-Day Pace Gain",
     }
 
     # Extract tree feature importances uniformly across GBR, XGBoost, CatBoost
@@ -483,6 +489,7 @@ class PitSimulationRequest(BaseModel):
     current_compound: str = Field(default="C3")
     current_tyre_age: int = Field(default=10, ge=1)
     simulations_count: Optional[int] = Field(default=10000, ge=500, le=50000)
+    rain_probability: float = Field(default=0.0, ge=0.0, le=1.0)
 
 
 class UndercutRequest(BaseModel):
@@ -532,6 +539,8 @@ async def predict_full_grid(request: Request, req: GridPredictRequest):
         rolling_avg = float(d.get("rolling_avg", 10.0))
         starts = int(d.get("starts", 5))
         pts_share = float(d.get("pts_share", 0.05))
+        dnf_rate = float(d.get("dnf_rate", 0.08))
+        c_gain = float(d.get("constructor_race_gain", 0.0))
 
         feat_vec, _ = PreRaceFeatureBuilder.extract_features(
             grid_position=grid,
@@ -542,6 +551,8 @@ async def predict_full_grid(request: Request, req: GridPredictRequest):
             circuit_id=circuit_id,
             rain_prob=rain,
             weather_transition=weather_trans,
+            dnf_rate=dnf_rate,
+            constructor_race_gain=c_gain,
         )
         feature_matrix.append(feat_vec)
         driver_meta_list.append({
@@ -626,6 +637,7 @@ async def simulate_pit_stop(request: Request, req: PitSimulationRequest):
         current_compound=req.current_compound,
         current_tyre_age=req.current_tyre_age,
         n_simulations=req.simulations_count or 10000,
+        rain_probability=req.rain_probability,
     )
     return result
 

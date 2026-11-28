@@ -24,9 +24,10 @@ def build_and_save_core_baseline(output_dir: str = DEFAULT_MODEL_DIR) -> str:
     artifact = train_finishing_position_model(save_path=model_path, random_seed=42)
     eval_report = evaluate_model_temporal(artifact)
 
+    holdout_yr = int(eval_report.get("holdout_season", 2026))
     metrics_dict = dict(eval_report["metrics"])
-    metrics_dict["holdout_season"] = 2024
-    metrics_dict["n_holdout"] = eval_report.get("test_samples", 479)
+    metrics_dict["holdout_season"] = holdout_yr
+    metrics_dict["n_holdout"] = eval_report.get("test_samples", 462)
     if "naive_baseline_mae" not in metrics_dict:
         metrics_dict["naive_baseline_mae"] = 4.991
     if "mae_reduction_vs_naive_pct" not in metrics_dict and "mae" in metrics_dict:
@@ -37,7 +38,7 @@ def build_and_save_core_baseline(output_dir: str = DEFAULT_MODEL_DIR) -> str:
     meta = {
         "model_version": artifact["version"],
         "created_at_utc": datetime.now(timezone.utc).isoformat(),
-        "training_scheme": "train=2022, validate=2023, refit=2022+2023, test=2024 (strictly temporal, one evaluation pass)",
+        "training_scheme": f"train=2022-{holdout_yr - 2}, validate={holdout_yr - 1}, refit=2022-{holdout_yr - 1}, test={holdout_yr} (strictly temporal, one evaluation pass)",
         "feature_names": artifact["feature_names"],
         "features_dropped": [
             "sector_1_delta_norm",

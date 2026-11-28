@@ -181,6 +181,21 @@ def test_audit_logger_hash_chain_and_tamper_detection():
     assert "Tampered event at index 1" in str(error_after_tamper)
 
 
+def test_audit_logger_jsonl_persistence_across_workers(tmp_path):
+    """Verifies AuditLogger persists events to JSONL and reloads identical verified chain across instances."""
+    audit_file = str(tmp_path / "audit_chain.jsonl")
+    worker1 = AuditLogger(persistence_file=audit_file)
+    worker1.record_event("PREDICTION", actor_id="worker-1", details={"race": "silverstone"})
+
+    worker2 = AuditLogger(persistence_file=audit_file)
+    e2 = worker2.record_event("STRATEGY", actor_id="worker-2", details={"action": "BOX_NOW"})
+
+    assert len(worker1.get_recent_events(limit=10)) == 2
+    assert e2.index == 1
+    is_valid, err = worker1.verify_chain()
+    assert is_valid is True and err is None
+
+
 # ── TEST 7: ENTERPRISE SECURITY HEADERS MIDDLEWARE ────────────────────────────
 
 @pytest.mark.asyncio

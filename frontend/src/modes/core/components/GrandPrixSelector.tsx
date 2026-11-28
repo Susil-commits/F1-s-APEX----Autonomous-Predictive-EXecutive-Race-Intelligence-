@@ -35,7 +35,7 @@ export const GrandPrixSelector: React.FC<GrandPrixSelectorProps> = ({
       </div>
 
       {/* Grid of Grand Prix Cards */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-7 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-2.5 max-h-60 overflow-y-auto pr-1">
         {races.map((gp) => {
           const isSelected = selectedRace === gp.id;
 

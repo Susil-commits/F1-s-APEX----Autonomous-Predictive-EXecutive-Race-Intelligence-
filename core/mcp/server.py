@@ -91,6 +91,7 @@ class ApexMCPServer:
                         "current_compound": {"type": "string", "description": "Tyre compound code (C1 to C5)", "default": "C3"},
                         "current_tyre_age": {"type": "integer", "description": "Laps completed on current tyres", "default": 10},
                         "simulations_count": {"type": "integer", "description": "Monte Carlo iteration count", "default": 5000},
+                        "rain_probability": {"type": "number", "description": "Forecasted rain probability [0.0 to 1.0]", "default": 0.0},
                     },
                     "required": ["race_id", "current_lap", "current_position"],
                 },
@@ -203,6 +204,7 @@ class ApexMCPServer:
             compound = arguments.get("current_compound", "C3")
             age = arguments.get("current_tyre_age", 12)
             n_sims = arguments.get("simulations_count", 3000)
+            rain_prob = float(arguments.get("rain_probability", 0.0))
 
             sim_result = self.monte_carlo.simulate_strategy_comparison(
                 circuit_id=race_id,
@@ -211,6 +213,7 @@ class ApexMCPServer:
                 current_compound=compound,
                 current_tyre_age=age,
                 n_simulations=n_sims,
+                rain_probability=rain_prob,
             )
             content = sim_result
 

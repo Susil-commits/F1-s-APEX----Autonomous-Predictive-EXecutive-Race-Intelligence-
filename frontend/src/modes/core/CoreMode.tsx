@@ -22,7 +22,9 @@ export const CoreMode: React.FC = () => {
   const [selectedRace, setSelectedRace] = useState<string>('silverstone');
   const [selectedDriver, setSelectedDriver] = useState<string>('NOR');
   const [customGrid, setCustomGrid] = useState<number | ''>('');
+  const [qualiDelta, setQualiDelta] = useState<number | ''>('');
   const [rainForecast, setRainForecast] = useState<number>(10);
+  const [weatherTransition, setWeatherTransition] = useState<boolean>(false);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [prediction, setPrediction] = useState<PredictionData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -64,6 +66,7 @@ export const CoreMode: React.FC = () => {
 
     const driverObj = drivers.find((d) => d.code === selectedDriver) || drivers[0];
     const gridVal = customGrid === '' ? driverObj.defaultGrid : Number(customGrid);
+    const deltaVal = qualiDelta === '' ? undefined : Number(qualiDelta);
 
     try {
       const res = await fetch(`${API_BASE}/api/core/predict/narrate`, {
@@ -73,7 +76,9 @@ export const CoreMode: React.FC = () => {
           race_id: selectedRace,
           driver_id: selectedDriver,
           grid_position: gridVal,
+          ...(deltaVal !== undefined ? { quali_delta_s: deltaVal } : {}),
           rain_probability: rainForecast / 100.0,
+          weather_transition: weatherTransition,
         }),
       });
 
@@ -90,7 +95,7 @@ export const CoreMode: React.FC = () => {
     } finally {
       setIsAnalyzing(false);
     }
-  }, [drivers, selectedDriver, selectedRace, customGrid, rainForecast]);
+  }, [drivers, selectedDriver, selectedRace, customGrid, qualiDelta, rainForecast, weatherTransition]);
 
   // Initial calculation on mount
   useEffect(() => {
@@ -133,17 +138,22 @@ export const CoreMode: React.FC = () => {
         onSelect={(code, defaultGrid) => {
           setSelectedDriver(code);
           setCustomGrid(defaultGrid);
+          setQualiDelta('');
         }}
       />
 
       {/* 4. PRE-RACE CONDITIONS & FINE-TUNING PANEL */}
       <RaceConditionsPanel
         gridPosition={customGrid}
+        qualiDelta={qualiDelta}
         rainForecast={rainForecast}
+        weatherTransition={weatherTransition}
         activeDriverDefaultGrid={activeDriver.defaultGrid}
         isAnalyzing={isAnalyzing}
         onGridChange={setCustomGrid}
+        onQualiDeltaChange={setQualiDelta}
         onRainChange={setRainForecast}
+        onWeatherTransitionChange={setWeatherTransition}
         onAnalyze={handleAnalyze}
       />
 
