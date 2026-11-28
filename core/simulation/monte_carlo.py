@@ -252,6 +252,8 @@ class MonteCarloRaceSimulator:
             results.append({
                 "strategy_name": strat.name,
                 "target_pit_lap": strat.target_pit_lap,
+                "stops_count": strat.stops_count,
+                "second_pit_lap": strat.second_pit_lap,
                 "expected_finish_pos": round(exp_finish, 2),
                 "confidence_interval_90": (round(p5, 1), round(p95, 1)),
                 "win_probability_pct": round(win_prob, 1),

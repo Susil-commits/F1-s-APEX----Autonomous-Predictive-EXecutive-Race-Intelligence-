@@ -5,7 +5,7 @@ Run with:
     uvicorn core.api.main:app --port 8000 --reload
 """
 from typing import Any, Dict, List
-from fastapi import Depends, FastAPI
+from fastapi import Depends, FastAPI, HTTPException
 from starlette.requests import Request
 from starlette.responses import Response
 from core.api.metrics import (
@@ -160,8 +160,11 @@ async def get_drift_baseline():
 
 
 @app.post("/api/core/drift/check")
-async def check_weekend_drift(records: List[Dict[str, Any]], z_threshold: float = 2.0):
+@limiter.limit("30/minute")
+async def check_weekend_drift(request: Request, records: List[Dict[str, Any]], z_threshold: float = 2.0):
     """Evaluates an incoming race weekend batch for feature distribution drift."""
+    if len(records) > 1000:
+        raise HTTPException(status_code=422, detail="Batch size exceeds maximum of 1000 records.")
     report = _drift_monitor.check_weekend_drift(records, z_threshold=z_threshold)
     for feat, f_data in report.get("features", {}).items():
         if isinstance(f_data, dict):
@@ -175,9 +178,12 @@ async def check_weekend_drift(records: List[Dict[str, Any]], z_threshold: float 
 # ── MODEL CONTEXT PROTOCOL (MCP) ENDPOINTS ───────────────────────────────────
 
 @app.post("/api/mcp")
+@limiter.limit("60/minute")
 async def handle_mcp_json_rpc(request: Request):
     """Universal Model Context Protocol (MCP) JSON-RPC 2.0 dispatch endpoint."""
     body = await request.json()
+    if not isinstance(body, dict):
+        raise HTTPException(status_code=400, detail="MCP JSON-RPC payload must be a JSON object.")
     return _mcp_server.handle_json_rpc(body)
 
 

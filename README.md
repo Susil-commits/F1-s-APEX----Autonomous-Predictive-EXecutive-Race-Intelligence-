@@ -24,14 +24,15 @@ The winner was then refitted on 2022–2025 and evaluated **once** on the 2026 h
 | Model / Benchmark Strategy | Selection R² (2025 val) | Selection MAE | 2026 Holdout R² | 2026 Holdout MAE | Status |
 |----------------------------|------------------------|---------------|-----------------|------------------|--------|
 | Naive Mean Predictor (P10.5) | — | 4.99 pos | — | 4.99 pos | Heuristic |
-| GradientBoostingRegressor | 0.421 | 3.383 | — | — | Candidate |
-| XGBRegressor | 0.419 | 3.375 | — | — | Candidate |
-| **CatBoostRegressor ✓** | **0.443** | **3.274** | **0.439** | **3.552 pos** | **WINNER (Selected)** |
+| GradientBoostingRegressor | 0.416 | 3.404 | — | — | Candidate |
+| XGBRegressor | 0.413 | 3.402 | — | — | Candidate |
+| CatBoostRanker (`PairLogitPairwise`) | Spearman ρ = 0.652 | — | — | — | Learning-to-Rank Benchmark |
+| **CatBoostRegressor ✓** | **0.445** | **3.245** | **0.437** | **3.577 pos** | **WINNER (Selected)** |
 
-- **Training data**: Jolpica real F1 seasons 2022–2025 (N=1,838 driver-race entries across 92 Grands Prix) enriched with Open-Meteo historical race-day weather.
+- **Training data**: Jolpica real F1 seasons 2022–2025 (N=1,838 driver-race entries across 92 Grands Prix, with normalized constructor lineage continuity for `sauber_audi` and `rb_faenza`) enriched with Open-Meteo historical race-day weather.
 - **Holdout**: 2026 season (N=462 driver entries across 21 Grands Prix — strictly held-out, never used in selection).
-- **Conformal coverage on holdout**: **90.3%** (meets 90% target, q̂ = ±7.12 pos).
-- **Gain vs. Baseline**: CatBoost explains **43.9% of finishing variance** under the 2026 regulation reset and reduces MAE by **28.8%** vs naive prediction.
+- **Conformal coverage on holdout**: **90.0%** (meets 90% target, q̂ = ±7.16 pos); **CQR Asymmetric Quantiles** (`cqr_margin = +1.98`) boost interval coverage from 61.3% (width 9.35) to **83.8%** (width 12.82).
+- **Gain vs. Baseline**: CatBoost explains **43.7% of finishing variance** under the 2026 regulation reset and reduces MAE by **28.3%** vs naive prediction.
 
 ---
 

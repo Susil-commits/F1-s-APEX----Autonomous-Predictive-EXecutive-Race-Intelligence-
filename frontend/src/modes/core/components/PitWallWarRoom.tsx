@@ -14,6 +14,7 @@ import {
   CheckCircle2,
   Sparkles,
 } from 'lucide-react';
+import { GRAND_PRIX_LIST } from '../data/constants';
 
 interface PitWallWarRoomProps {
   selectedRace: string;
@@ -25,6 +26,8 @@ interface PitWallWarRoomProps {
 interface StrategyItem {
   strategy_name: string;
   target_pit_lap: number;
+  stops_count?: number;
+  second_pit_lap?: number | null;
   expected_finish_pos: number;
   confidence_interval_90: [number, number];
   win_probability_pct: number;
@@ -109,6 +112,21 @@ export const PitWallWarRoom: React.FC<PitWallWarRoomProps> = ({
   const [gridData, setGridData] = useState<GridResponse | null>(null);
   const [tyreCurve, setTyreCurve] = useState<TyrePoint[]>([]);
   const [strategyBrief, setStrategyBrief] = useState<any>(null);
+
+  // Circuit-scaled 2026 Active Aerodynamics metrics derived from selected venue
+  const raceMeta = GRAND_PRIX_LIST.find((g) => g.id === selectedRace);
+  const aeroScaleMap: Record<string, { df: number; pwr: number; label: string }> = {
+    MAXIMUM: { df: 1.0, pwr: 0.45, label: 'Maximum Downforce' },
+    HIGH: { df: 0.85, pwr: 0.72, label: 'High Downforce' },
+    MEDIUM: { df: 0.65, pwr: 0.8, label: 'Balanced Medium' },
+    LOW: { df: 0.35, pwr: 0.96, label: 'Low Drag High-Speed' },
+  };
+  const circuitAero = aeroScaleMap[raceMeta?.downforce || 'HIGH'];
+  const zDownforceDeltaPct = Math.round(22 + circuitAero.df * 16);
+  const zApexSpeedDeltaKmh = (5.0 + circuitAero.df * 5.5).toFixed(1);
+  const zDragIndex = (0.72 + circuitAero.df * 0.28).toFixed(2);
+  const xDragShedPct = Math.round(42 + circuitAero.pwr * 18);
+  const xTopSpeedBoostKmh = Math.round(14 + circuitAero.pwr * 14);
 
   // Run Monte Carlo Simulation
   const runMonteCarlo = useCallback(async () => {
@@ -454,13 +472,18 @@ export const PitWallWarRoom: React.FC<PitWallWarRoomProps> = ({
                       : 'bg-white/[0.02] border-white/5 hover:border-white/10'
                   }`}
                 >
-                  <div className="flex items-center justify-between mb-2">
+                  <div className="flex items-center justify-between mb-2 gap-2">
                     <span className="text-xs font-semibold text-gray-300">{strat.strategy_name}</span>
-                    {isOptimal && (
-                      <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-red-600 text-white">
-                        RECOMMENDED
+                    <div className="flex items-center gap-1.5">
+                      <span className="px-2 py-0.5 rounded text-[10px] font-mono font-bold uppercase bg-white/10 text-gray-200">
+                        {(strat.stops_count ?? (strat.second_pit_lap ? 2 : 1))}-STOP
                       </span>
-                    )}
+                      {isOptimal && (
+                        <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase bg-red-600 text-white">
+                          RECOMMENDED
+                        </span>
+                      )}
+                    </div>
                   </div>
 
                   <div className="text-2xl font-black font-mono text-white mb-2">
@@ -475,6 +498,12 @@ export const PitWallWarRoom: React.FC<PitWallWarRoomProps> = ({
                       <span className="text-gray-400">Target Pit Lap:</span>
                       <span className="font-mono text-white">Lap {strat.target_pit_lap}</span>
                     </div>
+                    {strat.second_pit_lap != null && (
+                      <div className="flex justify-between">
+                        <span className="text-gray-400">2nd Pit Stop:</span>
+                        <span className="font-mono text-sky-300">Lap {strat.second_pit_lap}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between">
                       <span className="text-gray-400">Podium Odds:</span>
                       <span className="font-mono text-amber-400 font-semibold">{strat.podium_probability_pct}%</span>
@@ -672,7 +701,8 @@ export const PitWallWarRoom: React.FC<PitWallWarRoomProps> = ({
               </span>
             </div>
             <p className="text-sm text-gray-200">
-              Formula 1 2026 adopts 50% Electrical Power (350kW MGU-K) and Dual-State Active Aerodynamics.
+              Formula 1 2026 adopts 50% Electrical Power (350kW MGU-K) and Dual-State Active Aerodynamics
+              {' '}— calibrated for <span className="font-semibold text-white">{raceMeta?.name || selectedRace.toUpperCase()}</span> ({circuitAero.label}).
             </p>
           </div>
 
@@ -698,15 +728,15 @@ export const PitWallWarRoom: React.FC<PitWallWarRoomProps> = ({
               <div className="space-y-2 text-xs font-mono text-gray-300 border-t border-white/5 pt-3">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Downforce Delta:</span>
-                  <span className="text-emerald-400 font-bold">+30% Load</span>
+                  <span className="text-emerald-400 font-bold">+{zDownforceDeltaPct}% Load</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Apex Speed Delta:</span>
-                  <span className="text-white">+8.5 km/h</span>
+                  <span className="text-white">+{zApexSpeedDeltaKmh} km/h</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Drag Index:</span>
-                  <span className="text-red-400">High (1.00)</span>
+                  <span className="text-red-400">{zDragIndex}</span>
                 </div>
               </div>
             </div>
@@ -732,11 +762,11 @@ export const PitWallWarRoom: React.FC<PitWallWarRoomProps> = ({
               <div className="space-y-2 text-xs font-mono text-gray-300 border-t border-white/5 pt-3">
                 <div className="flex justify-between">
                   <span className="text-gray-400">Parasitic Drag Shed:</span>
-                  <span className="text-emerald-400 font-bold">-55% Drag</span>
+                  <span className="text-emerald-400 font-bold">-{xDragShedPct}% Drag</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">Top Speed Boost:</span>
-                  <span className="text-purple-300 font-bold">+22 km/h</span>
+                  <span className="text-purple-300 font-bold">+{xTopSpeedBoostKmh} km/h</span>
                 </div>
                 <div className="flex justify-between">
                   <span className="text-gray-400">350kW MOM Boost:</span>

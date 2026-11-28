@@ -123,3 +123,11 @@ def test_monte_carlo_two_stop_wet_crossover_and_thread_safe_determinism():
     assert any("Intermediate" in n for n in names)
     assert res_wet_1["optimal_strategy"] == "Intermediate Weather Crossover"
     assert res_wet_1["expected_finish"] == res_wet_2["expected_finish"]
+
+    two_stop = next(s for s in res_wet_1["strategies"] if "2-Stop" in s["strategy_name"])
+    one_stop = next(s for s in res_wet_1["strategies"] if "Overcut" in s["strategy_name"])
+    assert two_stop["stops_count"] == 2
+    assert two_stop["second_pit_lap"] is not None
+    assert two_stop["second_pit_lap"] > two_stop["target_pit_lap"]
+    assert one_stop["stops_count"] == 1
+    assert one_stop["second_pit_lap"] is None

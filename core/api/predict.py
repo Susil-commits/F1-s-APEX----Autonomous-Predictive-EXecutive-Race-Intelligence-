@@ -22,6 +22,7 @@ from scipy.stats import norm
 from core.api.limiter import limiter
 from core.api.metrics import PREDICTION_LATENCY_SECONDS, PREDICTION_REQUESTS_TOTAL
 from core.features.feature_builder import (
+    CIRCUIT_PROFILES,
     PRE_RACE_FEATURE_NAMES,
     PreRaceFeatureBuilder,
 )
@@ -37,6 +38,9 @@ MODEL_FILE = os.path.join(
 
 _CACHED_MODEL: Any = None
 _MODEL_LOCK = threading.Lock()
+_RACES_CACHE: Dict[int, Tuple[float, List[Dict[str, Any]]]] = {}
+_RACES_CACHE_LOCK = threading.Lock()
+_RACES_CACHE_TTL_SECONDS = 3600.0
 
 
 def get_core_model() -> Any:
@@ -147,6 +151,7 @@ async def compute_sensitivity(
     """
     adjustable_features = {
         "quali_delta_to_pole_s": ([-0.5, -0.3, -0.15], "quali_delta_to_pole_s", 5.0),
+        "grid_position_norm": ([-3.0, -2.0], "grid_position_norm", 19.0),
     }
 
     candidates = []
@@ -337,17 +342,18 @@ async def predict_finish(request: Request, req: PredictRequest):
     lower = int(np.clip(np.floor(raw_pred - q_hat), 1, 20))
     upper = int(np.clip(np.ceil(raw_pred + q_hat), 1, 20))
 
-    # Quantile Regression Asymmetric Interval (P10 - P90)
+    # Quantile Regression Asymmetric Interval (CQR Calibrated P10 - P90)
     quantile_interval: Optional[List[int]] = None
     quantile_p50: Optional[int] = None
+    cqr_margin = float(artifact.get("cqr_margin", 0.0))
     if quantile_models and isinstance(quantile_models, dict):
         try:
             q10_raw = float((await run_in_threadpool(quantile_models["q10"].predict, feat_vec.reshape(1, -1)))[0])
             q50_raw = float((await run_in_threadpool(quantile_models["q50"].predict, feat_vec.reshape(1, -1)))[0])
             q90_raw = float((await run_in_threadpool(quantile_models["q90"].predict, feat_vec.reshape(1, -1)))[0])
-            p10 = int(np.clip(np.round(q10_raw), 1, 20))
+            p10 = int(np.clip(np.floor(q10_raw - cqr_margin), 1, 20))
             p50 = int(np.clip(np.round(q50_raw), 1, 20))
-            p90 = int(np.clip(np.round(q90_raw), 1, 20))
+            p90 = int(np.clip(np.ceil(q90_raw + cqr_margin), 1, 20))
             # Monotonicity guarantee
             p10 = min(p10, p50)
             p90 = max(p90, p50)
@@ -682,11 +688,35 @@ async def evaluate_undercut(req: UndercutRequest):
 
 
 @router.get("/races")
-async def list_available_races():
-    """Lists standard race venues available for Simple Mode analysis."""
+async def list_available_races(season: int = 2026):
+    """Lists race venues for the requested season using a non-blocking TTL cache enriched with circuit profiles."""
+    now = time.monotonic()
+    with _RACES_CACHE_LOCK:
+        cached = _RACES_CACHE.get(season)
+        if cached and (now - cached[0]) < _RACES_CACHE_TTL_SECONDS:
+            return {"season": season, "cached": True, "races": cached[1]}
+
     from core.ingestion.jolpica_adapter import JolpicaAdapter
+
     adapter = JolpicaAdapter()
-    return {"races": adapter.get_season_races(2024)}
+    raw_races = await run_in_threadpool(adapter.get_season_races, season)
+    enriched_races: List[Dict[str, Any]] = []
+    for race in raw_races:
+        cid = str(race.get("circuit_id", "")).lower()
+        profile = CIRCUIT_PROFILES.get(cid, {})
+        enriched_races.append({
+            **race,
+            "laps": int(profile.get("laps", 57)),
+            "downforce": float(profile.get("downforce", 0.7)),
+            "power": float(profile.get("power", 0.75)),
+            "street": bool(profile.get("street", 0.0) >= 0.5),
+            "sc_probability": float(profile.get("sc_probability", 0.4)),
+        })
+
+    with _RACES_CACHE_LOCK:
+        _RACES_CACHE[season] = (time.monotonic(), enriched_races)
+
+    return {"season": season, "cached": False, "races": enriched_races}
 
 
 @router.get("/drivers")

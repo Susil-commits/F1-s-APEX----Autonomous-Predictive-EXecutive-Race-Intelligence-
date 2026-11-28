@@ -774,3 +774,61 @@ async def test_predict_accepts_explicit_quali_delta_and_calibrated_probabilities
         )
         assert quali_contrib is not None
         assert quali_contrib["value"] == 0.5  # 2.5 / 5.0 normalization scale
+
+
+def test_cqr_artifact_and_constructor_lineage_normalization():
+    """Verifies CQR calibration, ranker benchmark metadata, and constructor lineage normalization."""
+    import json
+    import os
+    from core.api.predict import get_core_model
+    from core.ingestion.jolpica_adapter import JolpicaAdapter
+
+    artifact = get_core_model()
+    assert float(artifact.get("cqr_margin", -1.0)) >= 0.0
+    assert "cqr_metrics" in artifact
+    assert "ranker_benchmark" in artifact
+    assert float(artifact["ranker_benchmark"]["validation_spearman_rho"]) > 0.5
+
+    meta_path = os.path.join("core", "models", "apex_core_v1_metadata.json")
+    with open(meta_path, "r", encoding="utf-8") as f:
+        meta = json.load(f)
+    assert "cqr_margin" in meta
+    assert "ranker_benchmark" in meta
+
+    assert JolpicaAdapter.normalize_constructor_id("sauber") == "sauber_audi"
+    assert JolpicaAdapter.normalize_constructor_id("alfa") == "sauber_audi"
+    assert JolpicaAdapter.normalize_constructor_id("audi") == "sauber_audi"
+    assert JolpicaAdapter.normalize_constructor_id("alphatauri") == "rb_faenza"
+    assert JolpicaAdapter.normalize_constructor_id("rb") == "rb_faenza"
+    assert JolpicaAdapter.normalize_constructor_id("mclaren") == "mclaren"
+
+
+@pytest.mark.asyncio
+async def test_races_endpoint_ttl_caching_and_drift_batch_limit():
+    """Verifies /api/core/races TTL caching, circuit enrichment, and /api/core/drift/check batch limit."""
+    from unittest.mock import patch
+    from core.api import predict as predict_mod
+
+    predict_mod._RACES_CACHE.clear()
+    fake_races = [
+        {"round": 1, "race_name": "British Grand Prix", "circuit_id": "silverstone", "circuit_name": "Silverstone", "date": "2026-07-05"}
+    ]
+
+    transport = ASGITransport(app=core_app)
+    with patch("core.ingestion.jolpica_adapter.JolpicaAdapter.get_season_races", return_value=fake_races) as mock_cal:
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            r1 = await client.get("/api/core/races?season=2026")
+            assert r1.status_code == 200
+            d1 = r1.json()
+            assert d1["cached"] is False
+            assert d1["races"][0]["laps"] == 52
+            assert "downforce" in d1["races"][0]
+
+            r2 = await client.get("/api/core/races?season=2026")
+            assert r2.status_code == 200
+            assert r2.json()["cached"] is True
+            assert mock_cal.call_count == 1
+
+            oversized = [{"grid_position": 1, "quali_delta_s": 0.1, "rain_prob": 0.0}] * 1001
+            drift_resp = await client.post("/api/core/drift/check", json=oversized)
+            assert drift_resp.status_code == 422

@@ -32,8 +32,8 @@ flowchart TB
     end
 
     subgraph CoreInference["4. Multi-Tier Inferencing & Simulation Engine (core/)"]
-        T1["Tier-1 ML Predictor (CatBoost Regressor, 12 Features, 2026 Holdout R²=0.439, MAE=3.552)"]
-        CONF["Split-Conformal Calibration (q̂=±7.12 pos, 90.3% Coverage)"]
+        T1["Tier-1 ML Predictor (CatBoost Regressor, 12 Features, 2026 Holdout R²=0.437, MAE=3.577)"]
+        CONF["Split-Conformal + CQR Calibration (q̂=±7.16 pos 90.0% cov · cqr_margin=+1.98)"]
         T2["Tier-2 Monte Carlo In-Race Engine (10k Sims, <150ms)"]
         TYRE["Pirelli Non-Linear Tyre Degradation Physics Model"]
         GRID_VEC["Vectorized 20-Car Full Grid Batch Inferencing"]

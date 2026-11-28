@@ -177,10 +177,19 @@ def evaluate_model_temporal(model_artifact: Dict[str, Any], n_test_samples: int 
                 if np.any(mid_mask):
                     mid_w = round(float(np.mean(q_widths[mid_mask])), 2)
 
+            cqr_margin = float(model_artifact.get("cqr_margin", 0.0))
+            cqr_lo = np.clip(q10_p - cqr_margin, 1.0, 20.0)
+            cqr_hi = np.clip(q90_p + cqr_margin, 1.0, 20.0)
+            cqr_cov = float(np.mean((y_test >= cqr_lo) & (y_test <= cqr_hi)))
+            cqr_width = float(np.mean(cqr_hi - cqr_lo))
+
             quantile_eval = {
                 "target_coverage": 0.80,
                 "empirical_coverage": round(q_cov, 3),
                 "mean_interval_width": round(float(np.mean(q_widths)), 2),
+                "cqr_target_coverage": 0.90,
+                "cqr_empirical_coverage": round(cqr_cov, 3),
+                "cqr_mean_interval_width": round(cqr_width, 2),
                 "pole_sitter_mean_width": pole_w,
                 "midfield_mean_width": mid_w,
             }

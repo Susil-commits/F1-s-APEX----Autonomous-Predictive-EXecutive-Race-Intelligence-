@@ -47,7 +47,10 @@ def build_and_save_core_baseline(output_dir: str = DEFAULT_MODEL_DIR) -> str:
         ],
         "drop_reason": "sector_1/2/3_delta absent from real_prerace_dataset.csv; heuristic estimate adds negligible predictive value (+0.008 MAE) while misrepresenting data fidelity",
         "q_hat_margin": round(float(artifact["q_hat_margin"]), 3),
+        "cqr_margin": round(float(artifact.get("cqr_margin", 0.0)), 3),
         "metrics": metrics_dict,
+        "cqr_metrics": artifact.get("cqr_metrics", {}),
+        "ranker_benchmark": artifact.get("ranker_benchmark", {}),
         "validation_benchmarks": artifact.get("benchmarks", {}),
         "psi_monitoring": {
             "reference_bins_file": "apex_core_v1_psi_bins.json",

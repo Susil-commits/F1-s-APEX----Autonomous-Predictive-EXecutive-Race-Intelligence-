@@ -14,7 +14,8 @@ from typing import Any, Dict, List, Tuple
 import joblib
 import numpy as np
 import pandas as pd
-from catboost import CatBoostRegressor
+from catboost import CatBoostRanker, CatBoostRegressor, Pool
+from scipy.stats import spearmanr
 from sklearn.ensemble import GradientBoostingRegressor
 from sklearn.metrics import mean_absolute_error, r2_score
 from xgboost import XGBRegressor
@@ -39,6 +40,12 @@ WEATHER_TRANSITION_ROUNDS = {
     (2024, 9),   # Canadian GP (intermittent downpours and drying line)
     (2024, 12),  # British GP (Silverstone showers, crossover strategy)
     (2024, 21),  # São Paulo GP (wet chaos)
+    (2025, 3),   # Japanese GP (Suzuka wet conditions)
+    (2025, 12),  # British GP (Silverstone showers)
+    (2025, 13),  # Belgian GP (Spa rain)
+    (2026, 4),   # Miami GP (heavy rain)
+    (2026, 16),  # Malaysian GP (Sepang downpour)
+    (2026, 20),  # São Paulo GP (Interlagos rain)
 }
 
 
@@ -356,8 +363,42 @@ def train_finishing_position_model(
     val_residuals = np.abs(y_val - best_val_preds)
     empirical_val_coverage = float(np.mean(val_residuals <= q_hat))
 
-    # Quantile Regression (Asymmetric Uncertainty Bounds: P10, P50, P90)
-    logger.info("[APEX Core] Training Quantile Regressors (P10/P50/P90) for asymmetric uncertainty...")
+    # Optional group-wise race ranking benchmark (CatBoostRanker grouped by race)
+    ranker_benchmark: Dict[str, Any] = {}
+    if not use_synthetic and "season" in df.columns and "round" in df.columns and refit_mask is not None:
+        try:
+            group_ids_all = (df["season"].astype(int) * 100 + df["round"].astype(int)).to_numpy()
+            sel_train_groups = group_ids_all[sel_train_mask]
+            sel_val_groups = group_ids_all[sel_val_mask]
+            y_sel_rel = 21.0 - y_select_train
+            train_pool = Pool(data=X_select_train, label=y_sel_rel, group_id=sel_train_groups)
+            val_pool = Pool(data=X_select_val, group_id=sel_val_groups)
+            ranker = CatBoostRanker(
+                loss_function="PairLogitPairwise",
+                iterations=150,
+                learning_rate=0.06,
+                depth=4,
+                random_seed=random_seed,
+                thread_count=1,
+                verbose=0,
+                allow_writing_files=False,
+            )
+            ranker.fit(train_pool)
+            rank_scores = ranker.predict(val_pool)
+            # Negative relevance score correlates positively with finishing position (1..20)
+            sr = spearmanr(y_select_val, -rank_scores)
+            rank_rho = float(getattr(sr, "statistic", sr[0]))
+            ranker_benchmark = {
+                "architecture": "CatBoostRanker (PairLogitPairwise)",
+                "validation_season": int(sel_val_season),
+                "validation_spearman_rho": round(rank_rho, 3),
+            }
+            logger.info(f"[APEX Selection] CATBOOST_RANKER: {sel_val_season}-val Spearman ρ={rank_rho:.3f}")
+        except Exception as rank_exc:
+            logger.warning(f"[APEX Selection] CatBoostRanker benchmark skipped: {rank_exc}")
+
+    # Quantile Regression (Asymmetric Uncertainty Bounds: P10, P50, P90) + CQR Calibration
+    logger.info("[APEX Core] Training Quantile Regressors (P10/P50/P90) + CQR calibration...")
     quantile_models = {
         "q10": GradientBoostingRegressor(
             loss="quantile",
@@ -388,15 +429,27 @@ def train_finishing_position_model(
     for q_name, q_mod in quantile_models.items():
         q_mod.fit(X_fit, y_fit)
 
+    q10_cal = quantile_models["q10"].predict(X_cal)
+    q90_cal = quantile_models["q90"].predict(X_cal)
+    cqr_scores = np.maximum(q10_cal - y_cal, y_cal - q90_cal)
+    cqr_margin = float(np.quantile(cqr_scores, q_level, method="higher"))
+
     q10_val = quantile_models["q10"].predict(X_val)
     q90_val = quantile_models["q90"].predict(X_val)
 
-    # Quantile empirical coverage and mean interval width on validation holdout
+    # Raw quantile empirical coverage and mean interval width on validation holdout
     q_covered = (y_val >= q10_val) & (y_val <= q90_val)
     q_coverage = float(np.mean(q_covered))
     q_mean_width = float(np.mean(q90_val - q10_val))
+
+    # Conformalized Quantile Regression (CQR) 90%-target coverage on holdout
+    cqr_lo_val = np.clip(q10_val - cqr_margin, 1.0, 20.0)
+    cqr_hi_val = np.clip(q90_val + cqr_margin, 1.0, 20.0)
+    cqr_coverage = float(np.mean((y_val >= cqr_lo_val) & (y_val <= cqr_hi_val)))
+    cqr_mean_width = float(np.mean(cqr_hi_val - cqr_lo_val))
     logger.info(
-        f"[APEX Quantile] Empirical 80% Central Coverage: {q_coverage*100:.1f}%, Mean Interval Width: {q_mean_width:.2f} positions"
+        f"[APEX Quantile] Raw 80% Coverage: {q_coverage*100:.1f}% (width {q_mean_width:.2f}) | "
+        f"CQR 90% Coverage: {cqr_coverage*100:.1f}% (width {cqr_mean_width:.2f}, margin={cqr_margin:+.2f})"
     )
 
     artifact = {
@@ -404,6 +457,7 @@ def train_finishing_position_model(
         "feature_names": PRE_RACE_FEATURE_NAMES,
         "winning_model_family": best_name,
         "q_hat_margin": q_hat,
+        "cqr_margin": round(cqr_margin, 4),
         "residual_std": round(residual_std, 4),
         "conformal": {
             "method": "split_conformal",
@@ -419,6 +473,14 @@ def train_finishing_position_model(
             "mean_interval_width": round(q_mean_width, 2),
             "target_coverage": 0.80,
         },
+        "cqr_metrics": {
+            "method": "conformalized_quantile_regression",
+            "target_coverage": 0.90,
+            "cqr_margin": round(cqr_margin, 3),
+            "validation_coverage": round(cqr_coverage, 3),
+            "mean_interval_width": round(cqr_mean_width, 2),
+        },
+        "ranker_benchmark": ranker_benchmark,
         "metrics": {
             "validation_mae": best_mae,
             "validation_r2": best_r2,

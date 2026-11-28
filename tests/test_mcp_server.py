@@ -154,3 +154,11 @@ def test_mcp_server_predict_grid_uses_real_model():
     assert ver_entry["grid_position"] == 20
     assert ver_entry["predicted_position"] > 1
 
+
+@pytest.mark.asyncio
+async def test_mcp_endpoint_rejects_non_object_payload():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as ac:
+        resp = await ac.post("/api/mcp", json=["not", "an", "object"])
+        assert resp.status_code == 400
+

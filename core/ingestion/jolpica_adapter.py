@@ -18,9 +18,24 @@ logger = logging.getLogger(__name__)
 JOLPICA_BASE_URL = "https://api.jolpi.ca/ergast/f1"
 OPEN_METEO_ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
 
+CONSTRUCTOR_LINEAGE_ALIASES: Dict[str, str] = {
+    "alfa": "sauber_audi",
+    "sauber": "sauber_audi",
+    "audi": "sauber_audi",
+    "alphatauri": "rb_faenza",
+    "rb": "rb_faenza",
+    "racing_bulls": "rb_faenza",
+}
+
 
 class JolpicaAdapter:
     """Ingestion adapter for Jolpica / Ergast F1 data feeds."""
+
+    @staticmethod
+    def normalize_constructor_id(constructor_id: str) -> str:
+        """Maps rebranded constructors (e.g. alfa->sauber->audi, alphatauri->rb) to one lineage ID."""
+        cid = constructor_id.lower().strip()
+        return CONSTRUCTOR_LINEAGE_ALIASES.get(cid, cid)
 
     def __init__(self, base_url: str = JOLPICA_BASE_URL, timeout_seconds: float = 12.0):
         self.base_url = base_url.rstrip("/")
@@ -318,7 +333,8 @@ class JolpicaAdapter:
 
                     for r in results:
                         d_id = r.get("Driver", {}).get("driverId", "")
-                        c_id = r.get("Constructor", {}).get("constructorId", "")
+                        raw_c_id = r.get("Constructor", {}).get("constructorId", "")
+                        c_id = self.normalize_constructor_id(raw_c_id)
                         pts = float(r.get("points", 0.0))
                         race_team_points[c_id] = race_team_points.get(c_id, 0.0) + pts
                         race_total_pts += pts

@@ -6,6 +6,7 @@ import {
   DRIVERS_LIST,
   OFFICIAL_SPONSORS,
   DriverItem,
+  GrandPrix,
 } from './data/constants';
 import {
   GrandPrixSelector,
@@ -18,6 +19,7 @@ import {
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 export const CoreMode: React.FC = () => {
+  const [races, setRaces] = useState<GrandPrix[]>(GRAND_PRIX_LIST);
   const [drivers, setDrivers] = useState<DriverItem[]>(DRIVERS_LIST);
   const [selectedRace, setSelectedRace] = useState<string>('silverstone');
   const [selectedDriver, setSelectedDriver] = useState<string>('NOR');
@@ -58,6 +60,57 @@ export const CoreMode: React.FC = () => {
     };
 
     fetchDrivers();
+
+    const fetchRaces = async () => {
+      try {
+        const res = await fetch(`${API_BASE}/api/core/races?season=2026`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data.races) && data.races.length > 0) {
+            const byCircuitId = new Map<string, GrandPrix>(
+              GRAND_PRIX_LIST.map((gp) => [gp.id, gp])
+            );
+            const hydrated: GrandPrix[] = [];
+            for (const r of data.races) {
+              const cid = String(r.circuit_id || '').toLowerCase();
+              const base = byCircuitId.get(cid);
+              if (base) {
+                hydrated.push({
+                  ...base,
+                  round: Number(r.round || base.round),
+                  laps: Number(r.laps || base.laps),
+                  name: r.race_name ? String(r.race_name).replace(' Grand Prix', ' GP') : base.name,
+                  circuit: r.circuit_name ? String(r.circuit_name) : base.circuit,
+                });
+              } else if (cid) {
+                const dfNum = Number(r.downforce ?? 0.7);
+                const downforce: GrandPrix['downforce'] =
+                  dfNum >= 0.9 ? 'MAXIMUM' : dfNum >= 0.72 ? 'HIGH' : dfNum <= 0.4 ? 'LOW' : 'MEDIUM';
+                hydrated.push({
+                  id: cid,
+                  name: String(r.race_name || cid).replace(' Grand Prix', ' GP'),
+                  circuit: String(r.circuit_name || cid),
+                  round: Number(r.round || 0),
+                  flag: '🏁',
+                  laps: Number(r.laps || 57),
+                  distanceKm: 5.2,
+                  downforce,
+                  city: cid.replace(/_/g, ' '),
+                  country: '2026 Calendar',
+                });
+              }
+            }
+            if (hydrated.length > 0) {
+              setRaces(hydrated);
+            }
+          }
+        }
+      } catch {
+        // Keep static GRAND_PRIX_LIST fallback if backend is offline
+      }
+    };
+
+    fetchRaces();
   }, []);
 
   const handleAnalyze = useCallback(async () => {
@@ -102,7 +155,7 @@ export const CoreMode: React.FC = () => {
     handleAnalyze();
   }, [handleAnalyze]);
 
-  const activeGP = GRAND_PRIX_LIST.find((g) => g.id === selectedRace) || GRAND_PRIX_LIST[0];
+  const activeGP = races.find((g) => g.id === selectedRace) || races[0];
   const activeDriver = drivers.find((d) => d.code === selectedDriver) || drivers[0];
 
   return (
@@ -126,7 +179,7 @@ export const CoreMode: React.FC = () => {
 
       {/* 2. GRAND PRIX CALENDAR SELECTOR */}
       <GrandPrixSelector
-        races={GRAND_PRIX_LIST}
+        races={races}
         selectedRace={selectedRace}
         onSelect={setSelectedRace}
       />

@@ -1,8 +1,9 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, it, expect, vi, afterEach } from 'vitest';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { PredictionCard, PredictionData } from '../PredictionCard';
 import { RaceConditionsPanel } from '../components/RaceConditionsPanel';
+import { PitWallWarRoom } from '../components/PitWallWarRoom';
 
 const SAMPLE_PREDICTION: PredictionData = {
   race_id: 'silverstone',
@@ -61,5 +62,66 @@ describe('PredictionCard & RaceConditionsPanel', () => {
     expect(screen.getByText(/\+0\.25s/)).toBeInTheDocument();
     expect(screen.getByText(/35% Rain Probability/)).toBeInTheDocument();
     expect(screen.getByRole('checkbox')).toBeChecked();
+  });
+
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('renders 2-STOP badge, second pit lap, and circuit-scaled 2026 Active Aero metrics in PitWallWarRoom', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes('/api/core/simulate/pit-stop')) {
+        return new Response(
+          JSON.stringify({
+            circuit: 'monza',
+            total_laps: 53,
+            current_lap: 18,
+            current_position: 3,
+            simulations_count: 10000,
+            total_runtime_ms: 42.1,
+            optimal_strategy: 'Aggressive 2-Stop Push',
+            optimal_pit_lap: 20,
+            expected_finish: 2.1,
+            tactical_briefing: 'Two-stop maximizes tyre delta.',
+            strategies: [
+              {
+                strategy_name: 'Aggressive 2-Stop Push',
+                target_pit_lap: 20,
+                stops_count: 2,
+                second_pit_lap: 39,
+                expected_finish_pos: 2.1,
+                confidence_interval_90: [1, 4],
+                win_probability_pct: 32.0,
+                podium_probability_pct: 78.0,
+                points_finish_probability_pct: 99.0,
+                sc_benefit_probability_pct: 25.0,
+                simulation_runtime_ms: 14.2,
+              },
+            ],
+          }),
+          { status: 200 }
+        );
+      }
+      return new Response(JSON.stringify({}), { status: 200 });
+    });
+
+    render(
+      <PitWallWarRoom
+        selectedRace="monza"
+        selectedDriver="VER"
+        rainForecast={10}
+        apiBase=""
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByText('2-STOP')).toBeInTheDocument();
+    });
+    expect(screen.getByText('Lap 39')).toBeInTheDocument();
+
+    fireEvent.click(screen.getByText('2026 Active Aero'));
+    expect(screen.getByText('Italian GP')).toBeInTheDocument();
+    expect(screen.getByText('-59% Drag')).toBeInTheDocument();
   });
 });
