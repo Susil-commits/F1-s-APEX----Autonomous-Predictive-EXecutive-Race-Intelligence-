@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/Susil-commits/F1-s-APEX----Autonomous-Predictive-EXecutive-Race-Intelligence-/actions/workflows/ci.yml/badge.svg?branch=v1-only)](https://github.com/Susil-commits/F1-s-APEX----Autonomous-Predictive-EXecutive-Race-Intelligence-/actions)
 
-**[Live Demo](https://f1-apex.vercel.app)** · [API Docs](https://f1-s-apex-autonomous-predictive.onrender.com/docs) · [Architecture](docs/ARCHITECTURE.md) · [Evaluation Suite](docs/EVALUATION.md) · [Run Guide](docs/HOW_TO_RUN.md)
+**[Live Demo](https://f1-s-apex-autonomous-predictive-e-x.vercel.app/)** · [API Docs](https://f1-s-apex-autonomous-predictive.onrender.com/docs) · [Architecture](docs/ARCHITECTURE.md) · [Evaluation Suite](docs/EVALUATION.md) · [Run Guide](docs/HOW_TO_RUN.md)
 
 > **Point-in-time race prediction** — predicts each driver's finishing position using only facts verifiably known before lights-out: qualifying grid slot, constructor championship pace share, driver rolling average, circuit characteristics, and rain forecast.
 

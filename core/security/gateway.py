@@ -73,6 +73,7 @@ def configure_enterprise_cors(app: FastAPI) -> None:
             "http://127.0.0.1:5173",
             "http://127.0.0.1:3000",
             "https://f1-apex.vercel.app",
+            "https://f1-s-apex-autonomous-predictive-e-x.vercel.app",
         ]
 
     is_production = os.environ.get("ENVIRONMENT", "development").lower() == "production"
