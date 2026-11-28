@@ -832,3 +832,56 @@ async def test_races_endpoint_ttl_caching_and_drift_batch_limit():
             oversized = [{"grid_position": 1, "quali_delta_s": 0.1, "rain_prob": 0.0}] * 1001
             drift_resp = await client.post("/api/core/drift/check", json=oversized)
             assert drift_resp.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_normalize_circuit_hybrid_grid_and_live_weather():
+    """Verifies normalize_circuit_id, hybrid ranker+CQR full grid scoring, and cached /weather/{circuit_id}."""
+    from unittest.mock import patch
+    from core.api import predict as predict_mod
+    from core.features.feature_builder import normalize_circuit_id
+
+    assert normalize_circuit_id("silverstone_2026") == "silverstone"
+    assert normalize_circuit_id("sao_paulo_2026") == "interlagos"
+    assert normalize_circuit_id("austin_2025") == "americas"
+
+    predict_mod._CACHED_MODEL = None
+    artifact = predict_mod.get_core_model()
+    assert artifact.get("ranker_model") is not None
+
+    predict_mod._WEATHER_CACHE.clear()
+    mock_weather = {
+        "circuit_id": "silverstone",
+        "source": "open_meteo_live",
+        "rain_probability": 0.42,
+        "weather_transition": True,
+        "air_temp_c": 19.5,
+        "track_temp_c": 26.5,
+    }
+
+    transport = ASGITransport(app=core_app)
+    with patch("core.ingestion.jolpica_adapter.JolpicaAdapter.fetch_live_circuit_weather", return_value=mock_weather) as mock_w:
+        async with AsyncClient(transport=transport, base_url="http://test") as client:
+            w1 = await client.get("/api/core/weather/silverstone_2026")
+            assert w1.status_code == 200
+            wd1 = w1.json()
+            assert wd1["cached"] is False
+            assert wd1["rain_probability"] == 0.42
+            assert wd1["weather_transition"] is True
+
+            w2 = await client.get("/api/core/weather/silverstone")
+            assert w2.status_code == 200
+            assert w2.json()["cached"] is True
+            assert mock_w.call_count == 1
+
+            grid_resp = await client.post(
+                "/api/core/predict/grid",
+                json={"race_id": "sao_paulo_2026", "rain_probability": 0.35},
+            )
+            assert grid_resp.status_code == 200
+            grid_data = grid_resp.json()
+            assert grid_data["total_drivers"] >= 20
+            first = grid_data["grid_results"][0]
+            assert isinstance(first["quantile_interval"], list)
+            assert len(first["quantile_interval"]) == 2
+            assert first["quantile_interval"][0] <= first["quantile_interval"][1]

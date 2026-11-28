@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { Trophy, ChevronDown, ChevronUp, Activity, Gauge, Flag, Zap, Compass, CheckCircle2, ArrowRight } from 'lucide-react';
 import { FeatureContributionItem } from './FeatureImportanceBar';
-import { F1_CDN_FALLBACK } from './data/constants';
+import { DRIVERS_LIST, F1_CDN_FALLBACK } from './data/constants';
 
 export interface StrategyLeverItem {
   lever: string;
@@ -53,44 +53,17 @@ interface PredictionCardProps {
   data: PredictionData;
 }
 
-const DRIVER_METADATA: Record<
-  string,
-  { number: number; color: string; country: string }
-> = {
-  VER: { number: 1, color: '#3671C6', country: '🇳🇱' },
-  NOR: { number: 4, color: '#FF8000', country: '🇬🇧' },
-  LEC: { number: 16, color: '#E80020', country: '🇲🇨' },
-  PIA: { number: 81, color: '#FF8000', country: '🇦🇺' },
-  HAM: { number: 44, color: '#E80020', country: '🇬🇧' },
-  RUS: { number: 63, color: '#00A19B', country: '🇬🇧' },
-  ANT: { number: 12, color: '#00A19B', country: '🇮🇹' },
-  SAI: { number: 55, color: '#64C4FF', country: '🇪🇸' },
-  PER: { number: 11, color: '#3671C6', country: '🇲🇽' },
-  ALO: { number: 14, color: '#229971', country: '🇪🇸' },
-  STR: { number: 18, color: '#229971', country: '🇨🇦' },
-  TSU: { number: 22, color: '#6692FF', country: '🇯🇵' },
-  ALB: { number: 23, color: '#64C4FF', country: '🇹🇭' },
-  HUL: { number: 27, color: '#52E252', country: '🇩🇪' },
-  RIC: { number: 3, color: '#6692FF', country: '🇦🇺' },
-  GAS: { number: 10, color: '#0093CC', country: '🇫🇷' },
-  OCO: { number: 31, color: '#0093CC', country: '🇫🇷' },
-  MAG: { number: 20, color: '#B6BABD', country: '🇩🇰' },
-  ZHO: { number: 24, color: '#52E252', country: '🇨🇳' },
-  BOT: { number: 77, color: '#52E252', country: '🇫🇮' },
-  SAR: { number: 2, color: '#64C4FF', country: '🇺🇸' },
-  BEA: { number: 87, color: '#B6BABD', country: '🇬🇧' },
-  LAW: { number: 30, color: '#6692FF', country: '🇳🇿' },
-  COL: { number: 43, color: '#64C4FF', country: '🇦🇷' },
-};
-
 export const PredictionCard: React.FC<PredictionCardProps> = ({ data }) => {
   const [showStrategicDrivers, setShowStrategicDrivers] = useState<boolean>(true);
 
-  const meta = DRIVER_METADATA[data.driver_id] || {
-    number: 99,
-    color: '#E10600',
-    country: '🏁',
-  };
+  const matchedDriver = DRIVERS_LIST.find((d) => d.code === data.driver_id);
+  const meta = matchedDriver
+    ? { number: matchedDriver.number, color: matchedDriver.color, country: matchedDriver.country }
+    : {
+        number: 99,
+        color: '#E10600',
+        country: '🏁',
+      };
 
   const isPodium = data.predicted_position <= 3;
   const isP1 = data.predicted_position === 1;

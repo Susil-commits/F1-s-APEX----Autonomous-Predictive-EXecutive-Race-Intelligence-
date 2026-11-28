@@ -9,7 +9,7 @@ import logging
 import math
 import random
 import time
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Tuple
 
 import httpx
 
@@ -17,6 +17,37 @@ logger = logging.getLogger(__name__)
 
 JOLPICA_BASE_URL = "https://api.jolpi.ca/ergast/f1"
 OPEN_METEO_ARCHIVE_URL = "https://archive-api.open-meteo.com/v1/archive"
+OPEN_METEO_FORECAST_URL = "https://api.open-meteo.com/v1/forecast"
+
+CIRCUIT_COORDINATES: Dict[str, Tuple[float, float]] = {
+    "silverstone": (52.0786, -1.0169),
+    "monza": (45.6156, 9.2811),
+    "spa": (50.4372, 5.9714),
+    "suzuka": (34.8431, 136.5410),
+    "interlagos": (-23.7036, -46.6997),
+    "catalunya": (41.5700, 2.2611),
+    "imola": (44.3439, 11.7167),
+    "red_bull_ring": (47.2197, 14.7647),
+    "hungaroring": (47.5789, 19.2486),
+    "zandvoort": (52.3888, 4.5409),
+    "ricard": (43.2506, 5.7917),
+    "bahrain": (26.0325, 50.5106),
+    "losail": (25.4900, 51.4542),
+    "yas_marina": (24.4672, 54.6031),
+    "shanghai": (31.3389, 121.2200),
+    "sepang": (2.7608, 101.7380),
+    "americas": (30.1328, -97.6411),
+    "rodriguez": (19.4042, -99.0907),
+    "monaco": (43.7347, 7.4206),
+    "marina_bay": (1.2914, 103.8640),
+    "baku": (40.3725, 49.8533),
+    "jeddah": (21.6319, 39.1044),
+    "albert_park": (-37.8497, 144.9680),
+    "miami": (25.9581, -80.2389),
+    "vegas": (36.1147, -115.1730),
+    "villeneuve": (45.5000, -73.5228),
+    "madring": (40.4640, -3.6170),
+}
 
 CONSTRUCTOR_LINEAGE_ALIASES: Dict[str, str] = {
     "alfa": "sauber_audi",
@@ -282,6 +313,58 @@ class JolpicaAdapter:
         except Exception as exc:
             logger.debug(f"[JolpicaAdapter] Open-Meteo lookup failed for {race_date}: {exc}")
             return 0.05
+
+    def fetch_live_circuit_weather(self, circuit_id: str) -> Dict[str, Any]:
+        """Fetches live Open-Meteo forecast for a circuit, with safe seasonal fallback."""
+        from core.features.feature_builder import normalize_circuit_id
+
+        cid = normalize_circuit_id(circuit_id)
+        coords = CIRCUIT_COORDINATES.get(cid)
+        fallback = {
+            "circuit_id": cid,
+            "source": "fallback",
+            "rain_probability": 0.12 if cid in ("silverstone", "spa", "interlagos", "suzuka", "sepang") else 0.08,
+            "weather_transition": False,
+            "air_temp_c": 23.0,
+            "track_temp_c": 32.0,
+        }
+        if not coords:
+            return fallback
+
+        lat, lon = coords
+        try:
+            with httpx.Client(timeout=self.timeout) as client:
+                resp = self._get_with_retry(
+                    client,
+                    f"{OPEN_METEO_FORECAST_URL}?latitude={lat}&longitude={lon}"
+                    "&current=temperature_2m,precipitation,cloud_cover"
+                    "&hourly=precipitation_probability,temperature_2m"
+                    "&forecast_days=2&timezone=GMT",
+                )
+            if not resp or resp.status_code != 200:
+                return fallback
+            payload = resp.json()
+            current = payload.get("current", {})
+            hourly = payload.get("hourly", {})
+            air_temp = float(current.get("temperature_2m", 23.0))
+            cloud_pct = float(current.get("cloud_cover", 25.0))
+            probs = [float(p) for p in (hourly.get("precipitation_probability") or [])[:12] if p is not None]
+            max_prob = max(probs) / 100.0 if probs else 0.05
+            min_prob = min(probs) / 100.0 if probs else 0.05
+            rain_prob = round(min(0.95, max(0.02, 0.7 * max_prob + 0.15 * (cloud_pct / 100.0))), 3)
+            weather_transition = bool((max_prob - min_prob) >= 0.30 and max_prob >= 0.35)
+            solar_gain = 3.0 if rain_prob >= 0.45 else max(4.0, 11.0 * (1.0 - cloud_pct / 120.0))
+            return {
+                "circuit_id": cid,
+                "source": "open_meteo_live",
+                "rain_probability": rain_prob,
+                "weather_transition": weather_transition,
+                "air_temp_c": round(air_temp, 1),
+                "track_temp_c": round(air_temp + solar_gain, 1),
+            }
+        except Exception as exc:
+            logger.debug(f"[JolpicaAdapter] Live Open-Meteo forecast failed for {cid}: {exc}")
+            return fallback
 
     def fetch_historical_prerace_records(self, seasons: List[int]) -> List[Dict[str, Any]]:
         """Fetches and builds strictly causal pre-race features and actual finishing positions across seasons."""

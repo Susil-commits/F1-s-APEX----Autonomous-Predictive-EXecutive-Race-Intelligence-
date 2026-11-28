@@ -460,7 +460,9 @@ async def generate_tactical_strategy_brief(request: Request, req: StrategyBriefR
             detail=f"Security violation: {reason}",
         )
 
-    circuit_id = req.race_id.lower().replace("_2024", "").replace("_2025", "")
+    from core.features.feature_builder import normalize_circuit_id
+
+    circuit_id = normalize_circuit_id(req.race_id)
     bundle = _CONTEXT_ASSEMBLER.assemble(
         driver_id=req.driver_id,
         circuit_id=circuit_id,

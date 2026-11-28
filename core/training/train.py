@@ -365,26 +365,25 @@ def train_finishing_position_model(
 
     # Optional group-wise race ranking benchmark (CatBoostRanker grouped by race)
     ranker_benchmark: Dict[str, Any] = {}
+    ranker_model: Any = None
     if not use_synthetic and "season" in df.columns and "round" in df.columns and refit_mask is not None:
         try:
             group_ids_all = (df["season"].astype(int) * 100 + df["round"].astype(int)).to_numpy()
             sel_train_groups = group_ids_all[sel_train_mask]
             sel_val_groups = group_ids_all[sel_val_mask]
-            y_sel_rel = 21.0 - y_select_train
-            train_pool = Pool(data=X_select_train, label=y_sel_rel, group_id=sel_train_groups)
-            val_pool = Pool(data=X_select_val, group_id=sel_val_groups)
-            ranker = CatBoostRanker(
-                loss_function="PairLogitPairwise",
-                iterations=150,
-                learning_rate=0.06,
-                depth=4,
-                random_seed=random_seed,
-                thread_count=1,
-                verbose=0,
-                allow_writing_files=False,
-            )
-            ranker.fit(train_pool)
-            rank_scores = ranker.predict(val_pool)
+            ranker_params = {
+                "loss_function": "PairLogitPairwise",
+                "iterations": 150,
+                "learning_rate": 0.06,
+                "depth": 4,
+                "random_seed": random_seed,
+                "thread_count": 1,
+                "verbose": 0,
+                "allow_writing_files": False,
+            }
+            ranker = CatBoostRanker(**ranker_params)
+            ranker.fit(Pool(data=X_select_train, label=21.0 - y_select_train, group_id=sel_train_groups))
+            rank_scores = ranker.predict(Pool(data=X_select_val, group_id=sel_val_groups))
             # Negative relevance score correlates positively with finishing position (1..20)
             sr = spearmanr(y_select_val, -rank_scores)
             rank_rho = float(getattr(sr, "statistic", sr[0]))
@@ -394,6 +393,11 @@ def train_finishing_position_model(
                 "validation_spearman_rho": round(rank_rho, 3),
             }
             logger.info(f"[APEX Selection] CATBOOST_RANKER: {sel_val_season}-val Spearman ρ={rank_rho:.3f}")
+
+            # Refit ranker on the causal fit fold for hybrid full-grid scoring at serving time
+            fit_groups = group_ids_all[refit_mask][:fit_split_idx]
+            ranker_model = CatBoostRanker(**ranker_params)
+            ranker_model.fit(Pool(data=X_fit, label=21.0 - y_fit, group_id=fit_groups))
         except Exception as rank_exc:
             logger.warning(f"[APEX Selection] CatBoostRanker benchmark skipped: {rank_exc}")
 
@@ -481,6 +485,7 @@ def train_finishing_position_model(
             "mean_interval_width": round(cqr_mean_width, 2),
         },
         "ranker_benchmark": ranker_benchmark,
+        "ranker_model": ranker_model,
         "metrics": {
             "validation_mae": best_mae,
             "validation_r2": best_r2,

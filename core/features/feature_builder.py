@@ -17,6 +17,7 @@ while misrepresenting data fidelity.  The 10-feature vector is the shipped model
 """
 from __future__ import annotations
 
+import re
 from typing import Dict, List, Tuple
 import numpy as np
 
@@ -76,6 +77,41 @@ CIRCUIT_PROFILES: Dict[str, Dict[str, float]] = {
 }
 
 
+CIRCUIT_ALIASES: Dict[str, str] = {
+    "interlagos": "interlagos",
+    "sao_paulo": "interlagos",
+    "austin": "americas",
+    "cota": "americas",
+    "singapore": "marina_bay",
+    "melbourne": "albert_park",
+    "australia": "albert_park",
+    "mexico_city": "rodriguez",
+    "mexico": "rodriguez",
+    "canada": "villeneuve",
+    "montreal": "villeneuve",
+    "las_vegas": "vegas",
+    "abu_dhabi": "yas_marina",
+    "qatar": "losail",
+    "lusail": "losail",
+    "austria": "red_bull_ring",
+    "spielberg": "red_bull_ring",
+    "uk": "silverstone",
+    "britain": "silverstone",
+    "italy": "monza",
+    "belgium": "spa",
+    "spain": "catalunya",
+    "japan": "suzuka",
+    "china": "shanghai",
+    "madrid": "madring",
+}
+
+
+def normalize_circuit_id(race_id: str) -> str:
+    """Normalizes race/circuit IDs by stripping season suffixes and resolving known aliases."""
+    cleaned = re.sub(r"_(?:20\d{2})$", "", (race_id or "").strip().lower())
+    return CIRCUIT_ALIASES.get(cleaned, cleaned)
+
+
 class PreRaceFeatureBuilder:
     """Extracts strictly point-in-time validated feature vectors for pre-race prediction."""
 
@@ -93,8 +129,9 @@ class PreRaceFeatureBuilder:
         constructor_race_gain: float = 0.0,
     ) -> Tuple[np.ndarray, Dict[str, float]]:
         """Constructs a normalized 12-dimensional vector from pre-race inputs."""
+        canonical_circuit = normalize_circuit_id(circuit_id)
         profile = CIRCUIT_PROFILES.get(
-            circuit_id.lower(),
+            canonical_circuit,
             {"downforce": 0.60, "power": 0.70, "street": 0.0}
         )
 

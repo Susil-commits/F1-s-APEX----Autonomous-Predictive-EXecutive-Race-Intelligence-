@@ -1,8 +1,9 @@
-import React from 'react';
+import React, { Suspense, lazy } from 'react';
 import { Play, ChevronRight, Sparkles, ArrowRight } from 'lucide-react';
 import { Parallax3DBackground } from '../Parallax3DBackground';
-import { F1Aerodynamics3D } from '../F1Aerodynamics3D';
 import { useTheme } from '../../context/ThemeContext';
+
+const F1Aerodynamics3D = lazy(() => import('../F1Aerodynamics3D'));
 
 interface HeroProps {
   onEnterApp: () => void;
@@ -96,7 +97,15 @@ export const Hero: React.FC<HeroProps> = ({ onEnterApp }) => {
             {/* 3D Wind Tunnel Interactive Canvas */}
             <div className="matte-panel-elevated overflow-hidden p-2 group relative h-[380px] sm:h-[420px] flex items-center justify-center backdrop-blur-xl border border-slate-300/60 dark:border-white/15">
               <div className="w-full h-full relative rounded-xl overflow-hidden bg-slate-950/40">
-                <F1Aerodynamics3D theme={theme} accentColor="#E10600" />
+                <Suspense
+                  fallback={
+                    <div className="w-full h-full flex items-center justify-center text-xs font-mono text-slate-400">
+                      Initializing 3D Aerodynamic Tunnel...
+                    </div>
+                  }
+                >
+                  <F1Aerodynamics3D theme={theme} accentColor="#E10600" />
+                </Suspense>
                 <div className="absolute bottom-3 left-3 text-[10px] font-mono text-slate-300 bg-black/60 backdrop-blur-md px-2.5 py-1 rounded border border-white/10">
                   Airflow Vortices · Drag to rotate chassis
                 </div>

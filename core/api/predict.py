@@ -25,6 +25,7 @@ from core.features.feature_builder import (
     CIRCUIT_PROFILES,
     PRE_RACE_FEATURE_NAMES,
     PreRaceFeatureBuilder,
+    normalize_circuit_id,
 )
 from core.security.auth import Role, require_role
 
@@ -41,6 +42,50 @@ _MODEL_LOCK = threading.Lock()
 _RACES_CACHE: Dict[int, Tuple[float, List[Dict[str, Any]]]] = {}
 _RACES_CACHE_LOCK = threading.Lock()
 _RACES_CACHE_TTL_SECONDS = 3600.0
+_WEATHER_CACHE: Dict[str, Tuple[float, Dict[str, Any]]] = {}
+_WEATHER_CACHE_LOCK = threading.Lock()
+_WEATHER_CACHE_TTL_SECONDS = 900.0
+
+
+def score_grid_candidates(
+    artifact: Dict[str, Any],
+    X: np.ndarray,
+) -> Tuple[np.ndarray, np.ndarray, Optional[List[List[int]]]]:
+    """Scores a 2D driver feature matrix with optional CatBoostRanker blending and CQR intervals."""
+    model = artifact["model"]
+    raw_preds = np.asarray(model.predict(X), dtype=float)
+    sort_scores = raw_preds.copy()
+
+    ranker_model = artifact.get("ranker_model")
+    if ranker_model is not None and len(X) > 1:
+        try:
+            ranker_neg = -np.asarray(ranker_model.predict(X), dtype=float)
+            r_std = float(np.std(ranker_neg))
+            p_std = float(np.std(raw_preds))
+            if r_std > 1e-6 and p_std > 1e-6:
+                scaled_ranker = (ranker_neg - float(np.mean(ranker_neg))) / r_std * p_std + float(np.mean(raw_preds))
+                sort_scores = 0.75 * raw_preds + 0.25 * scaled_ranker
+        except Exception as exc:
+            logger.debug("[APEX Grid] Ranker blend skipped: %s", exc)
+
+    quantile_intervals: Optional[List[List[int]]] = None
+    quantile_models = artifact.get("quantile_models")
+    cqr_margin = float(artifact.get("cqr_margin", 0.0))
+    if quantile_models and isinstance(quantile_models, dict):
+        try:
+            q10_arr = np.asarray(quantile_models["q10"].predict(X), dtype=float)
+            q50_arr = np.asarray(quantile_models["q50"].predict(X), dtype=float)
+            q90_arr = np.asarray(quantile_models["q90"].predict(X), dtype=float)
+            quantile_intervals = []
+            for q10_v, q50_v, q90_v in zip(q10_arr, q50_arr, q90_arr):
+                p50 = int(np.clip(np.round(float(q50_v)), 1, 20))
+                p10 = min(p50, int(np.clip(np.floor(float(q10_v) - cqr_margin), 1, 20)))
+                p90 = max(p50, int(np.clip(np.ceil(float(q90_v) + cqr_margin), 1, 20)))
+                quantile_intervals.append([p10, p90])
+        except Exception as q_exc:
+            logger.debug("[APEX Grid] Vectorized CQR intervals skipped: %s", q_exc)
+
+    return raw_preds, sort_scores, quantile_intervals
 
 
 def get_core_model() -> Any:
@@ -277,7 +322,7 @@ async def predict_finish(request: Request, req: PredictRequest):
         }
 
     start_time = time.perf_counter()
-    circuit_id = req.race_id.lower().replace("_2024", "").replace("_2025", "")
+    circuit_id = normalize_circuit_id(req.race_id)
     grid: int = req.grid_position if req.grid_position is not None else int(profile.get("default_grid", 10))
     quali_delta_s: float = (
         float(req.quali_delta_s)
@@ -470,6 +515,7 @@ class GridDriverFinish(BaseModel):
     predicted_position: int
     raw_score: float
     confidence_interval: List[int]
+    quantile_interval: Optional[List[int]] = None
     win_probability_pct: float
     podium_probability_pct: float
     color: str
@@ -523,12 +569,11 @@ async def predict_full_grid(request: Request, req: GridPredictRequest):
     if not drivers:
         drivers = list(DEFAULT_DRIVER_ROSTER.values())
 
-    circuit_id = req.race_id.lower().replace("_2024", "").replace("_2025", "")
+    circuit_id = normalize_circuit_id(req.race_id)
     rain = float(req.rain_probability if req.rain_probability is not None else 0.10)
     weather_trans = bool(req.weather_transition)
 
     artifact = get_core_model()
-    model = artifact["model"]
     q_hat = float(artifact.get("q_hat_margin", 2.0))
 
     feature_matrix: List[np.ndarray] = []
@@ -571,21 +616,21 @@ async def predict_full_grid(request: Request, req: GridPredictRequest):
             "photo": d.get("photo"),
         })
 
-    # Vectorized inference over full grid in threadpool
+    # Vectorized inference + hybrid CatBoostRanker blending + CQR quantiles in threadpool
     X = np.array(feature_matrix, dtype=np.float32)
-    raw_preds = await run_in_threadpool(model.predict, X)
+    raw_preds, sort_scores, quantile_intervals = await run_in_threadpool(score_grid_candidates, artifact, X)
 
-    # Rank drivers based on continuous score to produce strictly monotonic grid finishing order
-    indexed_scores = list(enumerate(raw_preds))
-    indexed_scores.sort(key=lambda x: x[1])
+    indexed_scores = list(enumerate(sort_scores))
+    indexed_scores.sort(key=lambda x: float(x[1]))
 
     residual_std = float(artifact.get("residual_std", max(1.0, q_hat / 1.645)))
     grid_results: List[GridDriverFinish] = []
-    for rank_idx, (orig_idx, score) in enumerate(indexed_scores, start=1):
+    for rank_idx, (orig_idx, _) in enumerate(indexed_scores, start=1):
         meta = driver_meta_list[orig_idx]
-        raw_val = float(score)
+        raw_val = float(raw_preds[orig_idx])
         lower = max(1, int(np.floor(raw_val - q_hat)))
         upper = min(20, int(np.ceil(raw_val + q_hat)))
+        q_band = quantile_intervals[orig_idx] if quantile_intervals else None
 
         win_prob, podium_prob = estimate_finish_probabilities(raw_val, residual_std, rank_pos=rank_idx)
 
@@ -598,6 +643,7 @@ async def predict_full_grid(request: Request, req: GridPredictRequest):
                 predicted_position=rank_idx,
                 raw_score=round(raw_val, 2),
                 confidence_interval=[lower, upper],
+                quantile_interval=q_band,
                 win_probability_pct=round(win_prob, 1),
                 podium_probability_pct=round(podium_prob, 1),
                 color=meta["color"],
@@ -637,7 +683,7 @@ async def simulate_pit_stop(request: Request, req: PitSimulationRequest):
     sim = MonteCarloRaceSimulator()
     result = await run_in_threadpool(
         sim.simulate_strategy_comparison,
-        circuit_id=req.race_id,
+        circuit_id=normalize_circuit_id(req.race_id),
         current_lap=req.current_lap,
         current_pos=req.current_position,
         current_compound=req.current_compound,
@@ -717,6 +763,26 @@ async def list_available_races(season: int = 2026):
         _RACES_CACHE[season] = (time.monotonic(), enriched_races)
 
     return {"season": season, "cached": False, "races": enriched_races}
+
+
+@router.get("/weather/{circuit_id}")
+async def get_live_circuit_weather(circuit_id: str):
+    """Fetches live Open-Meteo circuit forecast (precipitation, crossover risk, track temp) with TTL caching."""
+    cid = normalize_circuit_id(circuit_id)
+    now = time.monotonic()
+    with _WEATHER_CACHE_LOCK:
+        cached = _WEATHER_CACHE.get(cid)
+        if cached and (now - cached[0]) < _WEATHER_CACHE_TTL_SECONDS:
+            return {**cached[1], "cached": True}
+
+    from core.ingestion.jolpica_adapter import JolpicaAdapter
+
+    adapter = JolpicaAdapter()
+    weather = await run_in_threadpool(adapter.fetch_live_circuit_weather, cid)
+    with _WEATHER_CACHE_LOCK:
+        _WEATHER_CACHE[cid] = (time.monotonic(), weather)
+
+    return {**weather, "cached": False}
 
 
 @router.get("/drivers")

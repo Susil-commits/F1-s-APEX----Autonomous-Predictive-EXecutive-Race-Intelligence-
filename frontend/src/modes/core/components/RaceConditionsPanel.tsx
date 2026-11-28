@@ -1,5 +1,5 @@
 import React from 'react';
-import { CloudRain, Sun, Play, Sliders, Shield } from 'lucide-react';
+import { CloudRain, Sun, Play, Sliders, RefreshCw } from 'lucide-react';
 
 export interface RaceConditionsPanelProps {
   gridPosition: number | '';
@@ -13,6 +13,9 @@ export interface RaceConditionsPanelProps {
   onRainChange: (rain: number) => void;
   onWeatherTransitionChange: (transition: boolean) => void;
   onAnalyze: () => void;
+  onSyncWeather?: () => void;
+  isSyncingWeather?: boolean;
+  weatherLabel?: string | null;
 }
 
 export const RaceConditionsPanel: React.FC<RaceConditionsPanelProps> = ({
@@ -27,6 +30,9 @@ export const RaceConditionsPanel: React.FC<RaceConditionsPanelProps> = ({
   onRainChange,
   onWeatherTransitionChange,
   onAnalyze,
+  onSyncWeather,
+  isSyncingWeather = false,
+  weatherLabel = null,
 }) => {
   const currentGrid = gridPosition === '' ? activeDriverDefaultGrid : gridPosition;
   const effectiveQualiDelta =
@@ -101,7 +107,7 @@ export const RaceConditionsPanel: React.FC<RaceConditionsPanelProps> = ({
 
         {/* Track Weather & Rain Probability */}
         <div className="flex flex-col gap-3">
-          <div className="flex items-center justify-between text-xs font-bold uppercase">
+          <div className="flex items-center justify-between text-xs font-bold uppercase gap-2">
             <span className="text-slate-700 dark:text-slate-300 flex items-center gap-1.5">
               {rainForecast > 30 ? (
                 <CloudRain className="w-4 h-4 text-cyan-600 dark:text-cyan-400" />
@@ -110,10 +116,28 @@ export const RaceConditionsPanel: React.FC<RaceConditionsPanelProps> = ({
               )}
               <span>Forecast Track Weather</span>
             </span>
-            <span className="text-cyan-600 dark:text-cyan-400 font-mono text-sm font-black">
-              {rainForecast}% Rain Probability
-            </span>
+            <div className="flex items-center gap-2">
+              {onSyncWeather && (
+                <button
+                  type="button"
+                  onClick={onSyncWeather}
+                  disabled={isSyncingWeather}
+                  className="px-2 py-0.5 rounded bg-cyan-500/10 hover:bg-cyan-500/20 text-cyan-600 dark:text-cyan-400 border border-cyan-500/30 text-[10px] font-mono font-bold flex items-center gap-1 cursor-pointer transition-colors"
+                >
+                  <RefreshCw className={`w-3 h-3 ${isSyncingWeather ? 'animate-spin' : ''}`} />
+                  {isSyncingWeather ? 'Syncing...' : 'Sync Live Weather'}
+                </button>
+              )}
+              <span className="text-cyan-600 dark:text-cyan-400 font-mono text-sm font-black">
+                {rainForecast}% Rain Probability
+              </span>
+            </div>
           </div>
+          {weatherLabel && (
+            <div className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400">
+              Live Telemetry: {weatherLabel}
+            </div>
+          )}
 
           <div className="py-2">
             <input

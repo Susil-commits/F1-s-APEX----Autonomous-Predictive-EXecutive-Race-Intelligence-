@@ -27,6 +27,9 @@ export const CoreMode: React.FC = () => {
   const [qualiDelta, setQualiDelta] = useState<number | ''>('');
   const [rainForecast, setRainForecast] = useState<number>(10);
   const [weatherTransition, setWeatherTransition] = useState<boolean>(false);
+  const [liveTrackTemp, setLiveTrackTemp] = useState<number>(34);
+  const [weatherLabel, setWeatherLabel] = useState<string | null>(null);
+  const [isSyncingWeather, setIsSyncingWeather] = useState<boolean>(false);
   const [isAnalyzing, setIsAnalyzing] = useState<boolean>(false);
   const [prediction, setPrediction] = useState<PredictionData | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -112,6 +115,27 @@ export const CoreMode: React.FC = () => {
 
     fetchRaces();
   }, []);
+
+  const handleSyncWeather = useCallback(async () => {
+    setIsSyncingWeather(true);
+    try {
+      const res = await fetch(`${API_BASE}/api/core/weather/${selectedRace}`);
+      if (res.ok) {
+        const w = await res.json();
+        const rainPct = Math.round(Number(w.rain_probability ?? 0.1) * 100);
+        setRainForecast(Math.min(100, Math.max(0, Math.round(rainPct / 5) * 5)));
+        setWeatherTransition(Boolean(w.weather_transition));
+        if (typeof w.track_temp_c === 'number') {
+          setLiveTrackTemp(Math.round(w.track_temp_c));
+        }
+        setWeatherLabel(`${w.air_temp_c}°C Air / ${w.track_temp_c}°C Track (${w.source})`);
+      }
+    } catch {
+      // Keep manual slider settings on offline failure
+    } finally {
+      setIsSyncingWeather(false);
+    }
+  }, [selectedRace]);
 
   const handleAnalyze = useCallback(async () => {
     setIsAnalyzing(true);
@@ -208,6 +232,9 @@ export const CoreMode: React.FC = () => {
         onRainChange={setRainForecast}
         onWeatherTransitionChange={setWeatherTransition}
         onAnalyze={handleAnalyze}
+        onSyncWeather={handleSyncWeather}
+        isSyncingWeather={isSyncingWeather}
+        weatherLabel={weatherLabel}
       />
 
       {/* 5. PREDICTION RESULT STAGE */}
@@ -225,6 +252,7 @@ export const CoreMode: React.FC = () => {
             selectedRace={selectedRace}
             selectedDriver={selectedDriver}
             rainForecast={rainForecast}
+            initialTrackTemp={liveTrackTemp}
             apiBase={API_BASE}
           />
         </div>

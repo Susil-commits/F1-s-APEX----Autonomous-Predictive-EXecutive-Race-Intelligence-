@@ -135,17 +135,17 @@ class ApexMCPServer:
         start = time.perf_counter()
 
         if name == "apex_predict_grid":
-            from core.api.predict import estimate_finish_probabilities, get_core_model
+            from core.api.predict import estimate_finish_probabilities, get_core_model, score_grid_candidates
+            from core.features.feature_builder import normalize_circuit_id
 
             race_id = str(arguments.get("race_id", "silverstone"))
-            circuit_id = race_id.lower().replace("_2024", "").replace("_2025", "")
+            circuit_id = normalize_circuit_id(race_id)
             rain_prob = float(np.clip(float(arguments.get("rain_probability", 0.0)), 0.0, 1.0))
             weather_trans = bool(arguments.get("weather_transition", False))
             grid_overrides = arguments.get("grid_overrides") or {}
 
             drivers = self.roster_service.get_all_drivers(active_only=True)[:20]
             artifact = get_core_model()
-            model = artifact["model"]
             q_hat = float(artifact.get("q_hat_margin", 2.0))
 
             feature_matrix: List[np.ndarray] = []
@@ -165,14 +165,14 @@ class ApexMCPServer:
                 feature_matrix.append(feat_vec)
 
             X = np.array(feature_matrix, dtype=np.float32)
-            raw_preds = model.predict(X)
-            indexed_scores = sorted(enumerate(raw_preds), key=lambda item: float(item[1]))
+            raw_preds, sort_scores, quantile_intervals = score_grid_candidates(artifact, X)
+            indexed_scores = sorted(enumerate(sort_scores), key=lambda item: float(item[1]))
 
             residual_std = float(artifact.get("residual_std", max(1.0, q_hat / 1.645)))
             results = []
-            for rank_idx, (orig_idx, score) in enumerate(indexed_scores, start=1):
+            for rank_idx, (orig_idx, _) in enumerate(indexed_scores, start=1):
                 d = drivers[orig_idx]
-                raw_val = float(score)
+                raw_val = float(raw_preds[orig_idx])
                 lower = max(1, int(np.floor(raw_val - q_hat)))
                 upper = min(20, int(np.ceil(raw_val + q_hat)))
                 win_prob, podium_prob = estimate_finish_probabilities(raw_val, residual_std, rank_pos=rank_idx)
@@ -184,6 +184,7 @@ class ApexMCPServer:
                     "predicted_position": rank_idx,
                     "raw_score": round(raw_val, 2),
                     "conformal_interval": [lower, upper],
+                    "quantile_interval": quantile_intervals[orig_idx] if quantile_intervals else None,
                     "win_probability_pct": win_prob,
                     "podium_probability_pct": podium_prob,
                 })
@@ -198,7 +199,9 @@ class ApexMCPServer:
             }
 
         elif name == "apex_simulate_pit_stop":
-            race_id = arguments.get("race_id", "silverstone")
+            from core.features.feature_builder import normalize_circuit_id
+
+            race_id = normalize_circuit_id(str(arguments.get("race_id", "silverstone")))
             lap = arguments.get("current_lap", 20)
             pos = arguments.get("current_position", 3)
             compound = arguments.get("current_compound", "C3")

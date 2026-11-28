@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, afterEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 import { PredictionCard, PredictionData } from '../PredictionCard';
 import { RaceConditionsPanel } from '../components/RaceConditionsPanel';
@@ -65,6 +65,7 @@ describe('PredictionCard & RaceConditionsPanel', () => {
   });
 
   afterEach(() => {
+    cleanup();
     vi.restoreAllMocks();
   });
 
@@ -123,5 +124,85 @@ describe('PredictionCard & RaceConditionsPanel', () => {
     fireEvent.click(screen.getByText('2026 Active Aero'));
     expect(screen.getByText('Italian GP')).toBeInTheDocument();
     expect(screen.getByText('-59% Drag')).toBeInTheDocument();
+  });
+
+  it('renders Sync Live Weather button and Full Grid CQR intervals', async () => {
+    const syncSpy = vi.fn();
+    render(
+      <RaceConditionsPanel
+        gridPosition={1}
+        qualiDelta={0}
+        rainForecast={20}
+        weatherTransition={false}
+        activeDriverDefaultGrid={1}
+        isAnalyzing={false}
+        onGridChange={() => {}}
+        onQualiDeltaChange={() => {}}
+        onRainChange={() => {}}
+        onWeatherTransitionChange={() => {}}
+        onAnalyze={() => {}}
+        onSyncWeather={syncSpy}
+        weatherLabel="21°C Air / 29°C Track (open_meteo_live)"
+      />
+    );
+
+    const syncBtn = screen.getByRole('button', { name: /Sync Live Weather/i });
+    fireEvent.click(syncBtn);
+    expect(syncSpy).toHaveBeenCalledTimes(1);
+    expect(screen.getByText(/29°C Track/)).toBeInTheDocument();
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (input) => {
+      const url = String(input);
+      if (url.includes('/api/core/predict/grid')) {
+        return new Response(
+          JSON.stringify({
+            race_id: 'silverstone',
+            total_drivers: 1,
+            execution_time_ms: 8.2,
+            summary: 'ok',
+            grid_results: [
+              {
+                driver_id: 'NOR',
+                driver_name: 'Lando Norris',
+                team_name: 'McLaren',
+                grid_position: 2,
+                predicted_position: 1,
+                raw_score: 1.4,
+                confidence_interval: [1, 8],
+                quantile_interval: [1, 3],
+                win_probability_pct: 48.0,
+                podium_probability_pct: 84.0,
+                color: '#FF8000',
+                country: '🇬🇧',
+              },
+            ],
+          }),
+          { status: 200 }
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          circuit: 'silverstone',
+          total_laps: 52,
+          total_runtime_ms: 12.1,
+          strategies: [],
+        }),
+        { status: 200 }
+      );
+    });
+
+    render(
+      <PitWallWarRoom
+        selectedRace="silverstone"
+        selectedDriver="NOR"
+        rainForecast={10}
+        apiBase=""
+      />
+    );
+
+    fireEvent.click(screen.getByText('20-Car Grid Finish'));
+    await waitFor(() => {
+      expect(screen.getByText('CQR P1–P3')).toBeInTheDocument();
+    });
   });
 });

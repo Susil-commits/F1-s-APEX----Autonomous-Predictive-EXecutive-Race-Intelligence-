@@ -20,6 +20,7 @@ interface PitWallWarRoomProps {
   selectedRace: string;
   selectedDriver: string;
   rainForecast: number;
+  initialTrackTemp?: number;
   apiBase: string;
 }
 
@@ -59,6 +60,7 @@ interface GridDriverItem {
   predicted_position: number;
   raw_score: number;
   confidence_interval: [number, number];
+  quantile_interval?: [number, number] | null;
   win_probability_pct: number;
   podium_probability_pct: number;
   color: string;
@@ -87,6 +89,7 @@ export const PitWallWarRoom: React.FC<PitWallWarRoomProps> = ({
   selectedRace,
   selectedDriver,
   rainForecast,
+  initialTrackTemp = 34,
   apiBase,
 }) => {
   const [activeTab, setActiveTab] = useState<'monte_carlo' | 'full_grid' | 'tyre_cliff' | '2026_aero'>('monte_carlo');
@@ -96,7 +99,11 @@ export const PitWallWarRoom: React.FC<PitWallWarRoomProps> = ({
   const [currentPosition, setCurrentPosition] = useState<number>(3);
   const [currentCompound, setCurrentCompound] = useState<string>('C3');
   const [tyreAge, setTyreAge] = useState<number>(12);
-  const [trackTemp, setTrackTemp] = useState<number>(34);
+  const [trackTemp, setTrackTemp] = useState<number>(initialTrackTemp);
+
+  useEffect(() => {
+    setTrackTemp(initialTrackTemp);
+  }, [initialTrackTemp]);
 
   // Undercut calculator state
   const [rivalGap, setRivalGap] = useState<number>(1.8);
@@ -453,7 +460,7 @@ export const PitWallWarRoom: React.FC<PitWallWarRoomProps> = ({
                 </p>
                 <p className="text-sm text-gray-200 mt-0.5">{simData.tactical_briefing}</p>
                 <p className="text-[11px] text-gray-400 mt-1 font-mono">
-                  Runtime: {simData.total_runtime_ms}ms • 10,000 Rollouts • Circuit: {simData.circuit.toUpperCase()} (Total {simData.total_laps} Laps)
+                  Runtime: {simData.total_runtime_ms}ms • 10,000 Rollouts • Circuit: {(simData.circuit || selectedRace).toUpperCase()} (Total {simData.total_laps} Laps)
                 </p>
               </div>
             </div>
@@ -591,6 +598,11 @@ export const PitWallWarRoom: React.FC<PitWallWarRoomProps> = ({
                       <td className="px-3 py-2.5 text-center text-gray-200">{driver.podium_probability_pct}%</td>
                       <td className="px-3 py-2.5 text-center text-gray-400">
                         [P{driver.confidence_interval[0]} - P{driver.confidence_interval[1]}]
+                        {driver.quantile_interval && (
+                          <span className="block text-[10px] text-cyan-300">
+                            CQR P{driver.quantile_interval[0]}–P{driver.quantile_interval[1]}
+                          </span>
+                        )}
                       </td>
                     </tr>
                   );
